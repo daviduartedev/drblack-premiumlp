@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  /* ===== Paleta Dr. Black Skins (preto + dourado + off-white) ===== */
+  --background: #050505;          /* preto profundo, base */
+  --foreground: #f2ede3;          /* off-white creme, texto principal */
+  --paper: #f2ede3;               /* fase clara do loader */
+  --ink: #0a0a0a;                 /* preto sobre paper */
+
+  --accent: #c9a24b;              /* dourado sóbrio */
+  --accent-soft: #e6c277;         /* highlight dourado claro */
+  --accent-deep: #8a6d2c;         /* dourado escuro / bronze */
+
+  --line: rgba(201, 162, 75, 0.25);
+  --muted: rgba(242, 237, 227, 0.55);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-paper: var(--paper);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-oswald);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* utility: texto recortado sobre padrão/gradiente */
+.kpr-mask {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* brilho sutil dourado para destaques */
+.gold-shine {
+  background: linear-gradient(
+    90deg,
+    var(--accent-deep) 0%,
+    var(--accent) 40%,
+    var(--accent-soft) 55%,
+    var(--accent) 70%,
+    var(--accent-deep) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
