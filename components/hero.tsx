@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 
 /**
  * Hero — Dr. Black Skins (loja premium de skins CS2)
@@ -9,16 +10,42 @@ import { motion } from "framer-motion";
 export default function Hero({ loading }: { loading: boolean }) {
   const show = !loading;
 
+  // Enquanto o loader não terminou o flip, mantemos a hero estática.
+  // Assim evitamos inicializar ScrollTrigger/WebGL “por trás” da face do loader.
+  if (!show) {
+    return (
+      <section
+        className="relative min-h-screen w-full overflow-hidden"
+        style={{
+          background: "var(--background)",
+          color: "var(--foreground)",
+        }}
+      >
+        {/* base preta profunda com leve gradiente */}
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 80% at 30% 30%, #1a1306 0%, #0b0904 45%, #050505 80%, #000 100%)",
+          }}
+        />
+      </section>
+    );
+  }
+
   const headline = ["COMPRE.", "VENDA.", "CONCORRA."];
 
   return (
-    <section
-      className="relative min-h-screen w-full overflow-hidden"
-      style={{
-        background: "var(--background)",
-        color: "var(--foreground)",
-      }}
-    >
+    <section className="w-full">
+      {/* Topo/branding e primeira impressão (mantém estilo atual) */}
+      <section
+        className="relative min-h-screen w-full overflow-hidden"
+        style={{
+          background: "var(--background)",
+          color: "var(--foreground)",
+        }}
+      >
       {/* ========== BACKGROUND em camadas ========== */}
       {/* base preta profunda com leve gradiente */}
       <div
@@ -190,7 +217,7 @@ export default function Hero({ loading }: { loading: boolean }) {
       {/* ========== RODAPÉ DISCRETO ========== */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: show ? 1 : 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.8, delay: 1.4 }}
         className="absolute bottom-6 left-[5vw] right-[5vw] z-10 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase"
         style={{ color: "var(--muted)" }}
@@ -203,6 +230,10 @@ export default function Hero({ loading }: { loading: boolean }) {
           LIVE MARKET · ONLINE
         </span>
       </motion.div>
+      </section>
+
+      {/* Hero + seção seguinte em narrativa scroll-driven (KPR-like) */}
+      <ScrollDrivenHeroGallery />
     </section>
   );
 }

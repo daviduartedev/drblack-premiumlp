@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 
 /**
@@ -39,22 +39,24 @@ export default function Loader3D({
 
   // gera pílulas de ruído extra (fase 2 densa → 3 esparsa)
   // posições fixas (não randomizadas a cada render) pra não vibrar feio
-  const noisePills = useRef<{ x: number; y: number; h: number }[]>(
-    Array.from({ length: 140 }, (_, i) => {
-      // pseudo-random determinístico
-      const s = Math.sin(i * 91.37) * 10000;
-      const rx = Math.abs(s - Math.floor(s));
-      const s2 = Math.sin(i * 47.91) * 10000;
-      const ry = Math.abs(s2 - Math.floor(s2));
-      const s3 = Math.sin(i * 13.17) * 10000;
-      const rh = Math.abs(s3 - Math.floor(s3));
-      return {
-        x: rx * 1900,
-        y: ry * 960,
-        h: 28 + rh * 70,
-      };
-    })
-  ).current;
+  const noisePills = useMemo<{ x: number; y: number; h: number }[]>(
+    () =>
+      Array.from({ length: 140 }, (_, i) => {
+        // pseudo-random determinístico
+        const s = Math.sin(i * 91.37) * 10000;
+        const rx = Math.abs(s - Math.floor(s));
+        const s2 = Math.sin(i * 47.91) * 10000;
+        const ry = Math.abs(s2 - Math.floor(s2));
+        const s3 = Math.sin(i * 13.17) * 10000;
+        const rh = Math.abs(s3 - Math.floor(s3));
+        return {
+          x: rx * 1900,
+          y: ry * 960,
+          h: 28 + rh * 70,
+        };
+      }),
+    []
+  );
 
   // URL rotativa
   useEffect(() => {
