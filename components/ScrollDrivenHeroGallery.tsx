@@ -124,24 +124,28 @@ export default function ScrollDrivenHeroGallery() {
         const heroEl = cardRefs.current[HERO_INDEX];
         if (!heroEl) return;
         // Reset temporário do scale para medir o size cru.
-        const prevScale = gsap.getProperty(heroWrap, "scale") as number;
-        gsap.set(heroWrap, { scale: 1 });
+        const prevX = gsap.getProperty(heroWrap, "scaleX") as number;
+        const prevY = gsap.getProperty(heroWrap, "scaleY") as number;
+        gsap.set(heroWrap, { scaleX: 1, scaleY: 1 });
         const rect = heroEl.getBoundingClientRect();
         heroBaseW = rect.width;
         heroBaseH = rect.height;
-        gsap.set(heroWrap, { scale: prevScale });
+        gsap.set(heroWrap, { scaleX: prevX || 1, scaleY: prevY || 1 });
       };
       captureHeroBase();
 
-      const computeHeroScale = () => {
+      // Escala anisotrópica — scaleX e scaleY independentes para que
+      // o card preencha EXATAMENTE viewport × viewport (zero bordas).
+      // Sem isso, com frame 16:9 numa viewport 16:10/ultrawide ficam
+      // barras pretas no topo/laterais.
+      const computeHeroScaleXY = () => {
         if (heroBaseW === 0 || heroBaseH === 0) captureHeroBase();
         const targetW = window.innerWidth;
         const targetH = window.innerHeight;
-        const scaleX = targetW / heroBaseW;
-        const scaleY = targetH / heroBaseH;
-        // 1.06 para garantir cover real (sem bordas pretas) considerando
-        // arredondamentos, perspective e o radius 28px do card.
-        return Math.max(scaleX, scaleY) * 1.06;
+        return {
+          scaleX: (targetW / heroBaseW) * 1.02,
+          scaleY: (targetH / heroBaseH) * 1.02,
+        };
       };
 
       // Estado inicial: faixa empurrada para a direita — hero colado à
@@ -219,12 +223,15 @@ export default function ScrollDrivenHeroGallery() {
       }
 
       // ----- FASE B — expansão hero + frame scrub em PARALELO (0.45 .. 1.0) -----
-      // Hero scale → fullscreen ocupa todo o trecho da fase B.
+      // Hero scale anisotrópico → fullscreen exato (cobre viewport inteira
+      // independente da proporção da tela). object-cover do <Image>
+      // interno faz o crop natural para preencher sem distorcer.
       tl.fromTo(
         heroWrap,
-        { scale: 1, rotationX: 0, rotationY: 0, z: 0 },
+        { scaleX: 1, scaleY: 1, rotationX: 0, rotationY: 0, z: 0 },
         {
-          scale: () => computeHeroScale(),
+          scaleX: () => computeHeroScaleXY().scaleX,
+          scaleY: () => computeHeroScaleXY().scaleY,
           duration: 0.55,
           ease: "power2.inOut",
         },
