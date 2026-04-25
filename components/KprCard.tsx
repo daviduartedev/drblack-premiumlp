@@ -6,12 +6,12 @@ import { CSSProperties, ReactNode, forwardRef } from "react";
 /**
  * Card uniforme do carrossel "SKINS NO PONTO".
  *
- * Shape simples e consistente: quadrado (1:1), cantos arredondados, mesma
- * espessura de borda em todos os cards do trilho. Inspirado no layout do
- * vídeo de referência KPR — três (aqui cinco) cards iguais lado a lado.
- *
- * Children/overlay são posicionados absolutamente dentro da área do card e
- * compartilham o mesmo `border-radius` via `overflow: hidden`.
+ * Shape (referência ANIMUS CHARACTER enviada pelo usuário):
+ *  - Aspect-ratio 16:9 — bate com o tamanho dos frames (1920x1080) para
+ *    preservar HD máximo, sem distorcer.
+ *  - Cantos arredondados generosos (28px).
+ *  - "Plate" flutuante no canto superior-esquerdo simula o notch onde
+ *    fica o label tipo "ANIMUS CHARACTER".
  */
 export type KprCardProps = {
   src: string;
@@ -21,9 +21,9 @@ export type KprCardProps = {
   subtitle?: string;
   className?: string;
   style?: CSSProperties;
-  /** Conteúdo extra empilhado por cima da imagem (ex: scrubber de frames). */
+  /** Conteudo extra empilhado por cima da imagem (ex: scrubber de frames). */
   overlay?: ReactNode;
-  /** Esconde o índice/título — usado pelo card hero durante a expansão. */
+  /** Esconde o indice/titulo - usado pelo card hero durante a expansao. */
   hideLabels?: boolean;
   priority?: boolean;
   sizes?: string;
@@ -41,7 +41,7 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
     overlay,
     hideLabels = false,
     priority = false,
-    sizes = "(min-width: 1024px) 22vw, 70vw",
+    sizes = "(min-width: 1024px) 28vw, 80vw",
   },
   ref
 ) {
@@ -51,13 +51,13 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
       className={className}
       style={{
         position: "relative",
-        aspectRatio: "1 / 1",
+        aspectRatio: "16 / 9",
         backgroundColor: "#120f0c",
-        borderRadius: "22px",
+        borderRadius: "28px",
         overflow: "hidden",
-        border: "1px solid rgba(238,217,196,0.18)",
+        border: "1px solid rgba(238,217,196,0.22)",
         boxShadow:
-          "0 18px 48px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.04)",
+          "0 28px 70px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.05)",
         willChange: "transform, opacity",
         ...style,
       }}
@@ -68,8 +68,9 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
         fill
         priority={priority}
         sizes={sizes}
+        quality={95}
         className="object-cover"
-        style={{ transform: "scale(1.04)" }}
+        style={{ transform: "scale(1.02)" }}
       />
 
       <div
@@ -77,7 +78,7 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
         className="absolute inset-x-0 top-0 h-1/3 pointer-events-none"
         style={{
           background:
-            "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 100%)",
+            "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%)",
         }}
       />
       <div
@@ -91,26 +92,50 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
 
       {!hideLabels && index ? (
         <div
-          className="absolute top-4 left-4 text-[10px] tracking-[0.32em] uppercase z-[2]"
-          style={{ color: "rgba(238,217,196,0.92)" }}
+          className="absolute z-[3] flex items-center gap-2"
+          style={{
+            top: "14px",
+            left: "14px",
+            padding: "6px 12px 6px 10px",
+            borderRadius: "10px",
+            backgroundColor: "rgba(10,10,10,0.55)",
+            border: "1px solid rgba(238,217,196,0.18)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
+          }}
         >
-          {index}
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 6,
+              height: 6,
+              backgroundColor: "rgba(238,217,196,0.92)",
+              borderRadius: 1,
+            }}
+          />
+          <span
+            className="text-[10px] tracking-[0.32em] uppercase"
+            style={{ color: "rgba(238,217,196,0.94)" }}
+          >
+            {index}
+          </span>
         </div>
       ) : null}
 
       {!hideLabels && (title || subtitle) ? (
-        <div className="absolute bottom-4 left-4 right-4 z-[2]">
+        <div className="absolute bottom-5 left-5 right-5 z-[2]">
           {title ? (
             <div
-              className="text-[15px] font-semibold tracking-tight"
-              style={{ color: "rgba(255,255,255,0.96)" }}
+              className="text-[16px] font-semibold tracking-tight"
+              style={{ color: "rgba(255,255,255,0.97)" }}
             >
               {title}
             </div>
           ) : null}
           {subtitle ? (
             <div
-              className="text-[10px] tracking-[0.18em] uppercase mt-1"
+              className="text-[10px] tracking-[0.22em] uppercase mt-1"
               style={{ color: "rgba(238,217,196,0.78)" }}
             >
               {subtitle}

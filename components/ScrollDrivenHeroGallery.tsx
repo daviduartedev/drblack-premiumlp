@@ -119,7 +119,8 @@ export default function ScrollDrivenHeroGallery() {
           start: "top top",
           end: "+=600%",
           pin: true,
-          scrub: 0.6,
+          // scrub maior = mais inércia/elasticidade na faixa do carrossel
+          scrub: 1.1,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
@@ -139,16 +140,54 @@ export default function ScrollDrivenHeroGallery() {
         },
       });
 
-      // Phase A — carousel slide (0 -> 0.5)
+      // Phase A — carousel slide (0 -> 0.5) com movimento "band/elastic":
+      // a faixa passa 4% do alvo e retorna, dando sensação de elástico.
+      tl.to(
+        track,
+        {
+          x: () => computeShift() * 1.04,
+          duration: 0.42,
+          ease: "power2.out",
+        },
+        0
+      );
       tl.to(
         track,
         {
           x: () => computeShift(),
-          duration: 0.5,
-          ease: "none",
+          duration: 0.08,
+          ease: "power2.inOut",
         },
-        0
+        0.42
       );
+
+      // Sway sutil em Y/rotação dos cards não-hero — sensação de
+      // "fileira flexível" puxada por elástico.
+      for (let i = 0; i < HERO_INDEX; i++) {
+        const card = cardRefs.current[i];
+        if (!card) continue;
+        const delay = i * 0.02;
+        tl.to(
+          card,
+          {
+            y: -8,
+            rotation: -0.6,
+            duration: 0.22,
+            ease: "power2.out",
+          },
+          delay
+        );
+        tl.to(
+          card,
+          {
+            y: 0,
+            rotation: 0,
+            duration: 0.2,
+            ease: "power2.inOut",
+          },
+          0.3 + delay
+        );
+      }
 
       tl.to(
         [eyebrowRef.current, titleRef.current, subRef.current],
@@ -303,9 +342,9 @@ export default function ScrollDrivenHeroGallery() {
             ref={trackRef}
             className="relative flex items-center"
             style={{
-              gap: "clamp(20px, 2.4vw, 40px)",
-              paddingLeft: "8vw",
-              paddingRight: "8vw",
+              gap: "clamp(24px, 3vw, 56px)",
+              paddingLeft: "10vw",
+              paddingRight: "10vw",
               width: "max-content",
               willChange: "transform",
             }}
@@ -319,7 +358,7 @@ export default function ScrollDrivenHeroGallery() {
                     cardRefs.current[i] = el;
                   }}
                   style={{
-                    width: "clamp(220px, 22vw, 360px)",
+                    width: "clamp(320px, 32vw, 540px)",
                     flex: "0 0 auto",
                     willChange: isHero ? "transform" : "opacity",
                   }}
@@ -331,7 +370,7 @@ export default function ScrollDrivenHeroGallery() {
                         index={card.index}
                         hideLabels
                         priority
-                        sizes="(min-width: 1024px) 22vw, 80vw"
+                        sizes="(min-width: 1024px) 32vw, 90vw"
                         overlay={
                           <>
                             <div
@@ -391,7 +430,7 @@ export default function ScrollDrivenHeroGallery() {
                       index={card.index}
                       title={card.title}
                       subtitle={card.subtitle}
-                      sizes="(min-width: 1024px) 22vw, 70vw"
+                      sizes="(min-width: 1024px) 32vw, 80vw"
                     />
                   )}
                 </div>
