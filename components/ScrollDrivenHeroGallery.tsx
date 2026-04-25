@@ -25,32 +25,14 @@ gsap.registerPlugin(ScrollTrigger);
 
 const CARDS = [
   {
-    src: "/gallery/env-1.jpg",
-    index: "01 · MERCADO",
-    title: "Drop do dia",
-    subtitle: "Sem enrolação",
-  },
-  {
-    src: "/gallery/env-2.jpg",
-    index: "02 · MERCADO AO VIVO",
-    title: "Mercado ao vivo",
-    subtitle: "Tempo real",
-  },
-  {
     src: "/gallery/card-1.jpg",
-    index: "03 · COMUNIDADE",
+    index: "01 · COMUNIDADE",
     title: "Comunidade ativa",
     subtitle: "Quem joga junto",
   },
   {
-    src: "/gallery/env-3.jpg",
-    index: "04 · ARSENAL",
-    title: "Inventário curado",
-    subtitle: "Sem clones",
-  },
-  {
     src: "/gallery/knife.png",
-    index: "05 · CARTA FORTE",
+    index: "02 · CARTA FORTE",
     title: "Carta forte",
     subtitle: "Vira o jogo",
   },
@@ -331,7 +313,7 @@ export default function ScrollDrivenHeroGallery() {
             className="text-[10px] tracking-[0.32em] uppercase"
             style={{ color: "rgba(238,217,196,0.85)" }}
           >
-            05 · ARSENAL
+            02 · ARSENAL
           </div>
         </div>
 
@@ -364,7 +346,7 @@ export default function ScrollDrivenHeroGallery() {
             className="mt-3 max-w-md text-[12px] leading-relaxed"
             style={{ color: "rgba(255,255,255,0.72)" }}
           >
-            Cinco cartas. Uma vira o jogo. Compra, concorre e leva — direto, sem
+            Duas cartas. Uma vira o jogo. Compra, concorre e leva — direto, sem
             enrolação.
           </p>
         </div>
@@ -458,7 +440,7 @@ export default function ScrollDrivenHeroGallery() {
           style={{ color: "rgba(255,255,255,0.6)" }}
         >
           <span>SCROLL ↓</span>
-          <span style={{ color: "var(--highlight)" }}>05 / 05 · ARSENAL</span>
+          <span style={{ color: "var(--highlight)" }}>02 / 02 · ARSENAL</span>
         </div>
       </div>
 
