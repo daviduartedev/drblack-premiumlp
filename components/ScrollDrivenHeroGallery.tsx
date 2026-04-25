@@ -142,9 +142,11 @@ export default function ScrollDrivenHeroGallery() {
         if (heroBaseW === 0 || heroBaseH === 0) captureHeroBase();
         const targetW = window.innerWidth;
         const targetH = window.innerHeight;
+        // 1.05 em cada eixo = 5% extra → garantia de cover real sem
+        // bordas pretas, mesmo com pequenas variações de pixel.
         return {
-          scaleX: (targetW / heroBaseW) * 1.02,
-          scaleY: (targetH / heroBaseH) * 1.02,
+          scaleX: (targetW / heroBaseW) * 1.05,
+          scaleY: (targetH / heroBaseH) * 1.05,
         };
       };
 
@@ -426,18 +428,10 @@ export default function ScrollDrivenHeroGallery() {
                               ) : null}
                             </div>
 
-                            <div
-                              ref={heroLabelRef}
-                              className="absolute top-6 left-6 text-[10px] tracking-[0.32em] uppercase z-[3]"
-                              style={{
-                                color: "rgba(238,217,196,0.92)",
-                                opacity: 0,
-                              }}
-                            >
-                              05 · CARTA FORTE
-                            </div>
-
-                            {/* headline overlay removido a pedido do usuário */}
+                            {/* labels removidos — durante o fullscreen
+                                a animação ocupa a tela inteira sem
+                                sobreposições */}
+                            <div ref={heroLabelRef} style={{ display: "none" }} aria-hidden />
                             <div ref={heroHeadlineRef} style={{ display: "none" }} aria-hidden />
                           </>
                         }

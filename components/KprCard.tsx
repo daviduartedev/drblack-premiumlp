@@ -70,7 +70,7 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
         sizes={sizes}
         quality={95}
         className="object-cover"
-        style={{ transform: "scale(1.02)" }}
+        style={{ transform: "translateZ(0)" }}
       />
 
       <div

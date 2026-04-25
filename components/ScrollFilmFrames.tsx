@@ -130,7 +130,8 @@ export default function ScrollFilmFrames({
   }, [url]);
 
   const base: React.CSSProperties = {
-    transform: "scale(1.04)",
+    transform: "translateZ(0)",
+    backfaceVisibility: "hidden",
     backgroundColor: fallbackColor,
     willChange: "auto",
   };
