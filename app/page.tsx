@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Loader3D from "@/components/Loader3D";
 import Hero from "@/components/hero";
 import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 
 export default function Home() {
-  const [flipped, setFlipped] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
 
   return (
     <div
@@ -19,52 +18,23 @@ export default function Home() {
         background: "var(--background)",
       }}
     >
+      {/* Hero fica sempre montada por baixo — quando o loader sobe,
+          ela aparece sem precisar de flip 3D. */}
       <div
         style={{
-          height: "100vh",
+          minHeight: "100vh",
           width: "100%",
           position: "relative",
-          perspective: "1600px",
-          perspectiveOrigin: "50% 50%",
         }}
       >
-        <div
-          ref={wrapperRef}
-          style={{
-            position: "absolute",
-            inset: 0,
-            transformStyle: "preserve-3d",
-            transition: "transform 1.1s cubic-bezier(0.77, 0, 0.175, 1)",
-            transform: flipped ? "rotateY(-180deg)" : "rotateY(0deg)",
-            willChange: "transform",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-            }}
-          >
-            <Loader3D onRequestFlip={() => setFlipped(true)} />
-          </div>
-
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-            }}
-          >
-            <Hero loading={!flipped} />
-          </div>
-        </div>
+        <Hero loading={!revealed} />
       </div>
 
-      {flipped && <ScrollDrivenHeroGallery />}
+      {/* Loader sobreposto que faz slide-up (y: -100%) ao terminar.
+          Esconde completamente a hero até o término da animação. */}
+      <Loader3D onRequestFlip={() => setRevealed(true)} />
+
+      {revealed && <ScrollDrivenHeroGallery />}
     </div>
   );
 }

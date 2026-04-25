@@ -74,13 +74,16 @@ export default function Loader3D({
       const tl = gsap.timeline({
         delay: 0.35,
         onComplete: () => {
-          // Hold breve em 100, então fade-out suave do overlay inteiro
-          gsap.to(overlayRef.current, {
-            opacity: 0,
-            duration: 0.55,
-            ease: "power2.inOut",
+          // Hold breve em 100, depois SLIDE-UP estilo KPR: o loader
+          // inteiro sobe (yPercent: -100) revelando a hero por baixo.
+          // onRequestFlip dispara no onStart pra hero começar a entrar
+          // ao mesmo tempo — transição contínua, sem flip 3D.
+          gsap.to(rootRef.current, {
+            yPercent: -100,
+            duration: 1.0,
+            ease: "expo.inOut",
             delay: 0.35,
-            onComplete: () => {
+            onStart: () => {
               onRequestFlip();
             },
           });
@@ -108,11 +111,13 @@ export default function Loader3D({
     <div
       ref={rootRef}
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         overflow: "hidden",
         backgroundColor: "#eed9c4",
         color: "#0a0a0a",
+        zIndex: 100,
+        willChange: "transform",
       }}
     >
       <div
