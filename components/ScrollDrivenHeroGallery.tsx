@@ -2,22 +2,27 @@
 
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
-import Image from "next/image";
-import { useEffect, useRef } from "react";
-import ScrollFilmCoda from "@/components/ScrollFilmCoda";
+import { useEffect, useRef, useState } from "react";
+import KprCard from "@/components/KprCard";
+import ScrollFilmFrames from "@/components/ScrollFilmFrames";
 
 gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Seção "SKINS NO PONTO. RIFA NA TELA."
  *
- * Fluxo (scroll-linked, single pin):
- *  ▸ Fase A — carrossel contínuo: as três cartas deslizam juntas da direita
- *    para a esquerda. A última carta (knife.png) entra pela direita e termina
- *    centralizada, ainda em "modo carta" (escala reduzida, com tilt 3D).
- *  ▸ Fase B — expansão: a carta hero cresce até preencher a tela enquanto
- *    título/eyebrow/sub e as outras cartas se desvanecem. O frame final faz
- *    handoff visual para o `ScrollFilmCoda` (scrub das frames `frame_001…101`).
+ * Pin único, scroll-linked, em duas fases — estilo KPR:
+ *
+ * ▸ FASE A — Carrossel (0 → ~0.45)
+ *     Três cartas KPR (mesma shape, propor­ção 3:4, recorte de canto) deslizam
+ *     juntas da direita para a esquerda. As cartas 1 e 2 saem de cena; a carta
+ *     3 (knife.png, estática) permanece centralizada e cresce até preencher
+ *     a tela.
+ *
+ * ▸ FASE B — Animação por scroll (~0.45 → 1.0)
+ *     A carta 3 vira o palco do scrub: a imagem estática faz cross-fade para
+ *     o ScrollFilmFrames, que toca os primeiros 101 frames de
+ *     `/animacao-frames/` conforme o usuário rola. Estilo KPR puro.
  */
 export default function ScrollDrivenHeroGallery() {
   const rootRef = useRef<HTMLElement>(null);
@@ -29,166 +34,175 @@ export default function ScrollDrivenHeroGallery() {
 
   const card1Ref = useRef<HTMLDivElement>(null);
   const card2Ref = useRef<HTMLDivElement>(null);
+  const card3Ref = useRef<HTMLDivElement>(null);
 
-  const card3WrapRef = useRef<HTMLDivElement>(null);
-  const card3InnerRef = useRef<HTMLDivElement>(null);
+  const card3StaticRef = useRef<HTMLDivElement>(null);
+  const card3FilmRef = useRef<HTMLDivElement>(null);
   const card3HeadlineRef = useRef<HTMLHeadingElement>(null);
   const card3LabelRef = useRef<HTMLDivElement>(null);
 
   const hudRef = useRef<HTMLDivElement>(null);
 
+  // Progress 0..1 of the film scrub phase only (B). Starts ticking past
+  // FILM_PHASE_START.
+  const [filmProgress, setFilmProgress] = useState(0);
+  const [filmActive, setFilmActive] = useState(false);
+
   useEffect(() => {
     if (!rootRef.current || !pinRef.current) return;
 
+    const FILM_PHASE_START = 0.45;
+    const FILM_PHASE_END = 1.0;
+
     const ctx = gsap.context(() => {
-      // Cartas 1 e 2 ficam ancoradas em `top/left` (centro da carta) e o GSAP
-      // cuida da centralização real via xPercent/yPercent — isso permite
-      // animar `x` (em vw) sem brigar com `translate(-50%, -50%)`.
-      gsap.set(card1Ref.current, {
+      // ---- Initial layout (centered via xPercent / yPercent) ----------------
+      gsap.set([card1Ref.current, card2Ref.current], {
         xPercent: -50,
         yPercent: -50,
-        rotation: -3,
         force3D: true,
       });
-      gsap.set(card2Ref.current, {
+      gsap.set(card1Ref.current, { rotation: -4 });
+      gsap.set(card2Ref.current, { rotation: 3 });
+
+      gsap.set(card3Ref.current, {
         xPercent: -50,
         yPercent: -50,
-        rotation: 2.5,
+        rotation: -1,
+        scale: 1,
         force3D: true,
       });
 
-      // Carta hero (knife.png) ocupa `inset-0`. No início aparece reduzida e
-      // deslocada para fora da tela à direita — entra no frame durante a fase
-      // A do carrossel.
-      gsap.set(card3WrapRef.current, {
-        scale: 0.34,
-        xPercent: 65,
-        yPercent: 6,
-        rotationY: -10,
-        rotationZ: -3,
-        transformOrigin: "50% 50%",
-        force3D: true,
-      });
+      gsap.set(card3FilmRef.current, { opacity: 0 });
+      gsap.set(card3HeadlineRef.current, { opacity: 0, y: 20, scale: 0.7 });
+      gsap.set(card3LabelRef.current, { opacity: 0 });
 
-      gsap.set(card3HeadlineRef.current, {
-        opacity: 0,
-        y: 20,
-        scale: 0.6,
-        transformOrigin: "0% 100%",
-      });
-
-      // Deslocamento do carrossel em pixels — função para reagir a resize via
-      // `invalidateOnRefresh`.
-      const carouselShift = () => -0.65 * window.innerWidth;
+      // Sliding distance for the carousel (off-screen left). Function form so
+      // it recalculates on resize via invalidateOnRefresh.
+      const slideOut = () => -1.4 * window.innerWidth;
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinRef.current,
           start: "top top",
-          end: "+=380%",
+          end: "+=620%",
           pin: true,
           scrub: 0.6,
           anticipatePin: 1,
           invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            const p = self.progress;
+            if (p >= FILM_PHASE_START) {
+              const t =
+                (p - FILM_PHASE_START) / (FILM_PHASE_END - FILM_PHASE_START);
+              setFilmProgress(Math.min(1, Math.max(0, t)));
+              if (!filmActiveRef.current) {
+                filmActiveRef.current = true;
+                setFilmActive(true);
+              }
+            } else if (filmActiveRef.current) {
+              filmActiveRef.current = false;
+              setFilmActive(false);
+              setFilmProgress(0);
+            }
+          },
         },
       });
 
-      // ============================================================
-      // FASE A — Carrossel contínuo (0 → 0.55)
-      // Todas as cartas viajam o mesmo `carouselShift`, criando uma
-      // sensação de fileira coesa correndo da direita para a esquerda.
-      // ============================================================
+      // =====================================================================
+      // PHASE A — KPR carousel (0 → 0.40)
+      // The whole "row" travels left together. Cards 1 and 2 keep going and
+      // exit; card 3 (hero) stops centered and begins to scale up.
+      // =====================================================================
+      tl.to(card1Ref.current, { x: slideOut, rotation: -10, duration: 0.4 }, 0);
+      tl.to(card2Ref.current, { x: slideOut, rotation: -2, duration: 0.4 }, 0);
       tl.to(
-        card1Ref.current,
-        { x: carouselShift, rotation: -10, duration: 0.55 },
-        0
-      );
-      tl.to(
-        card2Ref.current,
-        { x: carouselShift, rotation: -2, duration: 0.55 },
-        0
-      );
-      tl.to(
-        card3WrapRef.current,
-        {
-          xPercent: 0,
-          yPercent: 4,
-          rotationY: -6,
-          rotationZ: -1.5,
-          duration: 0.55,
-        },
+        card3Ref.current,
+        { x: 0, rotation: 0, duration: 0.4 },
         0
       );
 
-      // ============================================================
-      // FASE B — Expansão da carta hero + fade do conteúdo (0.55 → 0.92)
-      // ============================================================
+      // Fade out the row labels as cards leave.
       tl.to(
         [card1Ref.current, card2Ref.current],
         { opacity: 0, duration: 0.08, ease: "power2.in" },
-        0.55
+        0.34
       );
+
+      // =====================================================================
+      // PHASE A→B handoff (0.40 → 0.45)
+      // Hero card scales to fill the viewport, headline/eyebrow fade out so
+      // the film scrub takes over the stage.
+      // =====================================================================
+      tl.to(
+        card3Ref.current,
+        {
+          scale: 4.4,
+          duration: 0.05,
+          ease: "power2.inOut",
+        },
+        0.4
+      );
+
       tl.to(
         eyebrowRef.current,
-        { opacity: 0, y: -16, duration: 0.18, ease: "power2.in" },
-        0.55
+        { opacity: 0, y: -18, duration: 0.18, ease: "power2.in" },
+        0.36
       );
       tl.to(
         titleRef.current,
         { opacity: 0, y: -42, duration: 0.22, ease: "power2.in" },
-        0.55
+        0.36
       );
       tl.to(
         subRef.current,
         { opacity: 0, y: -18, duration: 0.18, ease: "power2.in" },
-        0.55
+        0.36
       );
-
-      tl.to(
-        card3WrapRef.current,
-        {
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-          rotationY: 0,
-          rotationZ: 0,
-          duration: 0.32,
-          ease: "power2.inOut",
-        },
-        0.6
-      );
-
-      tl.to(
-        card3InnerRef.current,
-        {
-          borderRadius: 0,
-          boxShadow: "0 0 0 rgba(0,0,0,0)",
-          borderColor: "rgba(255,255,255,0)",
-          duration: 0.28,
-          ease: "power2.inOut",
-        },
-        0.62
-      );
-
-      tl.to(
-        card3HeadlineRef.current,
-        { opacity: 0.55, y: 0, scale: 1, duration: 0.28, ease: "power2.out" },
-        0.7
-      );
-      tl.to(card3LabelRef.current, { opacity: 1, duration: 0.18 }, 0.78);
-
       tl.to(
         hudRef.current,
         { opacity: 0, duration: 0.18, ease: "power2.in" },
-        0.6
+        0.4
       );
 
-      // 0.92 → 1.0 — frame final segura para handoff suave ao ScrollFilmCoda.
+      // Static → film cross-fade. The static layer dies just as the film
+      // layer wakes up — exactly at FILM_PHASE_START.
+      tl.to(
+        card3StaticRef.current,
+        { opacity: 0, duration: 0.04, ease: "power1.inOut" },
+        0.43
+      );
+      tl.to(
+        card3FilmRef.current,
+        { opacity: 1, duration: 0.04, ease: "power1.inOut" },
+        0.43
+      );
+
+      // =====================================================================
+      // PHASE B — Frame scrub (0.45 → 1.0)
+      // The film progress is driven by onUpdate above; this section reserves
+      // the timeline space and brings in the reveal label.
+      // =====================================================================
+      tl.to({}, { duration: 0.55 }, 0.45); // hold for the scrub
+
+      tl.to(
+        card3LabelRef.current,
+        { opacity: 1, duration: 0.18, ease: "power2.out" },
+        0.5
+      );
+      tl.to(
+        card3HeadlineRef.current,
+        { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: "power2.out" },
+        0.85
+      );
     }, rootRef);
 
     return () => ctx.revert();
   }, []);
+
+  // Mirror filmActive into a ref so the scrollTrigger callback doesn't need
+  // a re-bound closure on every state change.
+  const filmActiveRef = useRef(false);
 
   return (
     <section ref={rootRef} className="w-full">
@@ -197,7 +211,7 @@ export default function ScrollDrivenHeroGallery() {
         className="relative h-[100svh] w-full overflow-hidden"
         style={{ backgroundColor: "#0a0a0a" }}
       >
-        {/* Ambiente de fundo (gradiente ancorado na paleta). */}
+        {/* Ambient gradients + grid */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
@@ -232,7 +246,7 @@ export default function ScrollDrivenHeroGallery() {
           </div>
         </div>
 
-        {/* Bloco textual */}
+        {/* Texto */}
         <div className="relative z-20 px-[5vw] mt-[8vh] max-w-[64rem]">
           <div
             ref={eyebrowRef}
@@ -267,169 +281,119 @@ export default function ScrollDrivenHeroGallery() {
           </p>
         </div>
 
-        {/* Palco 3D — fileira de cartas em carrossel */}
+        {/* Palco do carrossel KPR */}
         <div
           className="absolute inset-0 z-10 pointer-events-none"
-          style={{ perspective: "1400px", perspectiveOrigin: "50% 50%" }}
+          style={{ perspective: "1600px", perspectiveOrigin: "50% 50%" }}
         >
-          {/* Carta 1 — thumb pequena (mercado) */}
-          <div
+          {/* Card 1 — left of the row */}
+          <KprCard
             ref={card1Ref}
+            src="/gallery/env-1.jpg"
+            index="01 · MERCADO"
+            title="Drop do dia"
+            subtitle="Sem enrolação"
             className="absolute"
             style={{
-              top: "72vh",
-              left: "20vw",
-              width: "min(220px, 17vw)",
-              aspectRatio: "4 / 3",
-              borderRadius: "18px",
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.18)",
-              boxShadow: "0 18px 48px rgba(0,0,0,0.55)",
-              willChange: "transform, opacity",
-              backgroundColor: "#120f0c",
+              top: "50%",
+              left: "18vw",
+              width: "min(280px, 22vw)",
             }}
-          >
-            <Image
-              src="/gallery/env-1.jpg"
-              alt=""
-              fill
-              sizes="220px"
-              className="object-cover"
-            />
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.55) 100%)",
-              }}
-            />
-            <div
-              className="absolute bottom-2 left-3 text-[9px] tracking-[0.28em] uppercase"
-              style={{ color: "rgba(255,255,255,0.88)" }}
-            >
-              01 · MERCADO
-            </div>
-          </div>
+            sizes="(min-width: 1024px) 22vw, 60vw"
+          />
 
-          {/* Carta 2 — retrato gamer */}
-          <div
+          {/* Card 2 — middle of the row */}
+          <KprCard
             ref={card2Ref}
+            src="/gallery/card-1.jpg"
+            index="02 · MERCADO AO VIVO"
+            title="Mercado ao vivo"
+            subtitle="Tempo real"
             className="absolute"
             style={{
-              top: "60vh",
-              left: "55vw",
-              width: "min(360px, 22vw)",
+              top: "50%",
+              left: "50vw",
+              width: "min(320px, 24vw)",
+            }}
+            sizes="(min-width: 1024px) 24vw, 70vw"
+          />
+
+          {/* Card 3 — hero card. Static initially, becomes the film stage. */}
+          <div
+            ref={card3Ref}
+            className="absolute"
+            style={{
+              top: "50%",
+              left: "82vw",
+              width: "min(360px, 26vw)",
               aspectRatio: "3 / 4",
-              borderRadius: "22px",
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.18)",
-              boxShadow: "0 22px 60px rgba(0,0,0,0.58)",
-              willChange: "transform, opacity",
-              backgroundColor: "#1a1510",
+              willChange: "transform",
             }}
           >
-            <Image
-              src="/gallery/card-1.jpg"
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 360px, 60vw"
-              className="object-cover"
-            />
-            <div
-              className="absolute inset-x-0 top-0 h-1/3 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%)",
-              }}
-            />
-            <div
-              className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(0deg, rgba(0,0,0,0.78) 0%, transparent 100%)",
-              }}
-            />
-            <div
-              className="absolute top-3 left-4 text-[10px] tracking-[0.28em] uppercase"
-              style={{ color: "rgba(255,255,255,0.88)" }}
-            >
-              02 · MERCADO AO VIVO
-            </div>
-            <div className="absolute bottom-4 left-4 right-4">
-              <div
-                className="text-[15px] font-semibold tracking-tight"
-                style={{ color: "rgba(255,255,255,0.96)" }}
-              >
-                Mercado ao vivo
-              </div>
-              <div
-                className="text-[10px] tracking-[0.18em] uppercase mt-1"
-                style={{ color: "rgba(238,217,196,0.78)" }}
-              >
-                Sem enrolação
-              </div>
-            </div>
-          </div>
+            <KprCard
+              src="/gallery/knife.png"
+              index="03 · CARTA FORTE"
+              hideLabels
+              priority
+              sizes="(min-width: 1024px) 26vw, 80vw"
+              className="absolute inset-0"
+              style={{ width: "100%", aspectRatio: "3 / 4" }}
+              overlay={
+                <>
+                  {/* Static layer (knife.png) — visible during phase A. */}
+                  <div
+                    ref={card3StaticRef}
+                    className="absolute inset-0 pointer-events-none"
+                    aria-hidden
+                  />
+                  {/* Film layer — fades in for phase B. */}
+                  <div
+                    ref={card3FilmRef}
+                    className="absolute inset-0 pointer-events-none"
+                    aria-hidden
+                  >
+                    {filmActive ? (
+                      <ScrollFilmFrames
+                        progress={filmProgress}
+                        firstIndex={1}
+                        lastIndex={101}
+                        fallbackColor="#0a0a0a"
+                      />
+                    ) : null}
+                  </div>
 
-          {/* Carta 3 — hero (knife.png), entra pela direita e expande até a tela cheia */}
-          <div
-            ref={card3WrapRef}
-            className="absolute inset-0"
-            style={{ willChange: "transform" }}
-          >
-            <div
-              ref={card3InnerRef}
-              className="relative w-full h-full overflow-hidden"
-              style={{
-                borderRadius: "32px",
-                border: "1px solid rgba(255,255,255,0.18)",
-                boxShadow: "0 30px 90px rgba(0,0,0,0.65)",
-                backgroundColor: "#0a0a0a",
-              }}
-            >
-              <Image
-                src="/gallery/knife.png"
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover"
-                style={{ transform: "scale(1.04)" }}
-              />
-              <div
-                className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(0deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%)",
-                }}
-              />
-              <div
-                ref={card3LabelRef}
-                className="absolute top-6 left-6 text-[10px] tracking-[0.32em] uppercase"
-                style={{ color: "rgba(238,217,196,0.92)", opacity: 0 }}
-              >
-                03 · CARTA FORTE
-              </div>
-              <div className="absolute bottom-[14vh] left-0 right-0 px-[5vw] pointer-events-none">
-                <h2
-                  ref={card3HeadlineRef}
-                  style={{
-                    fontFamily: "var(--font-oswald), sans-serif",
-                    fontWeight: 700,
-                    lineHeight: 0.88,
-                    letterSpacing: "-0.025em",
-                    fontSize: "clamp(40px, 8vw, 120px)",
-                    color: "rgba(255,255,255,0.97)",
-                    textTransform: "uppercase",
-                    whiteSpace: "pre-line",
-                    textShadow: "0 14px 40px rgba(0,0,0,0.45)",
-                    maxWidth: "76rem",
-                  }}
-                >
-                  {"CARTA FORTE\nNO SEU TEMPO."}
-                </h2>
-              </div>
-            </div>
+                  {/* Headline + label that materialize during the scrub. */}
+                  <div
+                    ref={card3LabelRef}
+                    className="absolute top-6 left-6 text-[10px] tracking-[0.32em] uppercase z-10"
+                    style={{ color: "rgba(238,217,196,0.92)", opacity: 0 }}
+                  >
+                    03 · CARTA FORTE
+                  </div>
+                  <div
+                    className="absolute bottom-[14vh] left-0 right-0 px-[5vw] z-10 pointer-events-none"
+                  >
+                    <h2
+                      ref={card3HeadlineRef}
+                      style={{
+                        fontFamily: "var(--font-oswald), sans-serif",
+                        fontWeight: 700,
+                        lineHeight: 0.88,
+                        letterSpacing: "-0.025em",
+                        fontSize: "clamp(28px, 5vw, 84px)",
+                        color: "rgba(255,255,255,0.97)",
+                        textTransform: "uppercase",
+                        whiteSpace: "pre-line",
+                        textShadow: "0 14px 40px rgba(0,0,0,0.45)",
+                        maxWidth: "76rem",
+                      }}
+                    >
+                      {"AQUI O PREÇO TÁ EXPOSTO\nE A SKIN TÁ SÓBRIA."}
+                    </h2>
+                  </div>
+                </>
+              }
+            />
           </div>
         </div>
 
@@ -444,8 +408,7 @@ export default function ScrollDrivenHeroGallery() {
         </div>
       </div>
 
-      <ScrollFilmCoda />
-
+      {/* Próxima seção (timeline) */}
       <section
         className="relative w-full"
         style={{
