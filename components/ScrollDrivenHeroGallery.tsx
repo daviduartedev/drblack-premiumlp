@@ -73,7 +73,7 @@ export default function ScrollDrivenHeroGallery() {
   const heroWrapRef = useRef<HTMLDivElement>(null);
   const heroFilmRef = useRef<HTMLDivElement>(null);
   const heroLabelRef = useRef<HTMLDivElement>(null);
-  const heroHeadlineRef = useRef<HTMLHeadingElement>(null);
+  const heroHeadlineRef = useRef<HTMLDivElement>(null);
 
   const [expansionProgress, setExpansionProgress] = useState(0);
   const expansionProgressRef = useRef(0);
@@ -115,15 +115,33 @@ export default function ScrollDrivenHeroGallery() {
         return targetHeroLeft - rawHeroLeft;
       };
 
-      const computeHeroScale = () => {
+      // Captura o tamanho BASE do card (antes de qualquer animação).
+      // Sem isso, durante a animação `getBoundingClientRect()` já reflete
+      // a escala parcial e o cálculo fica instável.
+      let heroBaseW = 0;
+      let heroBaseH = 0;
+      const captureHeroBase = () => {
         const heroEl = cardRefs.current[HERO_INDEX];
-        if (!heroEl) return 1;
+        if (!heroEl) return;
+        // Reset temporário do scale para medir o size cru.
+        const prevScale = gsap.getProperty(heroWrap, "scale") as number;
+        gsap.set(heroWrap, { scale: 1 });
         const rect = heroEl.getBoundingClientRect();
+        heroBaseW = rect.width;
+        heroBaseH = rect.height;
+        gsap.set(heroWrap, { scale: prevScale });
+      };
+      captureHeroBase();
+
+      const computeHeroScale = () => {
+        if (heroBaseW === 0 || heroBaseH === 0) captureHeroBase();
         const targetW = window.innerWidth;
         const targetH = window.innerHeight;
-        const scaleX = targetW / rect.width;
-        const scaleY = targetH / rect.height;
-        return Math.max(scaleX, scaleY);
+        const scaleX = targetW / heroBaseW;
+        const scaleY = targetH / heroBaseH;
+        // 1.06 para garantir cover real (sem bordas pretas) considerando
+        // arredondamentos, perspective e o radius 28px do card.
+        return Math.max(scaleX, scaleY) * 1.06;
       };
 
       // Estado inicial: faixa empurrada para a direita — hero colado à
@@ -170,28 +188,17 @@ export default function ScrollDrivenHeroGallery() {
       });
 
       // ----- FASE A — carrossel direita → centro (0 .. 0.45) -----
-      // Overshoot leve (passa 4% do delta start→end) e volta = elastic feel.
-      tl.to(
-        track,
-        {
-          x: () => {
-            const start = computeStartX();
-            const end = computeShift();
-            return end - (start - end) * 0.04;
-          },
-          duration: 0.36,
-          ease: "power2.out",
-        },
-        0
-      );
+      // Sem overshoot: a faixa vai direto até o hero ficar centralizado
+      // e PARA. Daí em diante a fase B (expansão 3D + frame scrub) toma
+      // o controle. Easing suave para sensação band sem ultrapassar.
       tl.to(
         track,
         {
           x: () => computeShift(),
-          duration: 0.09,
-          ease: "power2.inOut",
+          duration: 0.45,
+          ease: "power3.out",
         },
-        0.36
+        0
       );
 
       // Sway escalonado nos cards não-hero durante a fase A.
@@ -215,15 +222,26 @@ export default function ScrollDrivenHeroGallery() {
       // Hero scale → fullscreen ocupa todo o trecho da fase B.
       tl.fromTo(
         heroWrap,
-        { scale: 1, rotationY: 0, rotationX: 0, z: 0 },
+        { scale: 1, rotationX: 0, rotationY: 0, z: 0 },
         {
           scale: () => computeHeroScale(),
-          rotationY: 0,
           duration: 0.55,
           ease: "power2.inOut",
         },
         PHASE_A_END
       );
+
+      // Animação do border-radius: card → 0 (sem cantos no fullscreen).
+      // Aplicado no KprCard interno (primeiro filho do heroWrap).
+      const heroCardEl = heroWrap.firstElementChild as HTMLElement | null;
+      if (heroCardEl) {
+        tl.fromTo(
+          heroCardEl,
+          { borderRadius: 28 },
+          { borderRadius: 0, duration: 0.55, ease: "power2.inOut" },
+          PHASE_A_END
+        );
+      }
 
       // Film overlay aparece logo no início da fase B (frames já estão
       // sendo scrubbed pelo onUpdate, mas o overlay precisa estar visível).
@@ -262,12 +280,7 @@ export default function ScrollDrivenHeroGallery() {
         { opacity: 1, y: 0, duration: 0.16, ease: "power2.out" },
         PHASE_A_END + 0.1
       );
-      tl.fromTo(
-        heroHeadlineRef.current,
-        { opacity: 0, y: 24, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: "power2.out" },
-        PHASE_A_END + 0.3
-      );
+      // headline overlay removido — sem animação aqui
     }, rootRef);
 
     return () => ctx.revert();
@@ -417,26 +430,8 @@ export default function ScrollDrivenHeroGallery() {
                               05 · CARTA FORTE
                             </div>
 
-                            <div className="absolute bottom-[12vh] left-0 right-0 px-[5vw] z-[3] pointer-events-none">
-                              <h2
-                                ref={heroHeadlineRef}
-                                style={{
-                                  fontFamily: "var(--font-oswald), sans-serif",
-                                  fontWeight: 700,
-                                  lineHeight: 0.88,
-                                  letterSpacing: "-0.025em",
-                                  fontSize: "clamp(24px, 4.4vw, 76px)",
-                                  color: "rgba(255,255,255,0.97)",
-                                  textTransform: "uppercase",
-                                  whiteSpace: "pre-line",
-                                  textShadow: "0 14px 40px rgba(0,0,0,0.55)",
-                                  maxWidth: "76rem",
-                                  opacity: 0,
-                                }}
-                              >
-                                {"AQUI O PRECO TA EXPOSTO\nE A SKIN TA SOBRIA."}
-                              </h2>
-                            </div>
+                            {/* headline overlay removido a pedido do usuário */}
+                            <div ref={heroHeadlineRef} style={{ display: "none" }} aria-hidden />
                           </>
                         }
                       />
