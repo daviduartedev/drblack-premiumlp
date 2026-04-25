@@ -9,11 +9,15 @@ import ScrollFilmCoda from "@/components/ScrollFilmCoda";
 gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Seção "SKINS NO PONTO. RIFA NA TELA." — layout 3D inspirado em
- * `public/referencia.mp4`: três cartas com tilt em deck (thumb · portrait · hero).
- * A última carta (knife.png + "CARTA FORTE NO SEU TEMPO") expande até preencher
- * a tela, fazendo handoff visual contínuo para o `ScrollFilmCoda` (que mantém
- * o scrub das frames `frame_001…frame_101`).
+ * Seção "SKINS NO PONTO. RIFA NA TELA."
+ *
+ * Fluxo (scroll-linked, single pin):
+ *  ▸ Fase A — carrossel contínuo: as três cartas deslizam juntas da direita
+ *    para a esquerda. A última carta (knife.png) entra pela direita e termina
+ *    centralizada, ainda em "modo carta" (escala reduzida, com tilt 3D).
+ *  ▸ Fase B — expansão: a carta hero cresce até preencher a tela enquanto
+ *    título/eyebrow/sub e as outras cartas se desvanecem. O frame final faz
+ *    handoff visual para o `ScrollFilmCoda` (scrub das frames `frame_001…101`).
  */
 export default function ScrollDrivenHeroGallery() {
   const rootRef = useRef<HTMLElement>(null);
@@ -37,11 +41,29 @@ export default function ScrollDrivenHeroGallery() {
     if (!rootRef.current || !pinRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Estado inicial da carta hero (canto direito, escala ~36%, com tilt 3D).
+      // Cartas 1 e 2 ficam ancoradas em `top/left` (centro da carta) e o GSAP
+      // cuida da centralização real via xPercent/yPercent — isso permite
+      // animar `x` (em vw) sem brigar com `translate(-50%, -50%)`.
+      gsap.set(card1Ref.current, {
+        xPercent: -50,
+        yPercent: -50,
+        rotation: -3,
+        force3D: true,
+      });
+      gsap.set(card2Ref.current, {
+        xPercent: -50,
+        yPercent: -50,
+        rotation: 2.5,
+        force3D: true,
+      });
+
+      // Carta hero (knife.png) ocupa `inset-0`. No início aparece reduzida e
+      // deslocada para fora da tela à direita — entra no frame durante a fase
+      // A do carrossel.
       gsap.set(card3WrapRef.current, {
-        scale: 0.36,
-        xPercent: 24,
-        yPercent: 4,
+        scale: 0.34,
+        xPercent: 65,
+        yPercent: 6,
         rotationY: -10,
         rotationZ: -3,
         transformOrigin: "50% 50%",
@@ -55,86 +77,74 @@ export default function ScrollDrivenHeroGallery() {
         transformOrigin: "0% 100%",
       });
 
+      // Deslocamento do carrossel em pixels — função para reagir a resize via
+      // `invalidateOnRefresh`.
+      const carouselShift = () => -0.65 * window.innerWidth;
+
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinRef.current,
           start: "top top",
-          end: "+=260%",
+          end: "+=380%",
           pin: true,
           scrub: 0.6,
           anticipatePin: 1,
+          invalidateOnRefresh: true,
         },
       });
 
-      // 0 → 0.45 — aproximação suave (cartas inclinam mais e flutuam para frente).
+      // ============================================================
+      // FASE A — Carrossel contínuo (0 → 0.55)
+      // Todas as cartas viajam o mesmo `carouselShift`, criando uma
+      // sensação de fileira coesa correndo da direita para a esquerda.
+      // ============================================================
       tl.to(
         card1Ref.current,
-        { x: -10, y: -10, rotate: -5, duration: 0.45 },
+        { x: carouselShift, rotation: -10, duration: 0.55 },
         0
       );
       tl.to(
         card2Ref.current,
-        { x: -8, y: -14, rotate: 3.5, scale: 1.04, duration: 0.45 },
+        { x: carouselShift, rotation: -2, duration: 0.55 },
         0
       );
       tl.to(
         card3WrapRef.current,
         {
-          scale: 0.42,
-          xPercent: 18,
-          yPercent: 0,
+          xPercent: 0,
+          yPercent: 4,
           rotationY: -6,
           rotationZ: -1.5,
-          duration: 0.45,
+          duration: 0.55,
         },
         0
       );
 
-      // 0.45 → 0.7 — cartas 1 e 2 saem; título e eyebrow se desvanecem.
+      // ============================================================
+      // FASE B — Expansão da carta hero + fade do conteúdo (0.55 → 0.92)
+      // ============================================================
       tl.to(
-        card1Ref.current,
-        {
-          x: -160,
-          y: -120,
-          rotate: -14,
-          scale: 0.55,
-          opacity: 0,
-          duration: 0.22,
-          ease: "power2.in",
-        },
-        0.45
-      );
-      tl.to(
-        card2Ref.current,
-        {
-          x: -260,
-          y: 80,
-          rotate: -8,
-          scale: 0.78,
-          opacity: 0,
-          duration: 0.24,
-          ease: "power2.in",
-        },
-        0.48
+        [card1Ref.current, card2Ref.current],
+        { opacity: 0, duration: 0.08, ease: "power2.in" },
+        0.55
       );
       tl.to(
         eyebrowRef.current,
         { opacity: 0, y: -16, duration: 0.18, ease: "power2.in" },
-        0.5
+        0.55
       );
       tl.to(
         titleRef.current,
         { opacity: 0, y: -42, duration: 0.22, ease: "power2.in" },
-        0.5
+        0.55
       );
       tl.to(
         subRef.current,
         { opacity: 0, y: -18, duration: 0.18, ease: "power2.in" },
-        0.5
+        0.55
       );
 
-      // 0.5 → 0.9 — carta hero cresce até a tela cheia (perspectiva neutra).
       tl.to(
         card3WrapRef.current,
         {
@@ -143,45 +153,38 @@ export default function ScrollDrivenHeroGallery() {
           yPercent: 0,
           rotationY: 0,
           rotationZ: 0,
-          duration: 0.4,
+          duration: 0.32,
           ease: "power2.inOut",
         },
-        0.5
+        0.6
       );
 
-      // Borda/raio/sombra do card vão sumindo conforme cobre o viewport.
       tl.to(
         card3InnerRef.current,
         {
           borderRadius: 0,
           boxShadow: "0 0 0 rgba(0,0,0,0)",
           borderColor: "rgba(255,255,255,0)",
-          duration: 0.32,
+          duration: 0.28,
           ease: "power2.inOut",
         },
-        0.55
-      );
-
-      // Headline da carta hero materializa e ancora para o estado do ScrollFilmCoda.
-      tl.to(
-        card3HeadlineRef.current,
-        { opacity: 0.55, y: 0, scale: 1, duration: 0.32, ease: "power2.out" },
         0.62
       );
+
       tl.to(
-        card3LabelRef.current,
-        { opacity: 1, duration: 0.2 },
+        card3HeadlineRef.current,
+        { opacity: 0.55, y: 0, scale: 1, duration: 0.28, ease: "power2.out" },
         0.7
       );
+      tl.to(card3LabelRef.current, { opacity: 1, duration: 0.18 }, 0.78);
 
-      // HUD bottom desaparece quando a carta toma a tela.
       tl.to(
         hudRef.current,
         { opacity: 0, duration: 0.18, ease: "power2.in" },
-        0.55
+        0.6
       );
 
-      // 0.9 → 1.0 — segura o frame final para não “re-animar” no fim do pin.
+      // 0.92 → 1.0 — frame final segura para handoff suave ao ScrollFilmCoda.
     }, rootRef);
 
     return () => ctx.revert();
@@ -264,25 +267,24 @@ export default function ScrollDrivenHeroGallery() {
           </p>
         </div>
 
-        {/* Plano 3D das cartas */}
+        {/* Palco 3D — fileira de cartas em carrossel */}
         <div
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-10 pointer-events-none"
           style={{ perspective: "1400px", perspectiveOrigin: "50% 50%" }}
         >
-          {/* Card 1 — thumb pequena (mercado) */}
+          {/* Carta 1 — thumb pequena (mercado) */}
           <div
             ref={card1Ref}
             className="absolute"
             style={{
-              top: "62vh",
-              left: "7vw",
-              width: "min(220px, 18vw)",
+              top: "72vh",
+              left: "20vw",
+              width: "min(220px, 17vw)",
               aspectRatio: "4 / 3",
-              borderRadius: "20px",
+              borderRadius: "18px",
               overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.16)",
-              boxShadow: "0 14px 40px rgba(0,0,0,0.55)",
-              transform: "rotate(-3deg)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              boxShadow: "0 18px 48px rgba(0,0,0,0.55)",
               willChange: "transform, opacity",
               backgroundColor: "#120f0c",
             }}
@@ -309,20 +311,19 @@ export default function ScrollDrivenHeroGallery() {
             </div>
           </div>
 
-          {/* Card 2 — retrato gamer */}
+          {/* Carta 2 — retrato gamer */}
           <div
             ref={card2Ref}
             className="absolute"
             style={{
-              top: "30vh",
-              left: "30vw",
-              width: "min(360px, 24vw)",
+              top: "60vh",
+              left: "55vw",
+              width: "min(360px, 22vw)",
               aspectRatio: "3 / 4",
-              borderRadius: "26px",
+              borderRadius: "22px",
               overflow: "hidden",
               border: "1px solid rgba(255,255,255,0.18)",
               boxShadow: "0 22px 60px rgba(0,0,0,0.58)",
-              transform: "rotate(2.5deg)",
               willChange: "transform, opacity",
               backgroundColor: "#1a1510",
             }}
@@ -370,7 +371,7 @@ export default function ScrollDrivenHeroGallery() {
             </div>
           </div>
 
-          {/* Card 3 — hero (knife.png) que cresce até a tela cheia */}
+          {/* Carta 3 — hero (knife.png), entra pela direita e expande até a tela cheia */}
           <div
             ref={card3WrapRef}
             className="absolute inset-0"
