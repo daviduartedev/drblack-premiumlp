@@ -81,9 +81,6 @@ export default function ScrollDrivenHeroGallery() {
   useEffect(() => {
     if (!rootRef.current || !pinRef.current || !trackRef.current) return;
 
-    const PHASE_CAROUSEL_END = 0.5;
-    const PHASE_EXPAND_END = 1.0;
-
     const ctx = gsap.context(() => {
       const track = trackRef.current!;
       const heroWrap = heroWrapRef.current!;
@@ -99,39 +96,102 @@ export default function ScrollDrivenHeroGallery() {
         return viewportCenter - heroCenter;
       };
 
-      const computeHeroFromTo = () => {
+      const computeHeroScale = () => {
         const heroEl = cardRefs.current[HERO_INDEX];
-        if (!heroEl) return null;
+        if (!heroEl) return 1;
         const rect = heroEl.getBoundingClientRect();
-        const fromW = rect.width;
-        const fromH = rect.height;
         const targetW = window.innerWidth;
         const targetH = window.innerHeight;
-        const scaleX = targetW / fromW;
-        const scaleY = targetH / fromH;
-        return { fromW, fromH, scaleX, scaleY };
+        const scaleX = targetW / rect.width;
+        const scaleY = targetH / rect.height;
+        return Math.max(scaleX, scaleY);
       };
 
-      const tl = gsap.timeline({
+      // ============================================================
+      // FASE A — Carrossel: faixa desliza até hero centralizar.
+      // Timeline própria com elastic/band + sway escalonado.
+      // ============================================================
+      const tlCarousel = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinRef.current,
           start: "top top",
-          end: "+=600%",
+          end: "+=200%",
           pin: true,
-          // scrub maior = mais inércia/elasticidade na faixa do carrossel
-          scrub: 1.1,
+          pinSpacing: true,
+          scrub: 1.0, // inércia / elastic feel
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      // overshoot 4% e volta — sensação band
+      tlCarousel.to(
+        track,
+        {
+          x: () => computeShift() * 1.04,
+          duration: 0.78,
+          ease: "power2.out",
+        },
+        0
+      );
+      tlCarousel.to(
+        track,
+        {
+          x: () => computeShift(),
+          duration: 0.22,
+          ease: "power2.inOut",
+        },
+        0.78
+      );
+
+      // sway escalonado nos cards não-hero
+      for (let i = 0; i < HERO_INDEX; i++) {
+        const card = cardRefs.current[i];
+        if (!card) continue;
+        const delay = i * 0.04;
+        tlCarousel.to(
+          card,
+          { y: -10, rotation: -0.8, duration: 0.42, ease: "power2.out" },
+          delay
+        );
+        tlCarousel.to(
+          card,
+          { y: 0, rotation: 0, duration: 0.36, ease: "power2.inOut" },
+          0.5 + delay
+        );
+      }
+
+      // ============================================================
+      // FASE B — Expansão hero até fullscreen + scrub frames 1..101
+      // EM PARALELO. Timeline própria, segunda ScrollTrigger,
+      // começa exatamente onde a Fase A termina.
+      // ============================================================
+      const tlExpand = gsap.timeline({
+        defaults: { ease: "none" },
+        scrollTrigger: {
+          trigger: pinRef.current,
+          start: "top top-=200%", // logo após o fim da Fase A
+          end: "+=400%",
+          pin: true,
+          pinSpacing: true,
+          scrub: 0.5,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const p = self.progress;
-            if (p >= PHASE_CAROUSEL_END) {
-              const t =
-                (p - PHASE_CAROUSEL_END) /
-                (PHASE_EXPAND_END - PHASE_CAROUSEL_END);
+            // Os 65% iniciais da fase B controlam a expansão de escala;
+            // de 35% pra 100% rola o film scrub (1→101) — porém ambos
+            // permanecem no MESMO trecho de scroll. O scrub das frames
+            // começa quando a expansão atinge ~25% (paralelismo real).
+            const filmStart = 0.25;
+            if (p >= filmStart) {
+              const t = (p - filmStart) / (1 - filmStart);
               const clamped = Math.min(1, Math.max(0, t));
-              expansionProgressRef.current = clamped;
-              setExpansionProgress(clamped);
+              if (expansionProgressRef.current !== clamped) {
+                expansionProgressRef.current = clamped;
+                setExpansionProgress(clamped);
+              }
             } else if (expansionProgressRef.current !== 0) {
               expansionProgressRef.current = 0;
               setExpansionProgress(0);
@@ -140,117 +200,60 @@ export default function ScrollDrivenHeroGallery() {
         },
       });
 
-      // Phase A — carousel slide (0 -> 0.5) com movimento "band/elastic":
-      // a faixa passa 4% do alvo e retorna, dando sensação de elástico.
-      tl.to(
-        track,
+      // hero scale → fullscreen
+      tlExpand.fromTo(
+        heroWrap,
+        { scale: 1 },
         {
-          x: () => computeShift() * 1.04,
-          duration: 0.42,
-          ease: "power2.out",
+          scale: () => computeHeroScale(),
+          duration: 1,
+          ease: "power2.inOut",
         },
         0
       );
-      tl.to(
-        track,
-        {
-          x: () => computeShift(),
-          duration: 0.08,
-          ease: "power2.inOut",
-        },
-        0.42
-      );
 
-      // Sway sutil em Y/rotação dos cards não-hero — sensação de
-      // "fileira flexível" puxada por elástico.
-      for (let i = 0; i < HERO_INDEX; i++) {
-        const card = cardRefs.current[i];
-        if (!card) continue;
-        const delay = i * 0.02;
-        tl.to(
-          card,
-          {
-            y: -8,
-            rotation: -0.6,
-            duration: 0.22,
-            ease: "power2.out",
-          },
-          delay
-        );
-        tl.to(
-          card,
-          {
-            y: 0,
-            rotation: 0,
-            duration: 0.2,
-            ease: "power2.inOut",
-          },
-          0.3 + delay
-        );
-      }
-
-      tl.to(
-        [eyebrowRef.current, titleRef.current, subRef.current],
-        { opacity: 0, y: -30, duration: 0.18, ease: "power2.in" },
-        0.34
-      );
-      tl.to(
-        hudRef.current,
-        { opacity: 0, duration: 0.16, ease: "power2.in" },
-        0.36
-      );
-
-      for (let i = 0; i < HERO_INDEX; i++) {
-        tl.to(
-          cardRefs.current[i],
-          { opacity: 0.32, duration: 0.18 },
-          0.42
-        );
-      }
-
-      // Phase B — parallel expansion + film scrub (0.5 -> 1.0)
-      tl.fromTo(
-        heroWrap,
-        { scale: 1, rotationY: 0, rotationX: 0, rotationZ: 0, z: 0 },
-        {
-          scale: () => {
-            const ft = computeHeroFromTo();
-            if (!ft) return 1;
-            return Math.max(ft.scaleX, ft.scaleY);
-          },
-          rotationY: 0,
-          duration: 0.5,
-          ease: "power2.inOut",
-        },
-        0.5
-      );
-
-      tl.to(
+      // film overlay aparece junto
+      tlExpand.fromTo(
         heroFilmRef.current,
-        { opacity: 1, duration: 0.05, ease: "power1.inOut" },
-        0.5
+        { opacity: 0 },
+        { opacity: 1, duration: 0.15, ease: "power1.inOut" },
+        0.05
       );
 
-      tl.fromTo(
+      // texto principal e HUD somem assim que a fase B começa
+      tlExpand.to(
+        [eyebrowRef.current, titleRef.current, subRef.current],
+        { opacity: 0, y: -30, duration: 0.25, ease: "power2.in" },
+        0
+      );
+      tlExpand.to(
+        hudRef.current,
+        { opacity: 0, duration: 0.2, ease: "power2.in" },
+        0
+      );
+
+      // demais cards somem para deixar o hero protagonizar
+      for (let i = 0; i < HERO_INDEX; i++) {
+        tlExpand.to(
+          cardRefs.current[i],
+          { opacity: 0, duration: 0.3, ease: "power1.in" },
+          0
+        );
+      }
+
+      // labels overlay aparecem ao longo da expansão
+      tlExpand.fromTo(
         heroLabelRef.current,
         { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" },
-        0.55
+        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+        0.15
       );
-      tl.fromTo(
+      tlExpand.fromTo(
         heroHeadlineRef.current,
         { opacity: 0, y: 24, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.32, ease: "power2.out" },
-        0.78
+        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power2.out" },
+        0.55
       );
-
-      for (let i = 0; i < HERO_INDEX; i++) {
-        tl.to(
-          cardRefs.current[i],
-          { opacity: 0, duration: 0.18, ease: "power1.in" },
-          0.55
-        );
-      }
     }, rootRef);
 
     return () => ctx.revert();
@@ -296,7 +299,7 @@ export default function ScrollDrivenHeroGallery() {
           </div>
         </div>
 
-        <div className="relative z-20 px-[5vw] mt-[6vh] max-w-[64rem]">
+        <div className="relative z-20 px-[5vw] mt-[3vh] max-w-[60rem]">
           <div
             ref={eyebrowRef}
             className="text-[10px] tracking-[0.32em] uppercase"
@@ -306,13 +309,13 @@ export default function ScrollDrivenHeroGallery() {
           </div>
           <h1
             ref={titleRef}
-            className="mt-3"
+            className="mt-2"
             style={{
               fontFamily: "var(--font-oswald), sans-serif",
               fontWeight: 700,
               lineHeight: 0.88,
               letterSpacing: "-0.025em",
-              fontSize: "clamp(48px, 7.6vw, 132px)",
+              fontSize: "clamp(36px, 5.6vw, 88px)",
               color: "rgba(255,255,255,0.96)",
               textTransform: "uppercase",
               whiteSpace: "pre-line",
@@ -322,7 +325,7 @@ export default function ScrollDrivenHeroGallery() {
           </h1>
           <p
             ref={subRef}
-            className="mt-5 max-w-md text-[13px] leading-relaxed"
+            className="mt-3 max-w-md text-[12px] leading-relaxed"
             style={{ color: "rgba(255,255,255,0.72)" }}
           >
             Cinco cartas. Uma vira o jogo. Compra, concorre e leva — direto, sem
@@ -333,7 +336,7 @@ export default function ScrollDrivenHeroGallery() {
         <div
           className="absolute inset-x-0 z-10 pointer-events-none"
           style={{
-            top: "50%",
+            top: "62%",
             perspective: "1600px",
             perspectiveOrigin: "50% 50%",
           }}
@@ -342,9 +345,9 @@ export default function ScrollDrivenHeroGallery() {
             ref={trackRef}
             className="relative flex items-center"
             style={{
-              gap: "clamp(24px, 3vw, 56px)",
-              paddingLeft: "10vw",
-              paddingRight: "10vw",
+              gap: "clamp(16px, 1.8vw, 32px)",
+              paddingLeft: "6vw",
+              paddingRight: "6vw",
               width: "max-content",
               willChange: "transform",
             }}
@@ -358,7 +361,7 @@ export default function ScrollDrivenHeroGallery() {
                     cardRefs.current[i] = el;
                   }}
                   style={{
-                    width: "clamp(320px, 32vw, 540px)",
+                    width: "clamp(380px, 38vw, 620px)",
                     flex: "0 0 auto",
                     willChange: isHero ? "transform" : "opacity",
                   }}
@@ -370,7 +373,7 @@ export default function ScrollDrivenHeroGallery() {
                         index={card.index}
                         hideLabels
                         priority
-                        sizes="(min-width: 1024px) 32vw, 90vw"
+                        sizes="(min-width: 1024px) 38vw, 90vw"
                         overlay={
                           <>
                             <div
@@ -430,7 +433,7 @@ export default function ScrollDrivenHeroGallery() {
                       index={card.index}
                       title={card.title}
                       subtitle={card.subtitle}
-                      sizes="(min-width: 1024px) 32vw, 80vw"
+                      sizes="(min-width: 1024px) 38vw, 80vw"
                     />
                   )}
                 </div>
@@ -484,4 +487,4 @@ export default function ScrollDrivenHeroGallery() {
       </section>
     </section>
   );
-}
+}
