@@ -1,26 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  /* ===== Paleta Dr. Black Skins (preto + dourado + off-white) ===== */
-  --background: #050505;          /* preto profundo, base */
-  --foreground: #f2ede3;          /* off-white creme, texto principal */
-  --paper: #f2ede3;               /* fase clara do loader */
-  --ink: #0a0a0a;                 /* preto sobre paper */
-
-  --accent: #c9a24b;              /* dourado sóbrio */
-  --accent-soft: #e6c277;         /* highlight dourado claro */
-  --accent-deep: #8a6d2c;         /* dourado escuro / bronze */
-
-  --line: rgba(201, 162, 75, 0.25);
-  --muted: rgba(242, 237, 227, 0.55);
+  /* Rebrand 2026 Q1 — ver spec/features/rebrand-2026-q1/readme.md */
+  --background: #0a0a0a;
+  --background-raised: #141414;
+  --foreground: #ffffff;
+  --foreground-muted: rgba(255, 255, 255, 0.68);
+  --paper: #eed9c4;
+  --ink: #0a0a0a;
+  --accent: #ff5c0a;
+  --accent-soft: #ff7a3d;
+  --accent-deep: #cc4a08;
+  --on-accent: #0a0a0a;
+  --highlight: #eed9c4;
+  --line: rgba(238, 217, 196, 0.28);
+  --muted: var(--foreground-muted);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-deep: var(--accent-deep);
+  --color-on-accent: var(--on-accent);
   --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-highlight: var(--highlight);
+  --color-muted-foreground: var(--muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-oswald);
@@ -33,23 +41,21 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* utility: texto recortado sobre padrão/gradiente */
-.kpr-mask {
+.accent-shine {
+  background: linear-gradient(
+    90deg,
+    var(--accent-deep) 0%,
+    var(--accent) 38%,
+    var(--accent-soft) 52%,
+    var(--accent) 66%,
+    var(--highlight) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* brilho sutil dourado para destaques */
-.gold-shine {
-  background: linear-gradient(
-    90deg,
-    var(--accent-deep) 0%,
-    var(--accent) 40%,
-    var(--accent-soft) 55%,
-    var(--accent) 70%,
-    var(--accent-deep) 100%
-  );
+.kpr-mask {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
