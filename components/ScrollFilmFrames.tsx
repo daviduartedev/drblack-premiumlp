@@ -50,7 +50,6 @@ export default function ScrollFilmFrames({
     return Math.min(lastIndex, Math.max(firstIndex, mapped));
   }, [progress, stepCount, totalFiles, firstIndex, lastIndex]);
 
-  // Pre-warm cache so subsequent decodes are instantaneous.
   useEffect(() => {
     const imgs: HTMLImageElement[] = [];
     for (let i = firstIndex; i <= lastIndex; i++) {

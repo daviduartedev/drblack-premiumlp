@@ -21,8 +21,6 @@ gsap.registerPlugin(ScrollTrigger);
  *    do tamanho do card até preencher a tela inteira; EM PARALELO, dentro
  *    do mesmo card, começa o scrub da animação `frame_001..frame_101`.
  *    As duas coisas acontecem juntas, num mesmo trecho do scroll.
- *
- * Tudo em um único pin scroll-trigger para garantir continuidade visual.
  */
 
 const CARDS = [
@@ -59,7 +57,7 @@ const CARDS = [
 ] as const;
 
 const TOTAL_CARDS = CARDS.length;
-const HERO_INDEX = TOTAL_CARDS - 1; // último card é o hero
+const HERO_INDEX = TOTAL_CARDS - 1;
 
 export default function ScrollDrivenHeroGallery() {
   const rootRef = useRef<HTMLElement>(null);
@@ -77,29 +75,21 @@ export default function ScrollDrivenHeroGallery() {
   const heroLabelRef = useRef<HTMLDivElement>(null);
   const heroHeadlineRef = useRef<HTMLHeadingElement>(null);
 
-  // Progresso 0..1 da fase de expansão (e do scrub das frames). Os dois
-  // andam juntos, conforme requisito.
   const [expansionProgress, setExpansionProgress] = useState(0);
-
-  // Mantém uma ref espelhando o state pra ser lida dentro do onUpdate sem
-  // criar closures novas.
   const expansionProgressRef = useRef(0);
 
   useEffect(() => {
     if (!rootRef.current || !pinRef.current || !trackRef.current) return;
 
-    const PHASE_CAROUSEL_END = 0.5; // 0    -> 0.5  carrossel
-    const PHASE_EXPAND_END = 1.0; //   0.5  -> 1.0  expansão + film scrub
+    const PHASE_CAROUSEL_END = 0.5;
+    const PHASE_EXPAND_END = 1.0;
 
     const ctx = gsap.context(() => {
-      // Centralizamos a fileira via xPercent/yPercent num wrapper para que
-      // possamos animar `x` em pixels sem brigar com translate do GSAP.
       const track = trackRef.current!;
       const heroWrap = heroWrapRef.current!;
 
       gsap.set(track, { xPercent: 0, yPercent: -50, force3D: true });
 
-      // Calcula deslocamento alvo: trazer o último card ao centro do viewport.
       const computeShift = () => {
         const heroEl = cardRefs.current[HERO_INDEX];
         if (!heroEl) return 0;
@@ -109,12 +99,9 @@ export default function ScrollDrivenHeroGallery() {
         return viewportCenter - heroCenter;
       };
 
-      // Posição inicial e de chegada do último card no viewport (para a
-      // transição 3D card → fullscreen).
       const computeHeroFromTo = () => {
         const heroEl = cardRefs.current[HERO_INDEX];
         if (!heroEl) return null;
-        // No final do carrossel o hero está centralizado no viewport.
         const rect = heroEl.getBoundingClientRect();
         const fromW = rect.width;
         const fromH = rect.height;
@@ -152,11 +139,7 @@ export default function ScrollDrivenHeroGallery() {
         },
       });
 
-      // ===================================================================
-      // FASE A — Carrossel (0 → 0.5)
-      // O trilho inteiro desliza para a esquerda até o último card chegar
-      // ao centro do viewport.
-      // ===================================================================
+      // Phase A — carousel slide (0 -> 0.5)
       tl.to(
         track,
         {
@@ -167,7 +150,6 @@ export default function ScrollDrivenHeroGallery() {
         0
       );
 
-      // Header/HUD vão sumindo conforme o carrossel avança
       tl.to(
         [eyebrowRef.current, titleRef.current, subRef.current],
         { opacity: 0, y: -30, duration: 0.18, ease: "power2.in" },
@@ -179,8 +161,6 @@ export default function ScrollDrivenHeroGallery() {
         0.36
       );
 
-      // Cards anteriores (1..n-1) perdem brilho/sat enquanto o hero ganha
-      // atenção, mas continuam visíveis (acompanhando o scroll do trilho).
       for (let i = 0; i < HERO_INDEX; i++) {
         tl.to(
           cardRefs.current[i],
@@ -189,25 +169,11 @@ export default function ScrollDrivenHeroGallery() {
         );
       }
 
-      // ===================================================================
-      // FASE B — Expansão + film scrub (0.5 → 1.0) — paralelos
-      // O hero card escala do tamanho dele até cobrir toda a viewport.
-      // Em PARALELO, o ScrollFilmFrames recebe expansionProgress (0→1) e
-      // scruba frame_001 → frame_101 dentro do mesmo card.
-      // ===================================================================
+      // Phase B — parallel expansion + film scrub (0.5 -> 1.0)
       tl.fromTo(
         heroWrap,
+        { scale: 1, rotationY: 0, rotationX: 0, rotationZ: 0, z: 0 },
         {
-          scale: 1,
-          rotationY: 0,
-          rotationX: 0,
-          rotationZ: 0,
-          z: 0,
-        },
-        {
-          // GSAP aceita `scale` único; usamos uma função para retornar o
-          // máximo entre scaleX/scaleY (cover-fit). Como o card é quadrado
-          // e o viewport é landscape, o eixo dominante é o horizontal.
           scale: () => {
             const ft = computeHeroFromTo();
             if (!ft) return 1;
@@ -220,14 +186,12 @@ export default function ScrollDrivenHeroGallery() {
         0.5
       );
 
-      // Cross-fade: a textura estática do card vira o film scrubber.
       tl.to(
         heroFilmRef.current,
         { opacity: 1, duration: 0.05, ease: "power1.inOut" },
         0.5
       );
 
-      // Headline da fase final entra junto com a expansão.
       tl.fromTo(
         heroLabelRef.current,
         { opacity: 0, y: 12 },
@@ -241,7 +205,6 @@ export default function ScrollDrivenHeroGallery() {
         0.78
       );
 
-      // Cards laterais somem completamente quando o hero está dominando.
       for (let i = 0; i < HERO_INDEX; i++) {
         tl.to(
           cardRefs.current[i],
@@ -261,7 +224,6 @@ export default function ScrollDrivenHeroGallery() {
         className="relative h-[100svh] w-full overflow-hidden"
         style={{ backgroundColor: "#0a0a0a" }}
       >
-        {/* Fundo ambiente */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
@@ -280,7 +242,6 @@ export default function ScrollDrivenHeroGallery() {
           }}
         />
 
-        {/* Top bar */}
         <div className="relative z-30 flex items-center justify-between px-[5vw] pt-7">
           <div
             className="text-[11px] tracking-[0.28em] uppercase"
@@ -296,7 +257,6 @@ export default function ScrollDrivenHeroGallery() {
           </div>
         </div>
 
-        {/* Texto introdutório */}
         <div className="relative z-20 px-[5vw] mt-[6vh] max-w-[64rem]">
           <div
             ref={eyebrowRef}
@@ -331,7 +291,6 @@ export default function ScrollDrivenHeroGallery() {
           </p>
         </div>
 
-        {/* Carrossel — trilho horizontal de cards iguais */}
         <div
           className="absolute inset-x-0 z-10 pointer-events-none"
           style={{
@@ -375,8 +334,6 @@ export default function ScrollDrivenHeroGallery() {
                         sizes="(min-width: 1024px) 22vw, 80vw"
                         overlay={
                           <>
-                            {/* Camada com o film scrub — fica por cima da
-                                imagem estática quando expansion > 0. */}
                             <div
                               ref={heroFilmRef}
                               className="absolute inset-0 pointer-events-none"
@@ -393,7 +350,6 @@ export default function ScrollDrivenHeroGallery() {
                               ) : null}
                             </div>
 
-                            {/* Label do card hero (aparece na expansão) */}
                             <div
                               ref={heroLabelRef}
                               className="absolute top-6 left-6 text-[10px] tracking-[0.32em] uppercase z-[3]"
@@ -405,7 +361,6 @@ export default function ScrollDrivenHeroGallery() {
                               05 · CARTA FORTE
                             </div>
 
-                            {/* Headline da fase fullscreen */}
                             <div className="absolute bottom-[12vh] left-0 right-0 px-[5vw] z-[3] pointer-events-none">
                               <h2
                                 ref={heroHeadlineRef}
@@ -423,3 +378,71 @@ export default function ScrollDrivenHeroGallery() {
                                   opacity: 0,
                                 }}
                               >
+                                {"AQUI O PRECO TA EXPOSTO\nE A SKIN TA SOBRIA."}
+                              </h2>
+                            </div>
+                          </>
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <KprCard
+                      src={card.src}
+                      index={card.index}
+                      title={card.title}
+                      subtitle={card.subtitle}
+                      sizes="(min-width: 1024px) 22vw, 70vw"
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div
+          ref={hudRef}
+          className="absolute inset-x-[5vw] bottom-7 z-30 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase pointer-events-none"
+          style={{ color: "rgba(255,255,255,0.6)" }}
+        >
+          <span>SCROLL ↓</span>
+          <span style={{ color: "var(--highlight)" }}>05 / 05 · ARSENAL</span>
+        </div>
+      </div>
+
+      <section
+        className="relative w-full"
+        style={{
+          minHeight: "100vh",
+          background: "#eed9c4",
+          color: "#0a0a0a",
+        }}
+      >
+        <div className="mx-auto max-w-6xl px-[5vw] py-24">
+          <div
+            className="text-[11px] tracking-[0.28em] uppercase"
+            style={{ color: "rgba(10,10,10,0.55)" }}
+          >
+            06 · TIMELINE
+          </div>
+          <h2
+            className="mt-4"
+            style={{
+              fontFamily: "var(--font-oswald), sans-serif",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              textTransform: "uppercase",
+              fontSize: "clamp(42px, 6vw, 92px)",
+              lineHeight: 0.95,
+            }}
+          >
+            Continua a narrativa
+          </h2>
+          <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-black/70">
+            Do arquivo vivo para o mercado real. Da promessa para a entrega.
+          </p>
+        </div>
+      </section>
+    </section>
+  );
+}
