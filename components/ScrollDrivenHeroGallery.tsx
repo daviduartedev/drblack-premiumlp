@@ -87,13 +87,32 @@ export default function ScrollDrivenHeroGallery() {
 
       gsap.set(track, { xPercent: 0, yPercent: -50, force3D: true });
 
+      // Posição INICIAL: faixa empurrada para a direita o suficiente para
+      // que o último card (hero) apareça parcialmente colado à borda
+      // direita do viewport. Os cards anteriores ficam fora da tela à
+      // esquerda (entrarão conforme rola).
+      const computeStartX = () => {
+        const heroEl = cardRefs.current[HERO_INDEX];
+        if (!heroEl) return 0;
+        const rect = heroEl.getBoundingClientRect();
+        const trackTransform = gsap.getProperty(track, "x") as number;
+        // posição atual do hero no viewport - desejamos que ele fique
+        // colado à direita (com pequena margem). Calcula o offset bruto
+        // ignorando o transform atual.
+        const rawHeroLeft = rect.left - trackTransform;
+        const targetHeroLeft = window.innerWidth - rect.width - 32; // 32px margem
+        return targetHeroLeft - rawHeroLeft;
+      };
+
+      // Posição FINAL: hero centralizado no viewport.
       const computeShift = () => {
         const heroEl = cardRefs.current[HERO_INDEX];
         if (!heroEl) return 0;
-        const heroRect = heroEl.getBoundingClientRect();
-        const viewportCenter = window.innerWidth / 2;
-        const heroCenter = heroRect.left + heroRect.width / 2;
-        return viewportCenter - heroCenter;
+        const trackTransform = gsap.getProperty(track, "x") as number;
+        const rect = heroEl.getBoundingClientRect();
+        const rawHeroLeft = rect.left - trackTransform;
+        const targetHeroLeft = (window.innerWidth - rect.width) / 2;
+        return targetHeroLeft - rawHeroLeft;
       };
 
       const computeHeroScale = () => {
@@ -107,86 +126,36 @@ export default function ScrollDrivenHeroGallery() {
         return Math.max(scaleX, scaleY);
       };
 
+      // Estado inicial: faixa empurrada para a direita — hero colado à
+      // borda direita do viewport, demais cards fora da tela.
+      gsap.set(track, { x: () => computeStartX() });
+
       // ============================================================
-      // FASE A — Carrossel: faixa desliza até hero centralizar.
-      // Timeline própria com elastic/band + sway escalonado.
+      // Timeline ÚNICA pinada — evita conflito de múltiplas ScrollTriggers
+      // pinando o mesmo elemento.
+      //
+      // Layout temporal (progress 0..1):
+      //   0.00 .. 0.45  Fase A — carrossel desliza direita → centro
+      //   0.45 .. 1.00  Fase B — hero expande + frames scrubam EM PARALELO
       // ============================================================
-      const tlCarousel = gsap.timeline({
+      const PHASE_A_END = 0.45;
+
+      const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinRef.current,
           start: "top top",
-          end: "+=200%",
+          end: "+=600%",
           pin: true,
           pinSpacing: true,
-          scrub: 1.0, // inércia / elastic feel
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      // overshoot 4% e volta — sensação band
-      tlCarousel.to(
-        track,
-        {
-          x: () => computeShift() * 1.04,
-          duration: 0.78,
-          ease: "power2.out",
-        },
-        0
-      );
-      tlCarousel.to(
-        track,
-        {
-          x: () => computeShift(),
-          duration: 0.22,
-          ease: "power2.inOut",
-        },
-        0.78
-      );
-
-      // sway escalonado nos cards não-hero
-      for (let i = 0; i < HERO_INDEX; i++) {
-        const card = cardRefs.current[i];
-        if (!card) continue;
-        const delay = i * 0.04;
-        tlCarousel.to(
-          card,
-          { y: -10, rotation: -0.8, duration: 0.42, ease: "power2.out" },
-          delay
-        );
-        tlCarousel.to(
-          card,
-          { y: 0, rotation: 0, duration: 0.36, ease: "power2.inOut" },
-          0.5 + delay
-        );
-      }
-
-      // ============================================================
-      // FASE B — Expansão hero até fullscreen + scrub frames 1..101
-      // EM PARALELO. Timeline própria, segunda ScrollTrigger,
-      // começa exatamente onde a Fase A termina.
-      // ============================================================
-      const tlExpand = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: pinRef.current,
-          start: "top top-=200%", // logo após o fim da Fase A
-          end: "+=400%",
-          pin: true,
-          pinSpacing: true,
-          scrub: 0.5,
+          scrub: 0.8,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const p = self.progress;
-            // Os 65% iniciais da fase B controlam a expansão de escala;
-            // de 35% pra 100% rola o film scrub (1→101) — porém ambos
-            // permanecem no MESMO trecho de scroll. O scrub das frames
-            // começa quando a expansão atinge ~25% (paralelismo real).
-            const filmStart = 0.25;
-            if (p >= filmStart) {
-              const t = (p - filmStart) / (1 - filmStart);
+            // Frame scrub roda durante TODA a fase B (paralelo à expansão).
+            if (p >= PHASE_A_END) {
+              const t = (p - PHASE_A_END) / (1 - PHASE_A_END);
               const clamped = Math.min(1, Math.max(0, t));
               if (expansionProgressRef.current !== clamped) {
                 expansionProgressRef.current = clamped;
@@ -200,59 +169,104 @@ export default function ScrollDrivenHeroGallery() {
         },
       });
 
-      // hero scale → fullscreen
-      tlExpand.fromTo(
-        heroWrap,
-        { scale: 1 },
+      // ----- FASE A — carrossel direita → centro (0 .. 0.45) -----
+      // Overshoot leve (passa 4% do delta start→end) e volta = elastic feel.
+      tl.to(
+        track,
         {
-          scale: () => computeHeroScale(),
-          duration: 1,
-          ease: "power2.inOut",
+          x: () => {
+            const start = computeStartX();
+            const end = computeShift();
+            return end - (start - end) * 0.04;
+          },
+          duration: 0.36,
+          ease: "power2.out",
         },
         0
       );
-
-      // film overlay aparece junto
-      tlExpand.fromTo(
-        heroFilmRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.15, ease: "power1.inOut" },
-        0.05
+      tl.to(
+        track,
+        {
+          x: () => computeShift(),
+          duration: 0.09,
+          ease: "power2.inOut",
+        },
+        0.36
       );
 
-      // texto principal e HUD somem assim que a fase B começa
-      tlExpand.to(
-        [eyebrowRef.current, titleRef.current, subRef.current],
-        { opacity: 0, y: -30, duration: 0.25, ease: "power2.in" },
-        0
-      );
-      tlExpand.to(
-        hudRef.current,
-        { opacity: 0, duration: 0.2, ease: "power2.in" },
-        0
-      );
-
-      // demais cards somem para deixar o hero protagonizar
+      // Sway escalonado nos cards não-hero durante a fase A.
       for (let i = 0; i < HERO_INDEX; i++) {
-        tlExpand.to(
-          cardRefs.current[i],
-          { opacity: 0, duration: 0.3, ease: "power1.in" },
-          0
+        const card = cardRefs.current[i];
+        if (!card) continue;
+        const delay = i * 0.02;
+        tl.to(
+          card,
+          { y: -10, rotation: -0.8, duration: 0.2, ease: "power2.out" },
+          delay
+        );
+        tl.to(
+          card,
+          { y: 0, rotation: 0, duration: 0.18, ease: "power2.inOut" },
+          0.22 + delay
         );
       }
 
-      // labels overlay aparecem ao longo da expansão
-      tlExpand.fromTo(
+      // ----- FASE B — expansão hero + frame scrub em PARALELO (0.45 .. 1.0) -----
+      // Hero scale → fullscreen ocupa todo o trecho da fase B.
+      tl.fromTo(
+        heroWrap,
+        { scale: 1, rotationY: 0, rotationX: 0, z: 0 },
+        {
+          scale: () => computeHeroScale(),
+          rotationY: 0,
+          duration: 0.55,
+          ease: "power2.inOut",
+        },
+        PHASE_A_END
+      );
+
+      // Film overlay aparece logo no início da fase B (frames já estão
+      // sendo scrubbed pelo onUpdate, mas o overlay precisa estar visível).
+      tl.fromTo(
+        heroFilmRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.04, ease: "power1.inOut" },
+        PHASE_A_END
+      );
+
+      // Texto principal + HUD desaparecem no início da fase B.
+      tl.to(
+        [eyebrowRef.current, titleRef.current, subRef.current],
+        { opacity: 0, y: -30, duration: 0.12, ease: "power2.in" },
+        PHASE_A_END
+      );
+      tl.to(
+        hudRef.current,
+        { opacity: 0, duration: 0.1, ease: "power2.in" },
+        PHASE_A_END
+      );
+
+      // Cards laterais somem deixando o hero ser o protagonista.
+      for (let i = 0; i < HERO_INDEX; i++) {
+        tl.to(
+          cardRefs.current[i],
+          { opacity: 0, duration: 0.14, ease: "power1.in" },
+          PHASE_A_END
+        );
+      }
+
+      // Labels overlay (canto + headline central) aparecem durante a expansão.
+      tl.fromTo(
         heroLabelRef.current,
         { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-        0.15
+        { opacity: 1, y: 0, duration: 0.16, ease: "power2.out" },
+        PHASE_A_END + 0.1
       );
-      tlExpand.fromTo(
+      tl.fromTo(
         heroHeadlineRef.current,
         { opacity: 0, y: 24, scale: 0.96 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power2.out" },
-        0.55
+        { opacity: 1, y: 0, scale: 1, duration: 0.22, ease: "power2.out" },
+        PHASE_A_END + 0.3
       );
     }, rootRef);
 
@@ -487,4 +501,4 @@ export default function ScrollDrivenHeroGallery() {
       </section>
     </section>
   );
-}
+}
