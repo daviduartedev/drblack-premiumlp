@@ -7,10 +7,11 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import ScrollFilmCoda from "@/components/ScrollFilmCoda";
 
 type CardEnv = {
-  accent: string; // cor base do ambiente
-  bgUrl?: string; // imagem/vídeo (por enquanto imagem) do ambiente
+  accent: string;
+  bgUrl?: string;
 };
 
 type GalleryCard = {
@@ -41,23 +42,23 @@ function WipeScene({
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
   const texA = useMemo(() => {
-    const t = texARaw.clone();
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-    t.minFilter = THREE.LinearFilter;
-    t.magFilter = THREE.LinearFilter;
-    t.needsUpdate = true;
-    return t;
+    const x = texARaw.clone();
+    x.colorSpace = THREE.SRGBColorSpace;
+    x.wrapS = x.wrapT = THREE.ClampToEdgeWrapping;
+    x.minFilter = THREE.LinearFilter;
+    x.magFilter = THREE.LinearFilter;
+    x.needsUpdate = true;
+    return x;
   }, [texARaw]);
 
   const texB = useMemo(() => {
-    const t = texBRaw.clone();
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-    t.minFilter = THREE.LinearFilter;
-    t.magFilter = THREE.LinearFilter;
-    t.needsUpdate = true;
-    return t;
+    const x = texBRaw.clone();
+    x.colorSpace = THREE.SRGBColorSpace;
+    x.wrapS = x.wrapT = THREE.ClampToEdgeWrapping;
+    x.minFilter = THREE.LinearFilter;
+    x.magFilter = THREE.LinearFilter;
+    x.needsUpdate = true;
+    return x;
   }, [texBRaw]);
 
   const uniforms = useMemo(() => {
@@ -99,7 +100,6 @@ function WipeScene({
           uniform vec3 uColorB;
           uniform float uTime;
 
-          // noise rápido (barato) só pra dar "orgânico" no wipe
           float hash(vec2 p) {
             p = fract(p * vec2(123.34, 456.21));
             p += dot(p, p + 45.32);
@@ -107,23 +107,16 @@ function WipeScene({
           }
 
           void main() {
-            // base: mistura de cores pra manter “ambiente” mesmo sem textura
             vec3 baseA = uColorA;
             vec3 baseB = uColorB;
-
-            // textura com leve parallax/offset mínimo (cinematográfico, sem warp forte)
             vec2 uv = vUv;
             vec2 uvA = uv + vec2(-0.02, 0.00) * uT;
             vec2 uvB = uv + vec2( 0.02, 0.00) * (1.0 - uT);
-
             vec3 colA = texture2D(uTexA, uvA).rgb * 0.75 + baseA * 0.25;
             vec3 colB = texture2D(uTexB, uvB).rgb * 0.75 + baseB * 0.25;
-
-            // wipe: varre da esquerda -> direita, com borda suavizada + granulação sutil
             float n = hash(uv * 180.0 + uTime * 0.15);
             float edge = uv.x + (n - 0.5) * 0.06;
             float mask = smoothstep(uT - 0.04, uT + 0.04, edge);
-
             vec3 col = mix(colA, colB, mask);
             gl_FragColor = vec4(col, 1.0);
           }
@@ -143,35 +136,29 @@ export default function ScrollDrivenHeroGallery() {
     () => [
       {
         id: "1",
-        title: "KEEPERS ARCHIVE",
-        imageUrl:
-          "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=2200&q=80",
+        title: "SKINS NO PONTO.\nRIFA NA TELA.",
+        imageUrl: "/gallery/card-1.jpg",
         env: {
-          accent: "#0b0a09",
-          bgUrl:
-            "https://images.unsplash.com/photo-1520975958225-0ea5c7b5b9b3?auto=format&fit=crop&w=2200&q=80",
+          accent: "#120f0c",
+          bgUrl: "/gallery/env-1.jpg",
         },
       },
       {
         id: "2",
-        title: "LIVE MARKET SHIFT",
-        imageUrl:
-          "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=2200&q=80",
+        title: "MERCADO AO VIVO\nSEM ENROLAÇÃO.",
+        imageUrl: "/gallery/card-2.jpg",
         env: {
-          accent: "#0a0a0a",
-          bgUrl:
-            "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=2200&q=80",
+          accent: "#1a1510",
+          bgUrl: "/gallery/env-2.jpg",
         },
       },
       {
         id: "3",
-        title: "AUCTION ROOM",
-        imageUrl:
-          "https://images.unsplash.com/photo-1527443154391-507e9dc6c5cc?auto=format&fit=crop&w=2200&q=80",
+        title: "CARTA FORTE\nNO SEU TEMPO.",
+        imageUrl: "/gallery/knife.png",
         env: {
-          accent: "#111019",
-          bgUrl:
-            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2200&q=80",
+          accent: "#c94d0f",
+          bgUrl: "/gallery/env-3.jpg",
         },
       },
     ],
@@ -179,13 +166,13 @@ export default function ScrollDrivenHeroGallery() {
   );
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const [transitionT, setTransitionT] = useState(0); // 0..1 dentro do step atual
+  const [transitionT, setTransitionT] = useState(0);
 
   useEffect(() => {
     if (!rootRef.current || !pinRef.current) return;
 
     const ctx = gsap.context(() => {
-      const steps = cards.length - 1; // 2 transições (1->2, 2->3)
+      const steps = cards.length - 1;
       const total = Math.max(1, steps);
 
       progressRef.current.p = 0;
@@ -201,9 +188,9 @@ export default function ScrollDrivenHeroGallery() {
           anticipatePin: 1,
           onUpdate: (self) => {
             progressRef.current.p = self.progress;
-            const p = self.progress * total; // 0..2
+            const p = self.progress * total;
             const idx = Math.min(steps, Math.max(0, Math.floor(p)));
-            const t = p - idx; // 0..1
+            const t = p - idx;
             setActiveIdx(idx);
             setTransitionT(t);
           },
@@ -233,14 +220,16 @@ export default function ScrollDrivenHeroGallery() {
 
   return (
     <section ref={rootRef} className="w-full">
-      {/* Segmento pinado: Hero + linguagem de transição */}
       <div ref={pinRef} className="relative h-screen w-full overflow-hidden">
-        {/* WebGL ambiente (wipe) */}
         <div className="absolute inset-0">
           <Canvas
             orthographic
             camera={{ position: [0, 0, 5], zoom: 1 }}
-            gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+            gl={{
+              antialias: true,
+              alpha: false,
+              powerPreference: "high-performance",
+            }}
             dpr={[1, 1.75]}
           >
             <WipeScene
@@ -253,15 +242,13 @@ export default function ScrollDrivenHeroGallery() {
           </Canvas>
         </div>
 
-        {/* Overlay: UI e cards “arquivo” (DOM) */}
         <div className="relative z-10 h-full w-full">
-          {/* topo: mini header + jump */}
           <div className="flex items-center justify-between px-[5vw] pt-7">
             <div
               className="text-[11px] tracking-[0.28em] uppercase"
-              style={{ color: "rgba(242,237,227,0.75)" }}
+              style={{ color: "rgba(255,255,255,0.82)" }}
             >
-              01 · HERO ARCHIVE
+              DR · BLACK SKINS
             </div>
 
             <div className="flex items-center gap-2">
@@ -271,13 +258,13 @@ export default function ScrollDrivenHeroGallery() {
                   onClick={() => jumpTo(i)}
                   className="h-7 px-3 text-[10px] tracking-[0.28em] uppercase transition"
                   style={{
-                    border: "1px solid rgba(201,162,75,0.45)",
+                    border: "1px solid rgba(255,92,10,0.45)",
                     color:
                       i === activeIdx || i === activeIdx + 1
-                        ? "rgba(242,237,227,0.95)"
-                        : "rgba(242,237,227,0.60)",
+                        ? "rgba(255,255,255,0.95)"
+                        : "rgba(255,255,255,0.55)",
                     background:
-                      i === activeIdx ? "rgba(201,162,75,0.16)" : "transparent",
+                      i === activeIdx ? "rgba(255,92,10,0.18)" : "transparent",
                     backdropFilter: "blur(6px)",
                   }}
                 >
@@ -287,7 +274,6 @@ export default function ScrollDrivenHeroGallery() {
             </div>
           </div>
 
-          {/* headline */}
           <div className="px-[5vw] mt-[10vh] max-w-[52rem]">
             <h1
               style={{
@@ -296,35 +282,33 @@ export default function ScrollDrivenHeroGallery() {
                 lineHeight: 0.88,
                 letterSpacing: "-0.02em",
                 fontSize: "clamp(56px, 9vw, 156px)",
-                color: "rgba(242,237,227,0.96)",
+                color: "rgba(255,255,255,0.96)",
                 textTransform: "uppercase",
+                whiteSpace: "pre-line",
               }}
             >
               {from.title}
             </h1>
             <p
               className="mt-5 text-[13px] leading-relaxed max-w-lg"
-              style={{ color: "rgba(242,237,227,0.78)" }}
+              style={{ color: "rgba(255,255,255,0.74)" }}
             >
-              Scroll contínuo com transição cinematográfica: o card ativo vira
-              histórico à esquerda e o próximo entra pela direita, enquanto o
-              ambiente faz wipe.
+              Scroll com wipe entre ambientes: o card ativo encosta à esquerda e o
+              próximo entra pela direita, em cima da mesma paleta laranja e preto.
             </p>
           </div>
 
-          {/* cards */}
           <div className="absolute inset-x-[5vw] bottom-[8vh] flex items-end justify-between gap-8">
-            {/* thumbnails (histórico) */}
             <div className="flex items-end gap-3">
               {cards.slice(0, activeIdx).map((c, i) => (
                 <div
                   key={c.id}
-                  className="overflow-hidden"
+                  className="relative overflow-hidden"
                   style={{
                     width: 148,
                     height: 96,
                     borderRadius: 18,
-                    border: "1px solid rgba(242,237,227,0.18)",
+                    border: "1px solid rgba(255,255,255,0.18)",
                     transform: `translateY(${i * 6}px) rotate(${(-2 + i) * 0.6}deg)`,
                     boxShadow: "0 14px 40px rgba(0,0,0,0.45)",
                   }}
@@ -340,15 +324,14 @@ export default function ScrollDrivenHeroGallery() {
               ))}
             </div>
 
-            {/* ativo + próximo (entrando) */}
             <div className="flex items-end gap-5">
               <div
-                className="overflow-hidden"
+                className="relative overflow-hidden"
                 style={{
                   width: 520,
                   height: 340,
                   borderRadius: 22,
-                  border: "1px solid rgba(242,237,227,0.20)",
+                  border: "1px solid rgba(255,255,255,0.2)",
                   boxShadow: "0 22px 70px rgba(0,0,0,0.55)",
                   transform: `translateX(${(-220 * transitionT).toFixed(2)}px) scale(${(
                     1 - 0.18 * transitionT
@@ -368,12 +351,12 @@ export default function ScrollDrivenHeroGallery() {
               </div>
 
               <div
-                className="overflow-hidden"
+                className="relative overflow-hidden"
                 style={{
                   width: 440,
                   height: 300,
                   borderRadius: 22,
-                  border: "1px solid rgba(242,237,227,0.16)",
+                  border: "1px solid rgba(255,255,255,0.16)",
                   boxShadow: "0 18px 60px rgba(0,0,0,0.42)",
                   transform: `translateX(${(220 * (1 - transitionT)).toFixed(2)}px) scale(${(
                     0.92 + 0.08 * transitionT
@@ -393,22 +376,22 @@ export default function ScrollDrivenHeroGallery() {
             </div>
           </div>
 
-          {/* hint */}
           <div
             className="absolute bottom-7 left-[5vw] text-[10px] tracking-[0.3em] uppercase"
-            style={{ color: "rgba(242,237,227,0.60)" }}
+            style={{ color: "rgba(255,255,255,0.6)" }}
           >
             SCROLL ↓
           </div>
         </div>
       </div>
 
-      {/* Seção seguinte (mantém linguagem, mas escopo simples por enquanto) */}
+      <ScrollFilmCoda />
+
       <section
         className="relative w-full"
         style={{
           minHeight: "100vh",
-          background: "#f2ede3",
+          background: "#eed9c4",
           color: "#0a0a0a",
         }}
       >
@@ -417,7 +400,7 @@ export default function ScrollDrivenHeroGallery() {
             className="text-[11px] tracking-[0.28em] uppercase"
             style={{ color: "rgba(10,10,10,0.55)" }}
           >
-            02 · SEÇÃO SEGUINTE
+            04 · TIMELINE
           </div>
           <h2
             className="mt-4"
@@ -433,13 +416,10 @@ export default function ScrollDrivenHeroGallery() {
             Continua a narrativa
           </h2>
           <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-black/70">
-            Esta seção existe para validar o “handoff” do segmento pinado para o
-            scroll normal mantendo o mesmo vocabulário visual. No próximo passo,
-            refinamos conteúdo e repetimos o padrão de “arquivo vivo” aqui.
+            Do arquivo vivo para o mercado real. Da promessa para a entrega.
           </p>
         </div>
       </section>
     </section>
   );
 }
-

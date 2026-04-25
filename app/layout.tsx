@@ -20,8 +20,9 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "DR Black Skins",
-  description: "Compre. Venda. Concorra.",
+  title: "DR Black Skins | Skins de CS2, rifa, direto",
+  description:
+    "Seu ponto de skins e rifas. Compra, vende, concorre — sem enrolação.",
 };
 
 export default function RootLayout({
@@ -34,7 +35,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-black text-white">
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
       </body>
     </html>

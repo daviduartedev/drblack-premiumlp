@@ -1,17 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 
 /**
- * Hero — Dr. Black Skins (loja premium de skins CS2)
- * Paleta: preto + dourado + off-white.
+ * Hero — face pós-loader (rebrand laranja/creme, spec rebrand-2026-q1).
  */
 export default function Hero({ loading }: { loading: boolean }) {
   const show = !loading;
 
-  // Enquanto o loader não terminou o flip, mantemos a hero estática.
-  // Assim evitamos inicializar ScrollTrigger/WebGL “por trás” da face do loader.
   if (!show) {
     return (
       <section
@@ -21,70 +17,61 @@ export default function Hero({ loading }: { loading: boolean }) {
           color: "var(--foreground)",
         }}
       >
-        {/* base preta profunda com leve gradiente */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(120% 80% at 30% 30%, #1a1306 0%, #0b0904 45%, #050505 80%, #000 100%)",
+              "radial-gradient(120% 80% at 30% 30%, #1a0f0a 0%, #0f0c0a 45%, #0a0a0a 80%, #000 100%)",
           }}
         />
       </section>
     );
   }
 
-  const headline = ["COMPRE.", "VENDA.", "CONCORRA."];
+  const headline = ["COMPRA.", "VENDE.", "CONCORRE."];
 
   return (
-    <section className="w-full">
-      {/* Topo/branding e primeira impressão (mantém estilo atual) */}
-      <section
-        className="relative min-h-screen w-full overflow-hidden"
-        style={{
-          background: "var(--background)",
-          color: "var(--foreground)",
-        }}
-      >
-      {/* ========== BACKGROUND em camadas ========== */}
-      {/* base preta profunda com leve gradiente */}
+    <section
+      className="relative min-h-screen w-full overflow-hidden"
+      style={{
+        background: "var(--background)",
+        color: "var(--foreground)",
+      }}
+    >
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(120% 80% at 30% 30%, #1a1306 0%, #0b0904 45%, #050505 80%, #000 100%)",
+            "radial-gradient(120% 80% at 30% 30%, #1a0f0a 0%, #0f0c0a 45%, #0a0a0a 80%, #000 100%)",
         }}
       />
-      {/* halo dourado quente (spotlight premium) */}
       <div
         aria-hidden
-        className="absolute -right-[10%] top-[5%] w-[70%] h-[80%] opacity-45 blur-3xl"
+        className="absolute -right-[10%] top-[5%] w-[70%] h-[80%] opacity-50 blur-3xl"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(230,194,119,0.55), rgba(201,162,75,0.18) 45%, transparent 75%)",
+            "radial-gradient(closest-side, rgba(255,92,10,0.45), rgba(255,122,61,0.15) 45%, transparent 75%)",
         }}
       />
-      {/* bronze quente à esquerda/baixo */}
       <div
         aria-hidden
-        className="absolute -left-[10%] bottom-[-20%] w-[70%] h-[70%] opacity-40 blur-3xl"
+        className="absolute -left-[10%] bottom-[-20%] w-[70%] h-[70%] opacity-38 blur-3xl"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(138,109,44,0.55), transparent 70%)",
+            "radial-gradient(closest-side, rgba(204,74,8,0.45), rgba(10,10,10,0.2) 55%, transparent 70%)",
         }}
       />
-      {/* grid dourado sutil */}
       <div
         aria-hidden
-        className="absolute inset-0 opacity-[0.05] pointer-events-none"
+        className="absolute inset-0 opacity-[0.07] pointer-events-none"
         style={{
           backgroundImage:
-            "linear-gradient(to right, #c9a24b 1px, transparent 1px), linear-gradient(to bottom, #c9a24b 1px, transparent 1px)",
+            "linear-gradient(to right, #ff5c0a 1px, transparent 1px), linear-gradient(to bottom, #ff5c0a 1px, transparent 1px)",
           backgroundSize: "72px 72px",
         }}
       />
-      {/* vinheta nas bordas */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
@@ -94,7 +81,6 @@ export default function Hero({ loading }: { loading: boolean }) {
         }}
       />
 
-      {/* ========== NAV TOPO ========== */}
       <motion.nav
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: show ? 1 : 0, y: show ? 0 : -12 }}
@@ -111,64 +97,61 @@ export default function Hero({ loading }: { loading: boolean }) {
 
         <ul
           className="hidden md:flex items-center gap-10"
-          style={{ color: "var(--muted)" }}
+          style={{ color: "var(--foreground-muted)" }}
         >
-          <li className="hover:text-[var(--accent-soft)] cursor-pointer transition">
+          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
             Mercado
           </li>
-          <li className="hover:text-[var(--accent-soft)] cursor-pointer transition">
-            Leilões
+          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
+            Rifas
           </li>
-          <li className="hover:text-[var(--accent-soft)] cursor-pointer transition">
+          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
             Coleções
           </li>
-          <li className="hover:text-[var(--accent-soft)] cursor-pointer transition">
+          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
             Sobre
           </li>
         </ul>
 
         <button
-          className="px-4 py-2 text-[10px] tracking-[0.3em] transition"
+          className="px-4 py-2 text-[10px] font-semibold tracking-[0.28em] transition"
           style={{
             border: "1px solid var(--accent)",
-            color: "var(--accent-soft)",
+            color: "var(--highlight)",
             background: "transparent",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "var(--accent)";
-            e.currentTarget.style.color = "var(--ink)";
+            e.currentTarget.style.color = "var(--on-accent)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--accent-soft)";
+            e.currentTarget.style.color = "var(--highlight)";
           }}
         >
-          SIGN IN
+          ENTRAR
         </button>
       </motion.nav>
 
-      {/* ========== COLUNA ESQUERDA (descrição) ========== */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: show ? 1 : 0, x: show ? 0 : -20 }}
         transition={{ duration: 0.7, delay: 0.5 }}
         className="relative z-10 mt-12 md:mt-16 px-[5vw] max-w-md text-[13px] leading-relaxed"
-        style={{ color: "rgba(242,237,227,0.78)" }}
+        style={{ color: "var(--foreground-muted)" }}
       >
         <p
           className="mb-2 text-[10px] tracking-[0.3em] uppercase"
-          style={{ color: "var(--accent)" }}
+          style={{ color: "var(--highlight)" }}
         >
-          DR BLACK SKINS · CS2 PREMIUM
+          SKINS · CS2 · RIFAS
         </p>
         <p>
-          A loja premium de skins de CS2. Negocie os itens mais raros do cenário
-          com verificação de autenticidade, leilões ao vivo e curadoria
-          especializada — tudo em um só lugar.
+          Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende, concorre —
+          direto, sem enrolação.
         </p>
       </motion.div>
 
-      {/* ========== HEADLINE GIGANTE ========== */}
       <div className="relative z-10 px-[5vw] mt-[6vh] md:mt-[10vh] select-none">
         <h1
           style={{
@@ -195,12 +178,11 @@ export default function Hero({ loading }: { loading: boolean }) {
                 ease: [0.2, 0.7, 0.2, 1],
               }}
               className="block"
-              // destaca a última palavra em dourado
               style={
                 i === headline.length - 1
                   ? {
                       background:
-                        "linear-gradient(90deg, #8a6d2c 0%, #c9a24b 40%, #e6c277 55%, #c9a24b 70%, #8a6d2c 100%)",
+                        "linear-gradient(90deg, #b83d00 0%, #ff5c0a 40%, #ff7a3d 52%, #ff5c0a 68%, #eed9c4 100%)",
                       WebkitBackgroundClip: "text",
                       backgroundClip: "text",
                       color: "transparent",
@@ -214,10 +196,9 @@ export default function Hero({ loading }: { loading: boolean }) {
         </h1>
       </div>
 
-      {/* ========== RODAPÉ DISCRETO ========== */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: show ? 1 : 0 }}
         transition={{ duration: 0.8, delay: 1.4 }}
         className="absolute bottom-6 left-[5vw] right-[5vw] z-10 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase"
         style={{ color: "var(--muted)" }}
@@ -226,14 +207,8 @@ export default function Hero({ loading }: { loading: boolean }) {
         <span className="hidden md:inline">
           SCROLL <span className="ml-2">↓</span>
         </span>
-        <span style={{ color: "var(--accent-soft)" }}>
-          LIVE MARKET · ONLINE
-        </span>
+        <span style={{ color: "var(--highlight)" }}>MERCADO · AO VIVO</span>
       </motion.div>
-      </section>
-
-      {/* Hero + seção seguinte em narrativa scroll-driven (KPR-like) */}
-      <ScrollDrivenHeroGallery />
     </section>
   );
 }
