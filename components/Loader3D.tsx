@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
 /**
- * Loader KPR-style:
- * Fase 1: fundo preto, UI branca, acentos laranja.
- * Fases 2–5: pílulas brancas, logo branco, scan laranja.
+ * Loader inicial estilo KPR.
+ *
+ * Visual minimalista:
+ *  - Fundo creme (tema da landing).
+ *  - Wordmark gigante "DR · BLACK SKINS" no canto superior esquerdo.
+ *  - Contador grande (00 → 100) no centro/inferior.
+ *  - Barra horizontal fina abaixo do contador, cresce com o progresso.
+ *  - Linhas pequenas no rodapé com status.
+ *  - Sem ruído, sem glitch — clean.
+ *  - Ao chegar em 100, fade-out suave + chama onRequestFlip().
  */
 export default function Loader3D({
   onRequestFlip,
@@ -14,55 +21,30 @@ export default function Loader3D({
   onRequestFlip: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const barRef = useRef<HTMLDivElement>(null);
-  const topBarRef = useRef<HTMLDivElement>(null);
-  const noiseRef = useRef<SVGGElement>(null);
-  const patternFillRef = useRef<SVGRectElement>(null);
-  const logoGroupRef = useRef<SVGGElement>(null);
-  const cleanLogoRef = useRef<SVGGElement>(null);
-  const scanRef = useRef<SVGGElement>(null);
+  const counterRef = useRef<HTMLSpanElement>(null);
+  const barFillRef = useRef<HTMLDivElement>(null);
+  const wordmarkRef = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const [pct, setPct] = useState(0);
-  const [urlFrag, setUrlFrag] = useState(
-    "HTTPS://DRBLACKSKINS.COM/KPC0/KAI-14/REACTOR/ISOTOPE-8/404HZ"
-  );
+  const [statusText, setStatusText] = useState("INITIALIZING SYSTEM");
 
-  const noisePills = useMemo<{ x: number; y: number; h: number }[]>(
-    () =>
-      Array.from({ length: 140 }, (_, i) => {
-        let seed = (0x9e3779b9 ^ (i + 1)) >>> 0;
-        const rand = () => {
-          seed = (seed + 0x6d2b79f5) >>> 0;
-          let t = seed;
-          t = Math.imul(t ^ (t >>> 15), t | 1);
-          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-        const rx = rand();
-        const ry = rand();
-        const rh = rand();
-        return {
-          x: rx * 1900,
-          y: ry * 960,
-          h: 28 + rh * 70,
-        };
-      }),
-    []
-  );
-
+  // troca de status ao longo do load — sensação KPR de "boot sequence"
   useEffect(() => {
-    const urls = [
-      "HTTPS://DRBLACKSKINS.COM/KPC0/KAI-14/REACTOR/ISOTOPE-8/404HZ",
-      "HTTPS://DRBLACKSKINS.COM/KPC0/AREA-SCAN/A/SE_436092",
-      "HTTPS://DRBLACKSKINS.COM/SYS/BOOT/AUTH/SESSION-0x4F",
-      "HTTPS://DRBLACKSKINS.COM/MARKET/LIVE/BID/OPEN-STREAM",
-      "HTTPS://DRBLACKSKINS.COM/VAULT/KNIFE-CACHE/INDEX/71F",
+    const seq = [
+      "INITIALIZING SYSTEM",
+      "FETCHING ARSENAL",
+      "PREPARING MARKET",
+      "BOOTING INTERFACE",
+      "READY",
     ];
     let i = 0;
     const id = setInterval(() => {
-      i = (i + 1) % urls.length;
-      setUrlFrag(urls[i]);
-    }, 380);
+      i = (i + 1) % seq.length;
+      setStatusText(seq[i]);
+    }, 520);
     return () => clearInterval(id);
   }, []);
 
@@ -70,98 +52,53 @@ export default function Loader3D({
     if (!rootRef.current) return;
 
     const ctx = gsap.context(() => {
-      const counter = { v: 0 };
+      // entrada — wordmark e sub deslizam de baixo
+      gsap.fromTo(
+        wordmarkRef.current,
+        { y: 18, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
+      );
+      gsap.fromTo(
+        subRef.current,
+        { y: 14, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.12 }
+      );
+      gsap.fromTo(
+        statusRef.current,
+        { y: 10, opacity: 0 },
+        { y: 0, opacity: 0.6, duration: 0.6, ease: "power3.out", delay: 0.2 }
+      );
 
+      // counter 0 → 100 e barra preenchendo em paralelo
+      const counter = { v: 0 };
       const tl = gsap.timeline({
+        delay: 0.35,
         onComplete: () => {
-          onRequestFlip();
+          // Hold breve em 100, então fade-out suave do overlay inteiro
+          gsap.to(overlayRef.current, {
+            opacity: 0,
+            duration: 0.55,
+            ease: "power2.inOut",
+            delay: 0.35,
+            onComplete: () => {
+              onRequestFlip();
+            },
+          });
         },
       });
 
       tl.to(counter, {
         v: 100,
-        duration: 2.3,
-        ease: "power1.inOut",
+        duration: 2.6,
+        ease: "power2.inOut",
         onUpdate: () => setPct(Math.round(counter.v)),
       });
+
       tl.to(
-        barRef.current,
-        { width: "100%", duration: 2.3, ease: "power1.inOut" },
+        barFillRef.current,
+        { width: "100%", duration: 2.6, ease: "power2.inOut" },
         "<"
       );
-
-      tl.to(
-        topBarRef.current,
-        {
-          opacity: 0,
-          duration: 0.25,
-          ease: "power2.out",
-        },
-        "+=0.1"
-      );
-
-      tl.fromTo(
-        noiseRef.current,
-        { opacity: 0, scale: 0.92, transformOrigin: "50% 50%" },
-        { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
-        "<"
-      );
-      tl.fromTo(
-        patternFillRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.4, ease: "power3.out" },
-        "<"
-      );
-
-      tl.fromTo(
-        logoGroupRef.current,
-        { opacity: 0, scale: 0.88, transformOrigin: "50% 50%" },
-        { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" },
-        "+=0.15"
-      );
-
-      tl.to(
-        noiseRef.current,
-        { opacity: 0.35, duration: 0.6, ease: "power2.inOut" },
-        "<0.2"
-      );
-
-      tl.to(
-        [noiseRef.current, patternFillRef.current, logoGroupRef.current],
-        { opacity: 0, duration: 0.5, ease: "power2.inOut" },
-        "+=0.25"
-      );
-      tl.fromTo(
-        cleanLogoRef.current,
-        { opacity: 0, scale: 0.96, transformOrigin: "50% 50%" },
-        { opacity: 1, scale: 1, duration: 0.45, ease: "power3.out" },
-        "<0.1"
-      );
-      tl.to(cleanLogoRef.current, {
-        scale: 1.03,
-        duration: 0.12,
-        yoyo: true,
-        repeat: 1,
-        ease: "power2.inOut",
-        transformOrigin: "50% 50%",
-      });
-
-      tl.fromTo(
-        scanRef.current,
-        { x: -400, opacity: 0 },
-        { x: 1600, opacity: 1, duration: 0.9, ease: "power2.inOut" },
-        "+=0.1"
-      );
-      tl.to(scanRef.current, { opacity: 0, duration: 0.2 }, "-=0.15");
-
-      tl.to({}, { duration: 0.35 });
-
-      tl.to(cleanLogoRef.current, {
-        scale: 1.06,
-        duration: 0.45,
-        ease: "power2.in",
-        transformOrigin: "50% 50%",
-      });
     }, rootRef);
 
     return () => ctx.revert();
@@ -170,246 +107,199 @@ export default function Loader3D({
   return (
     <div
       ref={rootRef}
-      className="absolute inset-0 z-50 overflow-hidden"
       style={{
-        background: "var(--background)",
-        fontFamily: "var(--font-oswald), sans-serif",
-        minHeight: "100vh",
-        color: "var(--foreground)",
+        position: "absolute",
+        inset: 0,
+        overflow: "hidden",
+        backgroundColor: "#eed9c4",
+        color: "#0a0a0a",
       }}
     >
-      <div ref={topBarRef} className="absolute inset-0 pointer-events-none">
+      <div
+        ref={overlayRef}
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 1,
+        }}
+      >
+        {/* Grid bg sutil */}
         <div
-          className="absolute top-6 right-8 flex flex-col items-center gap-1 text-[9px] tracking-[0.25em] uppercase"
-          style={{ color: "rgba(255,255,255,0.72)" }}
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: 0.05,
+            backgroundImage:
+              "linear-gradient(to right, #0a0a0a 1px, transparent 1px), linear-gradient(to bottom, #0a0a0a 1px, transparent 1px)",
+            backgroundSize: "72px 72px",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Topbar — wordmark left, eyebrow right */}
+        <div
+          style={{
+            position: "absolute",
+            top: "5vh",
+            left: "5vw",
+            right: "5vw",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            zIndex: 2,
+          }}
         >
-          <span
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[10px]"
+          <div
+            ref={wordmarkRef}
             style={{
-              border: "1px solid rgba(255,92,10,0.5)",
-              color: "#ff5c0a",
+              fontFamily: "var(--font-oswald), sans-serif",
+              fontWeight: 700,
+              letterSpacing: "0.18em",
+              fontSize: "13px",
+              textTransform: "uppercase",
+              color: "rgba(10,10,10,0.85)",
             }}
           >
-            ►
-          </span>
-          <span className="mt-1">Click to enable sound</span>
-        </div>
-
-        <div
-          className="absolute left-6 top-1/2 -translate-y-1/2 text-sm"
-          style={{ color: "rgba(255,92,10,0.7)" }}
-        >
-          +
-        </div>
-        <div
-          className="absolute right-6 top-1/2 -translate-y-1/2 text-sm"
-          style={{ color: "rgba(255,92,10,0.7)" }}
-        >
-          |
-        </div>
-
-        <div
-          className="absolute left-0 right-0 flex items-center gap-6 px-[6vw] text-[11px] tracking-[0.25em] uppercase font-mono"
-          style={{ top: "62%", color: "rgba(255,255,255,0.9)" }}
-        >
-          <span className="shrink-0 whitespace-nowrap">
-            <span style={{ color: "#ff5c0a" }}>»</span> LOADING –{" "}
-            <span style={{ color: "#ff5c0a" }}>{pct}</span>%
-          </span>
-
+            DR · BLACK SKINS
+          </div>
           <div
-            className="relative flex-1 h-[1px]"
-            style={{ background: "rgba(255,255,255,0.12)" }}
+            style={{
+              fontSize: "10px",
+              letterSpacing: "0.32em",
+              textTransform: "uppercase",
+              color: "rgba(10,10,10,0.55)",
+            }}
+          >
+            00 · BOOT
+          </div>
+        </div>
+
+        {/* Centro: títulos grandes */}
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "5vw",
+            right: "5vw",
+            transform: "translateY(-50%)",
+            zIndex: 2,
+          }}
+        >
+          <div
+            ref={subRef}
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.32em",
+              textTransform: "uppercase",
+              color: "rgba(10,10,10,0.55)",
+              marginBottom: "12px",
+            }}
+          >
+            PREPARING THE EXPERIENCE
+          </div>
+
+          <h1
+            style={{
+              fontFamily: "var(--font-oswald), sans-serif",
+              fontWeight: 700,
+              lineHeight: 0.86,
+              letterSpacing: "-0.025em",
+              fontSize: "clamp(56px, 11vw, 200px)",
+              textTransform: "uppercase",
+              color: "#0a0a0a",
+              margin: 0,
+            }}
+          >
+            DR · BLACK
+            <br />
+            SKINS
+          </h1>
+        </div>
+
+        {/* Rodapé esquerdo: status */}
+        <div
+          ref={statusRef}
+          style={{
+            position: "absolute",
+            bottom: "8vh",
+            left: "5vw",
+            fontSize: "10px",
+            letterSpacing: "0.32em",
+            textTransform: "uppercase",
+            color: "rgba(10,10,10,0.6)",
+            zIndex: 2,
+          }}
+        >
+          <span
+            style={{
+              display: "inline-block",
+              width: 6,
+              height: 6,
+              backgroundColor: "var(--highlight, #ff5c0a)",
+              borderRadius: "50%",
+              marginRight: 10,
+              verticalAlign: "middle",
+            }}
+          />
+          {statusText}
+        </div>
+
+        {/* Rodapé direito: contador + barra */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "8vh",
+            right: "5vw",
+            zIndex: 2,
+            textAlign: "right",
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-oswald), sans-serif",
+              fontWeight: 700,
+              fontSize: "clamp(48px, 7vw, 120px)",
+              lineHeight: 1,
+              letterSpacing: "-0.02em",
+              color: "#0a0a0a",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <span ref={counterRef}>{String(pct).padStart(3, "0")}</span>
+            <span
+              style={{
+                fontSize: "0.42em",
+                marginLeft: "0.18em",
+                verticalAlign: "top",
+                color: "rgba(10,10,10,0.5)",
+              }}
+            >
+              %
+            </span>
+          </div>
+          <div
+            style={{
+              marginTop: 14,
+              width: "clamp(220px, 28vw, 460px)",
+              height: 2,
+              backgroundColor: "rgba(10,10,10,0.18)",
+              position: "relative",
+              overflow: "hidden",
+              marginLeft: "auto",
+            }}
           >
             <div
-              ref={barRef}
-              className="absolute inset-y-0 left-0 w-0"
+              ref={barFillRef}
               style={{
-                background: "#ff5c0a",
-                height: "2px",
-                top: "-0.5px",
+                position: "absolute",
+                inset: 0,
+                width: 0,
+                backgroundColor: "#0a0a0a",
               }}
             />
           </div>
-
-          <span className="shrink-0 truncate max-w-[42%] opacity-80">
-            {urlFrag}
-          </span>
         </div>
-      </div>
-
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 0 1900 960"
-        preserveAspectRatio="xMidYMid slice"
-      >
-        <defs>
-          <pattern
-            id="pillPattern"
-            x="0"
-            y="0"
-            width="44"
-            height="96"
-            patternUnits="userSpaceOnUse"
-          >
-            <rect
-              x="14"
-              y="8"
-              width="16"
-              height="80"
-              rx="8"
-              ry="8"
-              fill="#ffffff"
-            />
-          </pattern>
-
-          <linearGradient id="accentStripe" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="15%" stopColor="#b83d00" />
-            <stop offset="45%" stopColor="#ff7a3d" />
-            <stop offset="55%" stopColor="#ff5c0a" />
-            <stop offset="85%" stopColor="#b83d00" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-
-          <pattern
-            id="checkerPattern"
-            x="0"
-            y="0"
-            width="24"
-            height="24"
-            patternUnits="userSpaceOnUse"
-          >
-            <rect x="0" y="0" width="12" height="12" fill="#1a1a1a" />
-            <rect x="12" y="12" width="12" height="12" fill="#1a1a1a" />
-            <rect x="12" y="0" width="12" height="12" fill="#ffffff" />
-            <rect x="0" y="12" width="12" height="12" fill="#ffffff" />
-          </pattern>
-        </defs>
-
-        <rect
-          ref={patternFillRef}
-          x="0"
-          y="0"
-          width="1900"
-          height="960"
-          fill="url(#pillPattern)"
-          opacity="0"
-          style={{ mixBlendMode: "normal" }}
-        />
-
-        <g ref={noiseRef} opacity="0">
-          {noisePills.map((p, i) => (
-            <rect
-              key={i}
-              x={p.x}
-              y={p.y}
-              width={14}
-              height={p.h}
-              rx={7}
-              ry={7}
-              fill="#ffffff"
-            />
-          ))}
-        </g>
-
-        <g ref={logoGroupRef} opacity="0">
-          <text
-            x="950"
-            y="420"
-            textAnchor="middle"
-            fill="url(#pillPattern)"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              fontSize: "220px",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            DR BLACK
-          </text>
-          <text
-            x="950"
-            y="640"
-            textAnchor="middle"
-            fill="url(#pillPattern)"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              fontSize: "220px",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            SKINS
-          </text>
-        </g>
-
-        <g ref={cleanLogoRef} opacity="0">
-          <text
-            x="950"
-            y="420"
-            textAnchor="middle"
-            fill="#ffffff"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              fontSize: "220px",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            DR BLACK
-          </text>
-          <text
-            x="950"
-            y="640"
-            textAnchor="middle"
-            fill="#ffffff"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              fontSize: "220px",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            SKINS
-          </text>
-        </g>
-
-        <g ref={scanRef} opacity="0">
-          <rect
-            x="0"
-            y="0"
-            width="90"
-            height="960"
-            fill="url(#checkerPattern)"
-            opacity="0.65"
-          />
-          <rect
-            x="30"
-            y="0"
-            width="30"
-            height="960"
-            fill="url(#accentStripe)"
-          />
-          <rect
-            x="42"
-            y="0"
-            width="6"
-            height="960"
-            fill="#ff7a3d"
-            opacity="0.85"
-          />
-        </g>
-      </svg>
-
-      <div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.4em] uppercase pointer-events-none"
-        style={{ fontFamily: "inherit" }}
-      >
-        <span style={{ color: "rgba(255,255,255,0.5)" }}>DR BLACK SKINS</span>
-        <span style={{ color: "rgba(255,255,255,0.35)" }}> · </span>
-        <span style={{ color: "#ff5c0a" }}>PREMIUM</span>
-        <span style={{ color: "rgba(255,255,255,0.5)" }}> CS2</span>
       </div>
     </div>
   );
