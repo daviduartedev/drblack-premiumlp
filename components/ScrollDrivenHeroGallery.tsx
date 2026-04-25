@@ -370,8 +370,8 @@ export default function ScrollDrivenHeroGallery() {
         <div
           className="absolute inset-x-0 z-10 pointer-events-none"
           style={{
-            top: "62%",
-            perspective: "1600px",
+            top: "58%",
+            perspective: "1800px",
             perspectiveOrigin: "50% 50%",
           }}
         >
@@ -379,9 +379,9 @@ export default function ScrollDrivenHeroGallery() {
             ref={trackRef}
             className="relative flex items-center"
             style={{
-              gap: "clamp(16px, 1.8vw, 32px)",
-              paddingLeft: "6vw",
-              paddingRight: "6vw",
+              gap: "clamp(20px, 2.4vw, 44px)",
+              paddingLeft: "8vw",
+              paddingRight: "8vw",
               width: "max-content",
               willChange: "transform",
             }}
@@ -395,7 +395,7 @@ export default function ScrollDrivenHeroGallery() {
                     cardRefs.current[i] = el;
                   }}
                   style={{
-                    width: "clamp(380px, 38vw, 620px)",
+                    width: "clamp(480px, 52vw, 880px)",
                     flex: "0 0 auto",
                     willChange: isHero ? "transform" : "opacity",
                   }}
@@ -407,7 +407,7 @@ export default function ScrollDrivenHeroGallery() {
                         index={card.index}
                         hideLabels
                         priority
-                        sizes="(min-width: 1024px) 38vw, 90vw"
+                        sizes="(min-width: 1024px) 52vw, 95vw"
                         overlay={
                           <>
                             <div
@@ -449,7 +449,7 @@ export default function ScrollDrivenHeroGallery() {
                       index={card.index}
                       title={card.title}
                       subtitle={card.subtitle}
-                      sizes="(min-width: 1024px) 38vw, 80vw"
+                      sizes="(min-width: 1024px) 52vw, 85vw"
                     />
                   )}
                 </div>
