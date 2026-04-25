@@ -124,12 +124,25 @@ export default function ScrollDrivenHeroGallery() {
         if (heroBaseW === 0 || heroBaseH === 0) captureHeroBase();
         const targetW = window.innerWidth;
         const targetH = window.innerHeight;
-        // 1.05 em cada eixo = 5% extra → garantia de cover real sem
-        // bordas pretas, mesmo com pequenas variações de pixel.
+        // 1.12 em cada eixo = 12% extra → cover absoluto sem nenhuma
+        // chance de borda preta, mesmo com track posicionado a 58%
+        // (não 50%) e qualquer arredondamento de pixel/perspective.
         return {
-          scaleX: (targetW / heroBaseW) * 1.05,
-          scaleY: (targetH / heroBaseH) * 1.05,
+          scaleX: (targetW / heroBaseW) * 1.12,
+          scaleY: (targetH / heroBaseH) * 1.12,
         };
+      };
+
+      // Quanto o hero precisa subir em Y para ficar centralizado
+      // verticalmente no viewport ao final da expansão (corrige a
+      // diferença entre top: 58% e o centro real 50%).
+      const computeHeroYOffset = () => {
+        const heroEl = cardRefs.current[HERO_INDEX];
+        if (!heroEl) return 0;
+        const rect = heroEl.getBoundingClientRect();
+        const heroCenterY = rect.top + rect.height / 2;
+        const viewportCenterY = window.innerHeight / 2;
+        return viewportCenterY - heroCenterY;
       };
 
       // Estado inicial: faixa empurrada para a direita — hero colado à
@@ -212,10 +225,11 @@ export default function ScrollDrivenHeroGallery() {
       // interno faz o crop natural para preencher sem distorcer.
       tl.fromTo(
         heroWrap,
-        { scaleX: 1, scaleY: 1, rotationX: 0, rotationY: 0, z: 0 },
+        { scaleX: 1, scaleY: 1, y: 0, rotationX: 0, rotationY: 0, z: 0 },
         {
           scaleX: () => computeHeroScaleXY().scaleX,
           scaleY: () => computeHeroScaleXY().scaleY,
+          y: () => computeHeroYOffset(),
           duration: 0.55,
           ease: "power2.inOut",
         },
@@ -479,4 +493,4 @@ export default function ScrollDrivenHeroGallery() {
       </section>
     </section>
   );
-}
+}
