@@ -1,39 +1,51 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
+import type { ReactNode } from "react";
+
+/**
+ * Área reservada na hero para mídia substituível (Three.js, `<video muted playsInline>`, etc.).
+ * Não faz parte do `ScrollDrivenHeroGallery` — não herda o translate horizontal dos cards.
+ *
+ * Troca: substitua o conteúdo default em `Hero` ou passe `mediaSlot` desde `app/page.tsx`.
+ */
+export function HeroMediaSlot({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      data-slot="hero-media"
+      className={`relative aspect-video w-full max-w-[min(92vw,520px)] overflow-hidden rounded-2xl border border-white/10 bg-black/35 shadow-[0_0_48px_rgba(255,92,10,0.1)] ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 /**
  * Hero — face pós-loader (rebrand laranja/creme, spec rebrand-2026-q1).
+ * Ciclo 0002: slot de mídia + altura da capa ligeiramente estendida.
  */
-export default function Hero({ loading }: { loading: boolean }) {
+export default function Hero({
+  loading,
+  mediaSlot,
+}: {
+  loading: boolean;
+  /** Se omitido, usa o placeholder em `public/hero-media-placeholder.svg`. */
+  mediaSlot?: ReactNode;
+}) {
   const show = !loading;
 
-  if (!show) {
-    return (
-      <section
-        className="relative min-h-screen w-full overflow-hidden"
-        style={{
-          background: "var(--background)",
-          color: "var(--foreground)",
-        }}
-      >
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 80% at 30% 30%, #1a0f0a 0%, #0f0c0a 45%, #0a0a0a 80%, #000 100%)",
-          }}
-        />
-      </section>
-    );
-  }
-
-  const headline = ["COMPRA.", "VENDE.", "CONCORRE."];
+  const headline = ["COMPRA.", "VENDA.", "CONCORRA."];
 
   return (
     <section
-      className="relative min-h-screen w-full overflow-hidden"
+      className="relative min-h-[115vh] w-full overflow-hidden pb-16 md:pb-20"
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
@@ -152,48 +164,72 @@ export default function Hero({ loading }: { loading: boolean }) {
         </p>
       </motion.div>
 
-      <div className="relative z-10 px-[5vw] mt-[6vh] md:mt-[10vh] select-none">
-        <h1
-          style={{
-            fontFamily: "var(--font-oswald), sans-serif",
-            fontWeight: 700,
-            lineHeight: 0.85,
-            letterSpacing: "-0.02em",
-            fontSize: "clamp(64px, 12vw, 200px)",
-            color: "var(--foreground)",
-          }}
-        >
-          {headline.map((word, i) => (
-            <motion.span
-              key={word}
-              initial={{ opacity: 0, y: 40, scale: 0.96 }}
-              animate={{
-                opacity: show ? 1 : 0,
-                y: show ? 0 : 40,
-                scale: show ? 1 : 0.96,
+      <div className="relative z-10 mt-[5vh] md:mt-[8vh] px-[5vw]">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
+          <div className="min-w-0 flex-1 select-none">
+            <h1
+              style={{
+                fontFamily: "var(--font-oswald), sans-serif",
+                fontWeight: 700,
+                lineHeight: 0.85,
+                letterSpacing: "-0.02em",
+                fontSize: "clamp(64px, 12vw, 200px)",
+                color: "var(--foreground)",
               }}
-              transition={{
-                duration: 0.8,
-                delay: 0.7 + i * 0.15,
-                ease: [0.2, 0.7, 0.2, 1],
-              }}
-              className="block"
-              style={
-                i === headline.length - 1
-                  ? {
-                      background:
-                        "linear-gradient(90deg, #b83d00 0%, #ff5c0a 40%, #ff7a3d 52%, #ff5c0a 68%, #eed9c4 100%)",
-                      WebkitBackgroundClip: "text",
-                      backgroundClip: "text",
-                      color: "transparent",
-                    }
-                  : undefined
-              }
             >
-              {word}
-            </motion.span>
-          ))}
-        </h1>
+              {headline.map((word, i) => (
+                <motion.span
+                  key={word}
+                  initial={{ opacity: 0, y: 40, scale: 0.96 }}
+                  animate={{
+                    opacity: show ? 1 : 0,
+                    y: show ? 0 : 40,
+                    scale: show ? 1 : 0.96,
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    delay: 0.7 + i * 0.15,
+                    ease: [0.2, 0.7, 0.2, 1],
+                  }}
+                  className="block"
+                  style={
+                    i === headline.length - 1
+                      ? {
+                          background:
+                            "linear-gradient(90deg, #b83d00 0%, #ff5c0a 40%, #ff7a3d 52%, #ff5c0a 68%, #eed9c4 100%)",
+                          WebkitBackgroundClip: "text",
+                          backgroundClip: "text",
+                          color: "transparent",
+                        }
+                      : undefined
+                  }
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </h1>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: show ? 1 : 0, y: show ? 0 : 24 }}
+            transition={{ duration: 0.75, delay: 1.0, ease: [0.2, 0.7, 0.2, 1] }}
+            className="shrink-0 lg:max-w-[min(42vw,520px)] lg:pt-[max(2vh,1.5rem)]"
+          >
+            <HeroMediaSlot>
+              {mediaSlot ?? (
+                <Image
+                  src="/hero-media-placeholder.svg"
+                  alt=""
+                  fill
+                  className="object-contain object-center"
+                  sizes="(min-width: 1024px) 520px, 92vw"
+                  priority
+                />
+              )}
+            </HeroMediaSlot>
+          </motion.div>
+        </div>
       </div>
 
       <motion.div

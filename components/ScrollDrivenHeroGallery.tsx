@@ -1,12 +1,93 @@
 "use client";
 
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import InteractiveSkinBackground, {
+  type InteractiveSkinBackgroundHandle,
+} from "@/components/InteractiveSkinBackground";
 import KprCard from "@/components/KprCard";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
 
 gsap.registerPlugin(ScrollTrigger);
+
+/**
+ * Variantes para a entrada agressiva (Framer-style) dos textos da secção
+ * “Continua a história.” — eyebrow desce do topo, headline entra palavra
+ * a palavra desde a direita com `rotateY` 3D, sub e CTA seguem em cascata.
+ *
+ * `viewport.once: false` faz a animação replay quando o utilizador volta a
+ * scrollar. `prefers-reduced-motion` cai no conjunto reduzido (só fade).
+ */
+const VIEWPORT_OPTS = { once: false, margin: "-15%" };
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+const NARRATIVA_VARIANTS_FULL = {
+  eyebrow: {
+    hidden: { opacity: 0, y: -50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+  h2Container: {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+  } satisfies Variants,
+  h2Word: {
+    hidden: { opacity: 0, x: 160, rotateY: 32 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      rotateY: 0,
+      transition: { duration: 0.9, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+  sub: {
+    hidden: { opacity: 0, x: 90 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.7, delay: 0.4, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+  cta: {
+    hidden: { opacity: 0, y: 50, scale: 0.85 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.7, delay: 0.6, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+};
+
+const NARRATIVA_VARIANTS_REDUCED = {
+  eyebrow: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+  h2Container: {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0 } },
+  } satisfies Variants,
+  h2Word: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+  sub: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+  cta: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+};
+
+const HEADLINE_WORDS = ["Continua", "a", "história."] as const;
 
 /**
  * Seção "SKINS NO PONTO. RIFA NA TELA."
@@ -59,9 +140,24 @@ export default function ScrollDrivenHeroGallery() {
 
   const [expansionProgress, setExpansionProgress] = useState(0);
   const expansionProgressRef = useRef(0);
+  const narrativaSkinRef = useRef<InteractiveSkinBackgroundHandle>(null);
+
+  const reducedMotion = useReducedMotion();
+  const narrativaVariants = useMemo(
+    () => (reducedMotion ? NARRATIVA_VARIANTS_REDUCED : NARRATIVA_VARIANTS_FULL),
+    [reducedMotion]
+  );
 
   useEffect(() => {
     if (!rootRef.current || !pinRef.current || !trackRef.current) return;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /** Ciclo 0002: scrub mais suave atenua saltos (trilha da barra); menor em reduced-motion. */
+    const scrubSeconds = prefersReducedMotion ? 0.35 : 1.45;
+    const scrollEnd = prefersReducedMotion ? "+=200%" : "+=600%";
 
     const ctx = gsap.context(() => {
       const track = trackRef.current!;
@@ -154,41 +250,48 @@ export default function ScrollDrivenHeroGallery() {
       // pinando o mesmo elemento.
       //
       // Layout temporal (progress 0..1):
-      //   0.00 .. 0.45  Fase A — carrossel desliza direita → centro
-      //   0.45 .. 1.00  Fase B — hero expande + frames scrubam EM PARALELO
+      //   0.00 .. 0.40  Fase A — carrossel desliza direita → centro
+      //   0.40 .. 0.85  Fase B — hero expande + frames scrubam EM PARALELO
+      //   0.85 .. 1.00  Fase C — saída cinematográfica (fly-through KPR/peachweb)
+      //                          a hero card escala + tilt 3D + drift + fade,
+      //                          revelando a secção “Continua a história.”
       // ============================================================
-      const PHASE_A_END = 0.45;
+      const PHASE_A_END = 0.40;
+      const PHASE_B_END = 0.85;
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
           trigger: pinRef.current,
           start: "top top",
-          end: "+=600%",
+          end: scrollEnd,
           pin: true,
           pinSpacing: true,
-          scrub: 0.8,
+          scrub: scrubSeconds,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const p = self.progress;
-            // Frame scrub roda durante TODA a fase B (paralelo à expansão).
-            if (p >= PHASE_A_END) {
-              const t = (p - PHASE_A_END) / (1 - PHASE_A_END);
-              const clamped = Math.min(1, Math.max(0, t));
-              if (expansionProgressRef.current !== clamped) {
-                expansionProgressRef.current = clamped;
-                setExpansionProgress(clamped);
-              }
-            } else if (expansionProgressRef.current !== 0) {
-              expansionProgressRef.current = 0;
-              setExpansionProgress(0);
+            // Frame scrub roda durante a fase B; após PHASE_B_END mantém o
+            // último frame enquanto a fase C (saída) executa.
+            let next: number;
+            if (p < PHASE_A_END) {
+              next = 0;
+            } else if (p >= PHASE_B_END) {
+              next = 1;
+            } else {
+              const t = (p - PHASE_A_END) / (PHASE_B_END - PHASE_A_END);
+              next = Math.min(1, Math.max(0, t));
+            }
+            if (expansionProgressRef.current !== next) {
+              expansionProgressRef.current = next;
+              setExpansionProgress(next);
             }
           },
         },
       });
 
-      // ----- FASE A — carrossel direita → centro (0 .. 0.45) -----
+      // ----- FASE A — carrossel direita → centro (0 .. 0.40) -----
       // Sem overshoot: a faixa vai direto até o hero ficar centralizado
       // e PARA. Daí em diante a fase B (expansão 3D + frame scrub) toma
       // o controle. Easing suave para sensação band sem ultrapassar.
@@ -196,7 +299,7 @@ export default function ScrollDrivenHeroGallery() {
         track,
         {
           x: () => computeShift(),
-          duration: 0.45,
+          duration: 0.40,
           ease: "power3.out",
         },
         0
@@ -219,7 +322,7 @@ export default function ScrollDrivenHeroGallery() {
         );
       }
 
-      // ----- FASE B — expansão hero + frame scrub em PARALELO (0.45 .. 1.0) -----
+      // ----- FASE B — expansão hero + frame scrub em PARALELO (0.40 .. 0.85) -----
       // Hero scale anisotrópico → fullscreen exato (cobre viewport inteira
       // independente da proporção da tela). object-cover do <Image>
       // interno faz o crop natural para preencher sem distorcer.
@@ -230,7 +333,7 @@ export default function ScrollDrivenHeroGallery() {
           scaleX: () => computeHeroScaleXY().scaleX,
           scaleY: () => computeHeroScaleXY().scaleY,
           y: () => computeHeroYOffset(),
-          duration: 0.55,
+          duration: 0.45,
           ease: "power2.inOut",
         },
         PHASE_A_END
@@ -243,7 +346,7 @@ export default function ScrollDrivenHeroGallery() {
         tl.fromTo(
           heroCardEl,
           { borderRadius: 28 },
-          { borderRadius: 0, duration: 0.55, ease: "power2.inOut" },
+          { borderRadius: 0, duration: 0.45, ease: "power2.inOut" },
           PHASE_A_END
         );
       }
@@ -286,6 +389,46 @@ export default function ScrollDrivenHeroGallery() {
         PHASE_A_END + 0.1
       );
       // headline overlay removido — sem animação aqui
+
+      // ----- FASE C — saída cinematográfica (0.85 .. 1.00) -----
+      // Fly-through estilo KPR/peachweb: a hero card que ocupa o ecrã
+      // sobreescala (~1.18×), tilta em rotateX, sobe em Y e desvanece
+      // para opacidade 0, revelando a secção “Continua a história.”
+      // por baixo. O frame overlay desvanece em paralelo.
+      const exitDuration = 1 - PHASE_B_END;
+      tl.to(
+        heroWrap,
+        {
+          scaleX: () => computeHeroScaleXY().scaleX * 1.18,
+          scaleY: () => computeHeroScaleXY().scaleY * 1.18,
+          y: () => computeHeroYOffset() - 110,
+          rotationX: -12,
+          rotationY: 6,
+          opacity: 0,
+          duration: exitDuration,
+          ease: "power2.in",
+        },
+        PHASE_B_END
+      );
+      tl.to(
+        heroFilmRef.current,
+        {
+          opacity: 0,
+          duration: exitDuration,
+          ease: "power2.in",
+        },
+        PHASE_B_END
+      );
+      tl.to(
+        heroLabelRef.current,
+        {
+          opacity: 0,
+          y: -20,
+          duration: exitDuration,
+          ease: "power2.in",
+        },
+        PHASE_B_END
+      );
     }, rootRef);
 
     return () => ctx.revert();
@@ -459,38 +602,145 @@ export default function ScrollDrivenHeroGallery() {
       </div>
 
       <section
-        className="relative w-full"
+        id="continua-narrativa"
+        className="relative w-full overflow-hidden isolate"
         style={{
-          minHeight: "100vh",
-          background: "#eed9c4",
-          color: "#0a0a0a",
+          minHeight: "min(100vh, 760px)",
+          background: "var(--background)",
+          color: "var(--foreground)",
         }}
+        onPointerMoveCapture={(e) =>
+          narrativaSkinRef.current?.onSectionPointerMove(e)
+        }
+        onPointerLeave={() => narrativaSkinRef.current?.onSectionPointerLeave()}
       >
-        <div className="mx-auto max-w-6xl px-[5vw] py-24">
-          <div
-            className="text-[11px] tracking-[0.28em] uppercase"
-            style={{ color: "rgba(10,10,10,0.55)" }}
-          >
-            06 · TIMELINE
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 80% at 30% 30%, #1a0f0a 0%, #0f0c0a 45%, #0a0a0a 80%, #000 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute -right-[10%] top-[5%] w-[70%] h-[80%] opacity-50 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(255,92,10,0.45), rgba(255,122,61,0.15) 45%, transparent 75%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute -left-[10%] bottom-[-20%] w-[70%] h-[70%] opacity-[0.38] blur-3xl"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(204,74,8,0.45), rgba(10,10,10,0.2) 55%, transparent 70%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ff5c0a 1px, transparent 1px), linear-gradient(to bottom, #ff5c0a 1px, transparent 1px)",
+            backgroundSize: "72px 72px",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%)",
+          }}
+        />
+
+        <InteractiveSkinBackground ref={narrativaSkinRef} />
+
+        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-[5vw] py-28 md:py-36">
+          <div className="max-w-xl" style={{ perspective: "900px" }}>
+            <motion.div
+              variants={narrativaVariants.eyebrow}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_OPTS}
+              className="text-[11px] tracking-[0.28em] uppercase"
+              style={{ color: "var(--highlight)" }}
+            >
+              06 · NARRATIVA
+            </motion.div>
+            <motion.h2
+              variants={narrativaVariants.h2Container}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_OPTS}
+              className="mt-4 overflow-hidden"
+              style={{
+                fontFamily: "var(--font-oswald), sans-serif",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                textTransform: "uppercase",
+                fontSize: "clamp(42px, 6vw, 92px)",
+                lineHeight: 0.95,
+                color: "var(--foreground)",
+                transformStyle: "preserve-3d",
+              }}
+            >
+              {HEADLINE_WORDS.map((word, i) => (
+                <motion.span
+                  key={`${word}-${i}`}
+                  variants={narrativaVariants.h2Word}
+                  className="inline-block"
+                  style={{
+                    marginRight: i < HEADLINE_WORDS.length - 1 ? "0.25em" : 0,
+                    transformStyle: "preserve-3d",
+                    willChange: "transform, opacity",
+                  }}
+                >
+                  {word}
+                </motion.span>
+              ))}
+            </motion.h2>
+            <motion.p
+              variants={narrativaVariants.sub}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_OPTS}
+              className="mt-6 max-w-md text-[14px] leading-relaxed"
+              style={{ color: "var(--foreground-muted)" }}
+            >
+              Cada skin é um novo começo. Bora virar a tua?
+            </motion.p>
+            <motion.a
+              variants={narrativaVariants.cta}
+              initial="hidden"
+              whileInView="visible"
+              viewport={VIEWPORT_OPTS}
+              href="#hero-mercado"
+              className="mt-8 inline-flex items-center justify-center px-8 py-3 text-[11px] font-semibold tracking-[0.22em] uppercase transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
+              style={{
+                background: "var(--accent)",
+                color: "var(--on-accent)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--accent-soft)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "var(--accent)";
+              }}
+              onMouseDown={(e) => {
+                e.currentTarget.style.background = "var(--accent-deep)";
+              }}
+              onMouseUp={(e) => {
+                e.currentTarget.style.background = "var(--accent-soft)";
+              }}
+            >
+              Ver mercado
+            </motion.a>
           </div>
-          <h2
-            className="mt-4"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
-              textTransform: "uppercase",
-              fontSize: "clamp(42px, 6vw, 92px)",
-              lineHeight: 0.95,
-            }}
-          >
-            Continua a narrativa
-          </h2>
-          <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-black/70">
-            Do arquivo vivo para o mercado real. Da promessa para a entrega.
-          </p>
         </div>
       </section>
     </section>
   );
-}
+}
