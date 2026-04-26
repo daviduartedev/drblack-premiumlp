@@ -210,41 +210,23 @@ export default function Hero({
             </h1>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: show ? 1 : 0, y: show ? 0 : 24 }}
-            transition={{ duration: 0.75, delay: 1.0, ease: [0.2, 0.7, 0.2, 1] }}
-            className="shrink-0 lg:max-w-[min(42vw,520px)] lg:pt-[max(2vh,1.5rem)]"
-          >
+          {mediaSlot ? (
+            <div className="flex flex-1 justify-center lg:justify-end">
+              {mediaSlot}
+            </div>
+          ) : (
             <HeroMediaSlot>
-              {mediaSlot ?? (
-                <Image
-                  src="/hero-media-placeholder.svg"
-                  alt=""
-                  fill
-                  className="object-contain object-center"
-                  sizes="(min-width: 1024px) 520px, 92vw"
-                  priority
-                />
-              )}
+              <Image
+                src="/hero-media-placeholder.svg"
+                alt=""
+                fill
+                className="object-cover"
+                aria-hidden
+              />
             </HeroMediaSlot>
-          </motion.div>
+          )}
         </div>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: show ? 1 : 0 }}
-        transition={{ duration: 0.8, delay: 1.4 }}
-        className="absolute bottom-6 left-[5vw] right-[5vw] z-10 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase"
-        style={{ color: "var(--muted)" }}
-      >
-        <span>© 2026 · DR BLACK SKINS</span>
-        <span className="hidden md:inline">
-          SCROLL <span className="ml-2">↓</span>
-        </span>
-        <span style={{ color: "var(--highlight)" }}>MERCADO · AO VIVO</span>
-      </motion.div>
     </section>
   );
 }

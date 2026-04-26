@@ -4,9 +4,8 @@
  * Skin interativa — elemento de destaque flutuante na secção “Continua a narrativa”.
  *
  * Ciclo: `cycles/Q12026/0003-narrativa-skin-interativa/`
- * Ativo: `public/skininterativa.png` (PNG com fundo transparente — recomendado).
- *   Para trocar o ativo, ajusta a constante `SKIN_SRC` abaixo. Ideal: PNG/WebP
- *   ≥ 1200px no maior eixo, com fundo transparente, focado num único item.
+ * Ativo: `public/gallery/Dragon-Lore_LR.webp` (AWP Dragon Lore — ver `SKIN_SRC`).
+ *   Para trocar a skin, altera a constante `SKIN_SRC` ou substitui o ficheiro em `public/`.
  *
  * Visual: a skin flutua off-center à direita da secção em `object-contain`.
  * Atrás dela, uma camada-eco em blur dá ambiência laranja sem mostrar fundo
@@ -50,7 +49,15 @@ import {
   type ReactNode,
 } from "react";
 
-const SKIN_SRC = "/skininterativa.png";
+const SKIN_SRC = "/gallery/Dragon-Lore_LR.webp";
+
+/**
+ * Fidelidade máx. ao ficheiro em `public/`: `unoptimized` desliga o pipeline Sharp
+ * (sem segunda compressão) e o browser reduz/amplia a partir do WebP original.
+ * `sizes` alinhado ao `SkinFrame` (até ~56% da largura) × ~2 para DPR elevado, caso
+ * volte a `unoptimized: false` no futuro.
+ */
+const SKIN_SIZES = "(min-width: 1280px) 48vw, (min-width: 768px) 64vw, 100vw";
 
 export type InteractiveSkinBackgroundHandle = {
   onSectionPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -121,8 +128,8 @@ function SkinEcho() {
         src={SKIN_SRC}
         alt=""
         fill
-        sizes="(min-width: 1280px) 40vw, 56vw"
-        quality={70}
+        sizes={SKIN_SIZES}
+        unoptimized
         className="object-contain object-center"
         priority={false}
         aria-hidden
@@ -137,11 +144,12 @@ function SkinFocus() {
       src={SKIN_SRC}
       alt=""
       fill
-      sizes="(min-width: 1280px) 40vw, 56vw"
-      quality={100}
-      className="object-contain object-center [transform:translateZ(0)]"
+      sizes={SKIN_SIZES}
+      unoptimized
+      className="object-contain object-center [transform:translateZ(0)] will-change-transform"
       style={{ filter: "drop-shadow(0 30px 60px rgba(0,0,0,0.55))" }}
       priority={false}
+      fetchPriority="high"
       aria-hidden
     />
   );

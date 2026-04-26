@@ -45,7 +45,7 @@ export default function Loader3D({
     const seq = [
       "INITIALIZING SYSTEM",
       "FETCHING ARSENAL",
-      "PREPARING MARKET",
+      "PREPARANDO O MERCADO",
       "BOOTING INTERFACE",
       "READY",
     ];
@@ -318,16 +318,6 @@ export default function Loader3D({
           >
             DR · BLACK SKINS
           </div>
-          <div
-            style={{
-              fontSize: "10px",
-              letterSpacing: "0.32em",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.55)",
-            }}
-          >
-            00 · BOOT
-          </div>
         </div>
 
         <div
@@ -350,7 +340,7 @@ export default function Loader3D({
               marginBottom: "12px",
             }}
           >
-            PREPARING THE EXPERIENCE
+            PREPARANDO A EXPERIÊNCIA
           </div>
 
           <h1
