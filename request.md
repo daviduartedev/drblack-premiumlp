@@ -137,7 +137,7 @@ inteiro) um novo wrapper:
   <div ref={card1FullRef} style={{ position: "fixed", inset: 0, ... }}>
     {/* card1 em modo fullscreen, com headline opcional sobreposta */}
     <Image src="/gallery/card1.jpg" fill priority className="object-cover" />
-    <h2>SKINS NO PONTO. RIFA NA TELA.</h2>  {/* ou outro texto */}
+    <h2>DÊ O UPGRADE QUE VOCÊ MERECE.</h2>  {/* ou outro texto */}
   </div>
 </div>
 ```

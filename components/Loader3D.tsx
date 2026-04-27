@@ -305,19 +305,7 @@ export default function Loader3D({
             zIndex: 2,
           }}
         >
-          <div
-            ref={wordmarkRef}
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              fontSize: "13px",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.92)",
-            }}
-          >
-            DR · BLACK SKINS
-          </div>
+         
         </div>
 
         <div

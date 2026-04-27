@@ -27,6 +27,17 @@ export type KprCardProps = {
   hideLabels?: boolean;
   priority?: boolean;
   sizes?: string;
+  /**
+   * Qualidade JPEG/AVIF do `next/image`. Default 95.
+   * Requer que o valor esteja registado em `next.config.ts` → `images.qualities`.
+   */
+  quality?: number;
+  /**
+   * Desliga totalmente a otimização — serve o ficheiro original sem
+   * recompressão. Usar quando a imagem é exibida em fullscreen e qualquer
+   * artefacto de compressão fica visível (ex.: o `card1.jpg` na Fase 0).
+   */
+  unoptimized?: boolean;
 };
 
 const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
@@ -42,6 +53,8 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
     hideLabels = false,
     priority = false,
     sizes = "(min-width: 1024px) 28vw, 80vw",
+    quality = 95,
+    unoptimized = false,
   },
   ref
 ) {
@@ -68,7 +81,8 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
         fill
         priority={priority}
         sizes={sizes}
-        quality={95}
+        quality={quality}
+        unoptimized={unoptimized}
         className="object-cover"
         style={{ transform: "translateZ(0)" }}
       />
