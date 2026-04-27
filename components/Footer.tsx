@@ -1,0 +1,207 @@
+"use client";
+
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+/**
+ * Footer institucional.
+ *
+ * Estrutura:
+ *  - 4 colunas em desktop (Marca / Navegação / Suporte / Legal)
+ *  - Empilhado em mobile
+ *  - Barra inferior com © + CNPJ + disclaimer Valve + LGPD
+ *
+ * Tom: limpo. Credibilidade vem da organização, não de adornos.
+ */
+
+type FooterLink = { label: string; href: string };
+
+const NAV: FooterLink[] = [
+  { label: "Catálogo", href: "#skins-destaque" },
+  { label: "Rifas", href: "#" },
+  { label: "Coleções", href: "#" },
+  { label: "Sobre", href: "#" },
+];
+
+const SUPORTE: FooterLink[] = [
+  { label: "Como funciona", href: "#" },
+  { label: "FAQ", href: "#" },
+  { label: "Garantia", href: "#" },
+  { label: "Contato", href: "mailto:contato@drblackskins.com" },
+];
+
+const LEGAL: FooterLink[] = [
+  { label: "Termos de Uso", href: "/termos" },
+  { label: "Política de Privacidade", href: "/privacidade" },
+  { label: "Política de Cookies", href: "/cookies" },
+  { label: "Aviso LGPD", href: "/privacidade#lgpd" },
+];
+
+const SOCIAL: { label: string; href: string; icon: ReactNode }[] = [
+  {
+    label: "Discord",
+    href: "https://discord.gg/",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+        <path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09-.01-.02-.04-.03-.07-.03-1.5.26-2.93.71-4.27 1.33-.01 0-.02.01-.03.02-2.72 4.07-3.47 8.03-3.1 11.95 0 .02.01.04.03.05a19.9 19.9 0 0 0 5.99 3.03c.03.01.06 0 .08-.02.46-.63.87-1.29 1.23-1.99.02-.04 0-.08-.04-.09-.65-.25-1.27-.55-1.87-.89-.04-.02-.04-.08-.01-.11.13-.09.25-.19.37-.29.02-.02.05-.02.07-.01 3.92 1.79 8.18 1.79 12.06 0 .02-.01.05-.01.07.01.12.1.24.2.37.29.04.03.04.09-.01.11-.6.35-1.22.64-1.87.89-.04.01-.05.06-.04.09.37.7.78 1.36 1.23 1.99.02.02.05.03.08.02 1.95-.6 3.95-1.5 5.99-3.03.02-.01.03-.03.03-.05.44-4.53-.73-8.46-3.1-11.95-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.84 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12 0 1.17-.83 2.12-1.89 2.12z" />
+      </svg>
+    ),
+  },
+  {
+    label: "Instagram",
+    href: "https://instagram.com/",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6">
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    label: "X / Twitter",
+    href: "https://x.com/",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+        <path d="M18.244 2H21l-6.55 7.49L22 22h-6.84l-4.79-6.27L4.8 22H2l7-8.01L1.5 2h7.01l4.34 5.74L18.244 2zm-2.4 18h1.85L7.27 4H5.32l10.524 16z" />
+      </svg>
+    ),
+  },
+];
+
+export default function Footer() {
+  return (
+    <footer
+      className="relative w-full"
+      style={{
+        background: "var(--background)",
+      }}
+    >
+      {/* Bloco principal */}
+      <div
+        className="content-wrap section-padding-x"
+        style={{ paddingBlock: "var(--space-7)" }}
+      >
+        <div
+          className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr] xl:gap-x-[var(--space-7)]"
+          style={{ rowGap: "var(--space-6)" }}
+        >
+          {/* COLUNA 1 — MARCA */}
+          <div className="md:pr-[var(--space-6)] md:pt-[2px]">
+            <div
+              style={{
+                fontFamily: "var(--font-oswald), sans-serif",
+                fontWeight: 700,
+                fontSize: "20px",
+                letterSpacing: "0.18em",
+              }}
+            >
+              DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
+              <span style={{ color: "var(--accent)" }}>.</span>
+            </div>
+            <p
+              className="t-body-sm mt-4"
+              style={{ maxWidth: "32ch" }}
+            >
+              Skins de CS2, rifas e mercado direto. Compra, vende, concorre — sem enrolação.
+            </p>
+
+            <ul className="mt-6 flex items-center gap-3">
+              {SOCIAL.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="btn-icon-sm"
+                  >
+                    {s.icon}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <FooterColumn title="Navegação" links={NAV} />
+          <FooterColumn title="Suporte" links={SUPORTE} />
+          <FooterColumn title="Legal" links={LEGAL} />
+        </div>
+      </div>
+
+      {/* Barra inferior */}
+      <div
+        style={{
+          borderTop: "1px solid var(--line-soft)",
+        }}
+      >
+        <div
+          className="content-wrap section-padding-x flex flex-col gap-[var(--space-2)] md:flex-row md:items-center md:justify-between"
+          style={{
+            paddingBlock: "clamp(var(--space-3), 2vw, var(--space-4))",
+          }}
+        >
+          <p
+            className="t-body-sm"
+            style={{ color: "var(--foreground-faint)", margin: 0 }}
+          >
+            © {new Date().getFullYear()} DR Black Skins · CNPJ XX.XXX.XXX/0001-XX
+          </p>
+
+          <p
+            className="t-body-sm"
+            style={{ color: "var(--foreground-faint)", margin: 0 }}
+          >
+            Não somos afiliados à Valve. CS2 é marca registrada da Valve Corporation.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ============================================================
+ * Coluna do footer
+ * ============================================================ */
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: FooterLink[];
+}) {
+  return (
+    <div>
+      <h3 className="t-eyebrow" style={{ color: "var(--accent)" }}>
+        {title}
+      </h3>
+      <ul className="mt-5 flex flex-col gap-3">
+        {links.map((link) => (
+          <li key={link.label}>
+            <FooterLinkItem href={link.href}>{link.label}</FooterLinkItem>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function FooterLinkItem({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  const isInternal = href.startsWith("/") || href.startsWith("#");
+  const className = "footer-link t-body-sm";
+
+  if (isInternal && href.startsWith("/")) {
+    return <Link href={href} className={className}>{children}</Link>;
+  }
+  return (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  );
+}

@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    /** Skins em destaque — fotos ilustrativas (Unsplash) no carrossel marquee. */
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
     /**
      * Next 16 limita `quality` à lista declarada (default `[75]`). Sem isto, o
      * runtime ignora `quality={95}` e cai para 75 — perde-se nitidez nos

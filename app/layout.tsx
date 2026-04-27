@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
-import { KprCardClipDefs } from "@/components/KprCard";
+import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,9 +37,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {/* clip-path SVG global usado por todos os KprCard (shape KPR) */}
-        <KprCardClipDefs />
         {children}
+        {/* Banner de consentimento LGPD — aparece em todas as páginas
+            na primeira visita. */}
+        <CookieBanner />
       </body>
     </html>
   );

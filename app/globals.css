@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  /* Rebrand 2026 Q1 — ver spec/features/rebrand-2026-q1/readme.md */
+  /* ============================================================
+   * COR — Rebrand 2026 Q1 (ver spec/features/rebrand-2026-q1/readme.md)
+   * ============================================================ */
   --background: #0a0a0a;
   --background-raised: #141414;
+  --background-deep: #0f0c0a;
+  --card-bg: #120f0c;
   --foreground: #ffffff;
   --foreground-muted: rgba(255, 255, 255, 0.68);
+  --foreground-faint: rgba(255, 255, 255, 0.42);
   --paper: #eed9c4;
   --ink: #0a0a0a;
   --accent: #ff5c0a;
   --accent-soft: #ff7a3d;
   --accent-deep: #cc4a08;
+  --accent-darkest: #b83d00;
   --on-accent: #0a0a0a;
   --highlight: #eed9c4;
   --line: rgba(238, 217, 196, 0.28);
+  --line-soft: rgba(238, 217, 196, 0.12);
   --muted: var(--foreground-muted);
+
+  /* ============================================================
+   * TIPOGRAFIA — escala fechada, consumida via classes utilitárias
+   * (.t-eyebrow / .t-h1 / .t-h2 / .t-h3 / .t-body / .t-body-sm /
+   *  .t-card-title / .t-card-sub / .t-cta).
+   * ============================================================ */
+  --fs-eyebrow: 11px;
+  --tracking-eyebrow: 0.28em;
+
+  --fs-body-sm: 13px;
+  --fs-body: 14px;
+  --lh-body: 1.6;
+
+  --fs-card-title: 16px;
+  --fs-card-sub: 10px;
+  --tracking-card-sub: 0.24em;
+
+  --fs-h3: clamp(22px, 2.4vw, 32px);
+  --fs-h2: clamp(42px, 6vw, 92px);
+  --fs-h1: clamp(64px, 11vw, 180px);
+
+  --fs-cta: 11px;
+  --tracking-cta: 0.28em;
+
+  /* ============================================================
+   * ESPAÇAMENTO — escala 8px + tokens semânticos
+   * ============================================================ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+
+  --gutter: clamp(20px, 5vw, 96px);
+  --section-py: clamp(64px, 10vh, 128px);
+  --content-max: 1240px;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-raised: var(--background-raised);
+  --color-background-deep: var(--background-deep);
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-faint: var(--foreground-faint);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-deep: var(--accent-deep);
@@ -29,6 +78,7 @@
   --color-ink: var(--ink);
   --color-highlight: var(--highlight);
   --color-muted-foreground: var(--muted);
+  --color-line: var(--line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-oswald);
@@ -41,6 +91,237 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* ==============================================================
+ * UTILITÁRIOS DE TIPOGRAFIA
+ * ============================================================== */
+.t-eyebrow {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--highlight);
+}
+
+.t-h1 {
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 700;
+  font-size: var(--fs-h1);
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+.t-h2 {
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 700;
+  font-size: var(--fs-h2);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+.t-h3 {
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 700;
+  font-size: var(--fs-h3);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+.t-body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--foreground-muted);
+}
+
+.t-body-sm {
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-body);
+  color: var(--foreground-muted);
+}
+
+.t-card-title {
+  font-size: var(--fs-card-title);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.97);
+}
+
+.t-card-sub {
+  font-size: var(--fs-card-sub);
+  letter-spacing: var(--tracking-card-sub);
+  text-transform: uppercase;
+  color: rgba(238, 217, 196, 0.78);
+}
+
+.t-cta {
+  font-size: var(--fs-cta);
+  letter-spacing: var(--tracking-cta);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ==============================================================
+ * UTILITÁRIOS DE LAYOUT
+ * ============================================================== */
+.section-padding {
+  padding-block: var(--section-py);
+  padding-inline: var(--gutter);
+}
+.section-padding-x {
+  padding-inline: var(--gutter);
+}
+.content-wrap {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
+
+/* ==============================================================
+ * BOTÕES — ciclo 0005 (substitui handlers JS de hover onde aplicável)
+ * ============================================================== */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--highlight);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+.btn-ghost:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 999px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: background 180ms ease;
+}
+.btn-solid:hover {
+  background: var(--accent-soft);
+}
+.btn-solid:active {
+  background: var(--accent-deep);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--highlight);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+.btn-icon:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.btn-icon:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.btn-icon-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--highlight);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+.btn-icon-sm:hover:not(:disabled) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.footer-link {
+  color: var(--foreground-muted);
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+.footer-link:hover {
+  color: var(--highlight);
+}
+
+.skin-card-link:focus-visible {
+  border-radius: 10px;
+}
+
+.hero-nav-catalog-link:hover {
+  color: var(--highlight);
+}
+
+.skip-gallery-link:focus-visible {
+  color: var(--highlight);
+}
+
+/* DEV ONLY — utilitário de validação de alinhamento.
+   Aplicar via `<body class="debug-rule">` durante QA visual.
+   Remover/desactivar antes do release final. */
+body.debug-rule::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--gutter);
+  width: 1px;
+  background: rgba(255, 92, 10, 0.45);
+  z-index: 9999;
+  pointer-events: none;
+}
+body.debug-rule::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: var(--gutter);
+  width: 1px;
+  background: rgba(255, 92, 10, 0.45);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* ==============================================================
+ * EFEITOS DE TEXTO
+ * ============================================================== */
 .accent-shine {
   background: linear-gradient(
     90deg,
@@ -59,4 +340,64 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ==============================================================
+ * CARROSSEL MARQUEE — SkinsCarousel (scroll contínuo, estilo showcase)
+ * Duplica a fila em JS; translateX(-50%) alinha o loop ao meio exacto.
+ * ============================================================== */
+@keyframes skins-marquee-x {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.skins-marquee-mask {
+  overflow: hidden;
+}
+
+.skins-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: var(--skins-marquee-gap, 24px);
+  animation: skins-marquee-x var(--skins-marquee-duration, 52s) linear infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skins-marquee-mask {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+
+  .skins-marquee-track {
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+}
+
+/* ==============================================================
+ * SCROLLBAR DO CARROSSEL
+ * ============================================================== */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==============================================================
+ * FOCUS VISIBLE GLOBAL
+ * ============================================================== */
+:where(a, button, [role="button"]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
 }

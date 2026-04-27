@@ -106,11 +106,12 @@ Diretriz (histórica):
 - **Composição e copy:**
   - eyebrow em `--highlight`, H2 em `var(--foreground)`, sub em `var(--foreground-muted)` (sem creme como cor de superfície),
   - CTA primário em `#FF5C0A` com texto `#0A0A0A`, alinhado à regra de uso da paleta,
-  - **Strings congeladas (UI — secção “Continua a narrativa”, `ScrollDrivenHeroGallery`):**
-    - Eyebrow: `06 · NARRATIVA`
+  - **Strings UI (secção “Continua a história”, `ScrollDrivenHeroGallery` — atualizadas pelo ciclo 0005, ver secção “Padronização e layout pós-rebrand”):**
     - Título (H2): `Continua a história.`
-    - Subtítulo: `Cada skin é um novo começo. Bora virar a tua?`
-    - CTA: `Ver mercado` (âncora `#hero-mercado` na capa em `app/page.tsx`)
+    - Subtítulo: `Skin nova é partida nova. A próxima vitória pode estar a um clique de distância.`
+    - CTA primário: `Quero a minha skin` (âncora `#hero-mercado` na capa em `app/page.tsx`)
+    - CTA secundário: `Como funciona` (âncora `#skins-destaque`)
+    - Eyebrow `06 · NARRATIVA` removido — a narrativa entra direto no H2.
 - **Limites de comportamento:**
   - a secção **não** fixa o ecrã (sem pin) e **não** captura scroll/teclado,
   - foco visível no CTA, ordem natural de tab,
@@ -152,6 +153,86 @@ Diretriz (histórica):
 - **Orçamento de listeners adicionais** — máximo de 2 listeners `ScrollTrigger.update` extra; este ciclo usa **1** (parallax + blur da narrativa). Os callbacks `onEnter`/`onLeave` do trigger discreto da Fase B não contam.
 - **`prefers-reduced-motion: reduce`** — desliga integralmente: morph path-to-path (mantém `PHASE_INTRO_END=0`), border highlight pulse, glow interno, `mix-blend-mode`, `backdrop-filter`, `rotateZ` C2, sombra dual-stage (mantém apenas a sombra final estática). Easings novos aplicam-se onde haja tween residual.
 - **Sem alteração de copy ou de assets raster** — strings congeladas (cycle 0003), `card1.jpg`, `knife.png`, 101 frames pré-renderizados e `skininterativa.png` mantidos.
+
+## Padronização e layout pós-rebrand (ciclo 0005)
+
+**Ciclo:** `cycles/Q12026/0005-padronizacao-e-layout-pos-rebrand/`
+
+Esta secção captura o **estado canónico** após a padronização — todos os componentes do site consomem exclusivamente os tokens definidos em `app/globals.css`, sem tamanhos/spacings arbitrários, e o layout horizontal/vertical é uniforme entre secções.
+
+- **Tokens canónicos consumidos por todos os componentes (ver `app/globals.css`):**
+  - **Tipografia:** `.t-eyebrow`, `.t-h1`, `.t-h2`, `.t-h3`, `.t-body`, `.t-body-sm`, `.t-card-title`, `.t-card-sub`, `.t-cta` — definidas a partir de `--fs-*` e `--tracking-*`. Nenhum componente declara `font-size`, `letter-spacing`, `font-family` ou `text-transform` inline para tipografia narrativa (logos como "DR·BLACK." são caso especial e mantêm Oswald inline).
+  - **Layout:** `.section-padding` (= `padding-block: var(--section-py); padding-inline: var(--gutter)`), `.section-padding-x` (apenas horizontal), `.content-wrap` (`max-width: var(--content-max); margin-inline: auto`).
+  - **Espaçamento:** escala 8px em `--space-1..8`. `--gutter: clamp(20px, 5vw, 96px)`, `--section-py: clamp(64px, 10vh, 128px)`, `--content-max: 1240px`.
+- **Sistema unificado de botões (em `app/globals.css`):**
+  - **`.btn-ghost`** — pílula transparente, border `var(--line)`, hover preenche com `var(--accent)`. Usada em CTA "ENTRAR" do hero e botões secundários do banner de cookies.
+  - **`.btn-solid`** — pílula sólida `var(--accent)` com texto `var(--on-accent)`, hover `var(--accent-soft)`, active `var(--accent-deep)`. Usada no CTA primário da narrativa ("Quero a minha skin") e no CTA primário do banner de cookies.
+  - **`.btn-icon`** — círculo 44×44 com border `var(--line)`. Usado nas setas do carrossel. Estado `:disabled` com opacidade `0.25` e `cursor: not-allowed`.
+  - **`.btn-icon-sm`** — variante 40×40 do `.btn-icon`. Usada nos ícones sociais do footer.
+  - **`.footer-link`** — link "muted que vira highlight em hover": `color: var(--foreground-muted)` → `color: var(--highlight)` em hover, transição 180ms ease. Usada em todos os links das colunas Navegação/Suporte/Legal do footer.
+  - **`.skin-card-link`** — selector `:focus-visible` com `border-radius: 18px` para casar com o shape KPR dos cards do carrossel.
+  - **Sem handlers `onMouseEnter`/`onMouseLeave` JS** em hero, narrativa, footer, banner de cookies, carrossel ou qualquer botão CSS-only. **Excepção mantida**: handlers de pointer da Fase 0/B/C do `ScrollDrivenHeroGallery.tsx` para interação 3D (cycle 0004).
+- **`Hero` (`components/hero.tsx`) — estado canónico:**
+  - **Sem coluna direita de mídia** — o `Hero` deixa de receber `mediaSlot`. O headline ocupa a coluna principal sem flex de duas colunas. O `HeroMediaSlot` permanece exportado como utilitário standalone para futuras cycles que reintroduzam mídia.
+  - **Altura:** `min-h-screen` + `padding-bottom: var(--space-7)` (substitui `min-h-[115vh]`). Headline cabe na primeira dobra em monitores ≥1080px sem mais que 20% de altura morta antes da galeria.
+  - **Tipografia:** headline em `.t-h1`, eyebrow do nav em `.t-eyebrow`, paragrafo descritivo em `.t-body-sm`, CTA "ENTRAR" em `.btn-ghost.t-cta`. Todas as ocorrências de `px-[5vw]` substituídas por `.section-padding-x`.
+  - **Nav — 3 itens:** "Catálogo" → `#skins-destaque` (link real). "Rifas" e "Sobre" mantêm `href="#"` mas com `aria-disabled="true"`, `tabIndex={-1}`, `title="Em breve"` e `cursor: not-allowed`. "Coleções" foi removido até existir destino.
+  - **Strings congeladas (mantidas das cycles anteriores):** headline `["COMPRA.", "VENDA.", "CONCORRA."]`; paragrafo `Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende, concorre — direto, sem enrolação.`.
+- **Galeria pinada (`components/ScrollDrivenHeroGallery.tsx`) — áreas não-3D:**
+  - **Título "DÊ O UPGRADE QUE VOCÊ MERECE."** consome `.t-h2`. Ref `titleRef` preservado (GSAP escreve `transform/opacity`).
+  - Containers da secção alinhados com `.section-padding-x` (substituindo `px-[5vw]`).
+  - **Secção "Continua a história." em coluna única** (`max-w-2xl` no copy) — eyebrow `06 · NARRATIVA` foi **removido** (cycle 0005, refinos pós-execução). H2 abre directo a secção; sub e CTAs vivem na coluna esquerda; **bloco de stats** ancora abaixo dos CTAs (com border-top suave) para não sobrepor a `InteractiveSkinBackground` à direita.
+  - **Container externo** consome `.content-wrap.section-padding` (substitui `max-w-6xl px-[5vw] py-28 md:py-36`).
+  - **Tipografia da narrativa:** h2 em `.t-h2` (stagger framer-motion por palavra, agora com `rotateY 45°`/`scale 0.85`/`x 200px` na entrada, easing `expo.out`, duração 1s), sub em `.t-body` com entrada lateral 3D, CTAs em `.btn-solid.t-cta` (primário) e `.btn-ghost.t-cta` (secundário) com stagger e scale-up (`0.8 → 1`).
+  - **Strings UI (cycle 0005, substituem as da cycle 0003):**
+    - Subtítulo: `Skin nova é partida nova. A próxima vitória pode estar a um clique de distância.`
+    - CTA primário: `Quero a minha skin` → `#hero-mercado` (`.btn-solid`).
+    - CTA secundário: `Como funciona` → `#skins-destaque` (`.btn-ghost`).
+  - **Bloco de stats (abaixo dos CTAs, full max-w-2xl)** — `grid grid-cols-3` com border-top em `var(--line-soft)`, com entrada **stagger Framer** (delay 1s, `staggerChildren: 0.18`, cada item entra com `y 50px` + `scale 0.7 → 1`, easing `expo.out`):
+    - `+12k` · "Skins negociadas"
+    - `+3.4k` · "Usuários ativos"
+    - `24/7` · "Suporte"
+    - Número em `.t-h3` cor `var(--accent)`, label em `.t-card-sub`. Placeholder até produto fornecer dados reais.
+  - **Restrição absoluta**: timeline GSAP, scrub, fronteiras de fase, easings, morph com `flubber`, frame highlight + glow Fase B, sombra dual-stage, `rotateZ` C2, parallax + blur da narrativa **não foram tocados** — escopo da cycle 0004.
+- **Hero (`components/hero.tsx`) — animações Framer agressivas (cycle 0005, refinos pós-execução):**
+  - **Headline (`.t-h1`)** — cada palavra entra com `y 90px`/`x -120px`/`rotateY -55°`/`scale 0.7`, duração 1.1s, ease `[0.16, 1, 0.3, 1]`, stagger 0.18s. Container parental ganha `perspective: 1200` e `transformStyle: preserve-3d`.
+  - **Parágrafo descritivo (`.t-body-sm`)** — entrada `x -60px`/`rotateX -25°`/`scale 0.92`, duração 0.95s, delay 0.5s.
+  - **Nav** mantém a animação subtle anterior (`y -12 → 0`) — está fora do âmbito de "copy" agressivo.
+- **Carrossel (`components/SkinsCarousel.tsx`) — refinos cycle 0005:**
+  - **Eyebrow `07 · DESTAQUES` removido** — header abre direto no `.t-h2 "Skins em destaque"`.
+  - **Animação Framer no header** — H2 com stagger por palavra (`y 60px`/`rotateX -65°`, duração 0.85s, ease expo.out); subtítulo entra lateralmente (`x -50px`, duração 0.7s, delay 0.2s). Cards entram em stagger Framer (`y 80px`/`scale 0.92 → 1`, duração 0.75s, `staggerChildren: 0.08`, delay 0.15s, `viewport.once: true`).
+  - **Autoplay** — avança 1 card a cada **4s**; ao chegar ao fim faz `scrollTo({ left: 0, behavior: "smooth" })` (loop). Pausa em `prefers-reduced-motion: reduce`, `onPointerEnter`/`onPointerLeave` e `onFocusCapture`/`onBlurCapture` da secção (não sobrepõe ao critério "sem `onMouseEnter`": usa pointer events para lógica, não estilo).
+  - Header alinhado ao gutter via `.content-wrap` (já estava).
+  - **Vinheta lateral** — dois `<div aria-hidden>` absolutos no wrapper do track, largura = `var(--gutter)` cada, `pointer-events: none`, gradiente `linear-gradient(to right, var(--background), transparent)` (esquerda) e mirror (direita). Sugere conteúdo cortado nas bordas.
+  - **Cards** — hover eleva `translateY(-4px)` + `box-shadow: 0 24px 48px rgba(0,0,0,0.45)`; active `translateY(-2px) scale(0.99)`; focus-visible no `<a>` com `border-radius: 18px` casando com o card.
+  - **Setas** — `.btn-icon` (CSS-only). Estado disabled herda `opacity: 0.25` e `cursor: not-allowed`.
+- **Footer (`components/Footer.tsx`) — estado canónico:**
+  - **Borda única** — apenas a barra inferior (`<div>` com copyright/CNPJ/disclaimer Valve) tem `border-top: 1px solid var(--line-soft)`. O `<footer>` raiz não tem border-top.
+  - **Grid das colunas** — `1.4fr_1fr_1fr_1fr` em desktop, com `xl:gap-x: var(--space-7)` em desktop largo (>1280px) para respirar.
+  - **Coluna 1 (Marca)** — recebe `padding-right: var(--space-6)` em desktop e `padding-top` calibrado para alinhar **topo do logo** com **baseline do `<h3>`** das outras colunas.
+  - **Sociais** — todos os ícones em 18×18 (uniformes), envolvidos em `<a className="btn-icon-sm">`.
+  - **Links das colunas** — `.footer-link.t-body-sm` (sem JS de hover).
+  - **Barra inferior** — em mobile empilha com `gap: var(--space-2)`; padding vertical responsivo `clamp(var(--space-3), 2vw, var(--space-4))`.
+- **Cookie banner (`components/CookieBanner.tsx`):**
+  - **Card interno** com `max-width: 980px` + `margin-inline: auto` em desktop (não atravessa toda a largura do `--content-max`).
+  - **Sombra** reduzida para `0 16px 40px rgba(0,0,0,0.45)` (menos pesada).
+  - **Botões** — `BannerButton` consome `.btn-ghost.t-cta` ou `.btn-solid.t-cta` conforme variante. Sem handlers JS.
+  - **Mobile** — herda gutter via `.section-padding-x` do parent (sem duplicação).
+- **Skip-link** "Pular animação da galeria" em `app/page.tsx` consome `.t-cta` (não `text-[11px]` arbitrário). Continua a aparecer apenas em focus por teclado.
+- **Utilitário de dev `.debug-rule`** — opt-in via `<body class="debug-rule">`. Pinta uma linha vertical fixa em `var(--gutter)` esquerdo e direito para validar visualmente que cada secção partilha a mesma origem horizontal. **Dev-only**; remover/desactivar antes do release final do Q1 2026.
+- **Verificação contínua de uniformidade (CI/QA manual):**
+  - `rg "text-\[" components/ app/` → zero matches para tamanhos arbitrários.
+  - `rg "tracking-\[" components/ app/` → zero matches arbitrários.
+  - `rg "px-\[5vw\]|py-28|py-36" components/ app/` → zero matches.
+  - `rg "onMouseEnter" components/ app/` → matches só em `ScrollDrivenHeroGallery.tsx` (handlers 3D da cycle 0004).
+- **Reduced motion:**
+  - Transições CSS de hover (`.btn-*`, `.footer-link`) continuam a transitar de cor (180ms ease, sóbrio).
+  - Animations scroll-triggered (galeria pinada) caem para fade simples — comportamento já implementado pela cycle 0004.
+- **Acessibilidade:**
+  - `aria-disabled="true"` em "Rifas" e "Sobre" do nav até existirem rotas.
+  - `aria-label` das setas do carrossel preservado.
+  - `aria-label="Estatísticas da plataforma"` no bloco de stats da narrativa.
+  - Focus-visible global em `:where(a, button, [role="button"])` continua a aplicar-se.
 
 ## Dependências técnicas
 

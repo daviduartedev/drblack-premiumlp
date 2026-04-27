@@ -6,62 +6,11 @@ import { CSSProperties, ReactNode, forwardRef } from "react";
 /**
  * Card uniforme do carrossel "SKINS NO PONTO".
  *
- * Shape (referência KPR — sticker/badge orgânico):
- *  - Aspect-ratio 16:9
- *  - Cantos largamente arredondados
- *  - Recorte subtil no lado esquerdo (miolo)
- *  - Canto inferior-direito com tratamento próprio (sem "mordida" agressiva)
- *
- * Implementação: clip-path: url(#kpr-card-shape) referenciando um
- * <clipPath clipPathUnits="objectBoundingBox"> injetado uma unica vez via
- * <KprCardClipDefs /> no app/layout. O path e definido em coordenadas
- * normalizadas (0..1) — escala automaticamente com qualquer tamanho.
- *
- * Referência visual desta calibragem (cycle 0004):
- * `cycles/Q12026/0004-transicoes-kpr-fieis/reference/animus-character.png`
+ * Aspect-ratio 16:9; cantos com raio fixo e subtílio (sem clip-path orgânico).
  */
-export const KPR_CARD_CLIP_ID = "kpr-card-shape";
 
-/**
- * Shape dos cards (cycle 0004 refinado por feedback):
- * Baseado em path manual fornecido pelo usuário:
- * M24,0 H276 Q300,0 300,24 V240 L240,300 H24 Q0,300 0,276 V24 Q0,0 24,0 Z
- * (normalizado para objectBoundingBox 0..1)
- */
-export const KPR_CARD_PATH =
-  "M 0.08 0 " +
-  "H 0.92 " +
-  "Q 1 0 1 0.08 " +
-  "V 0.8 " +
-  "L 0.8 1 " +
-  "H 0.08 " +
-  "Q 0 1 0 0.92 " +
-  "V 0.08 " +
-  "Q 0 0 0.08 0 " +
-  "Z";
-
-export function KprCardClipDefs() {
-  return (
-    <svg
-      aria-hidden
-      width="0"
-      height="0"
-      style={{
-        position: "absolute",
-        width: 0,
-        height: 0,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}
-    >
-      <defs>
-        <clipPath id={KPR_CARD_CLIP_ID} clipPathUnits="objectBoundingBox">
-          <path d={KPR_CARD_PATH} />
-        </clipPath>
-      </defs>
-    </svg>
-  );
-}
+/** Mesmo valor usado na timeline GSAP (`ScrollDrivenHeroGallery`) para fullscreen/recuo. */
+export const KPR_CARD_BORDER_RADIUS = "10px";
 
 export type KprCardProps = {
   src: string;
@@ -104,9 +53,8 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
       style={{
         position: "relative",
         aspectRatio: "16 / 9",
-        backgroundColor: "#120f0c",
-        clipPath: `url(#${KPR_CARD_CLIP_ID})`,
-        WebkitClipPath: `url(#${KPR_CARD_CLIP_ID})`,
+        backgroundColor: "var(--card-bg, #120f0c)",
+        borderRadius: KPR_CARD_BORDER_RADIUS,
         overflow: "hidden",
         boxShadow:
           "inset 0 0 0 1px rgba(255,255,255,0.08), 0 14px 36px rgba(0,0,0,0.32)",
@@ -168,7 +116,7 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
             }}
           />
           <span
-            className="text-[10px] tracking-[0.32em] uppercase"
+            className="t-card-sub"
             style={{ color: "rgba(238,217,196,0.94)" }}
           >
             {index}
@@ -178,22 +126,8 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
 
       {!hideLabels && (title || subtitle) ? (
         <div className="absolute bottom-5 left-5 right-5 z-[2]">
-          {title ? (
-            <div
-              className="text-[16px] font-semibold tracking-tight"
-              style={{ color: "rgba(255,255,255,0.97)" }}
-            >
-              {title}
-            </div>
-          ) : null}
-          {subtitle ? (
-            <div
-              className="text-[10px] tracking-[0.22em] uppercase mt-1"
-              style={{ color: "rgba(238,217,196,0.78)" }}
-            >
-              {subtitle}
-            </div>
-          ) : null}
+          {title ? <div className="t-card-title">{title}</div> : null}
+          {subtitle ? <div className="t-card-sub mt-1">{subtitle}</div> : null}
         </div>
       ) : null}
 

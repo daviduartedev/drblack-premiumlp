@@ -17,7 +17,7 @@ const useIsoLayoutEffect =
 import InteractiveSkinBackground, {
   type InteractiveSkinBackgroundHandle,
 } from "@/components/InteractiveSkinBackground";
-import KprCard from "@/components/KprCard";
+import KprCard, { KPR_CARD_BORDER_RADIUS } from "@/components/KprCard";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -34,51 +34,65 @@ const VIEWPORT_OPTS = { once: false, margin: "-15%" };
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const NARRATIVA_VARIANTS_FULL = {
-  eyebrow: {
-    hidden: { opacity: 0, y: -50 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
   h2Container: {
     hidden: {},
-    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
   } satisfies Variants,
   h2Word: {
-    hidden: { opacity: 0, x: 160, rotateY: 32 },
+    hidden: { opacity: 0, x: 200, rotateY: 45, scale: 0.85 },
     visible: {
       opacity: 1,
       x: 0,
       rotateY: 0,
-      transition: { duration: 0.9, ease: EASE_OUT_EXPO },
+      scale: 1,
+      transition: { duration: 1, ease: EASE_OUT_EXPO },
     },
   } satisfies Variants,
   sub: {
-    hidden: { opacity: 0, x: 90 },
+    hidden: { opacity: 0, x: 120, rotateX: -15 },
     visible: {
       opacity: 1,
       x: 0,
-      transition: { duration: 0.7, delay: 0.4, ease: EASE_OUT_EXPO },
+      rotateX: 0,
+      transition: { duration: 0.8, delay: 0.45, ease: EASE_OUT_EXPO },
     },
   } satisfies Variants,
-  cta: {
-    hidden: { opacity: 0, y: 50, scale: 0.85 },
+  ctaPrimary: {
+    hidden: { opacity: 0, y: 60, scale: 0.8 },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: 0.7, delay: 0.6, ease: EASE_OUT_EXPO },
+      transition: { duration: 0.75, delay: 0.7, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+  ctaSecondary: {
+    hidden: { opacity: 0, y: 60, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.75, delay: 0.85, ease: EASE_OUT_EXPO },
+    },
+  } satisfies Variants,
+  statsContainer: {
+    hidden: {},
+    visible: {
+      transition: { staggerChildren: 0.18, delayChildren: 1 },
+    },
+  } satisfies Variants,
+  statItem: {
+    hidden: { opacity: 0, y: 50, scale: 0.7 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.85, ease: EASE_OUT_EXPO },
     },
   } satisfies Variants,
 };
 
 const NARRATIVA_VARIANTS_REDUCED = {
-  eyebrow: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
   h2Container: {
     hidden: {},
     visible: { transition: { staggerChildren: 0 } },
@@ -91,13 +105,50 @@ const NARRATIVA_VARIANTS_REDUCED = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
   } satisfies Variants,
-  cta: {
+  ctaPrimary: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+  ctaSecondary: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  } satisfies Variants,
+  statsContainer: {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0 } },
+  } satisfies Variants,
+  statItem: {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
   } satisfies Variants,
 };
 
 const HEADLINE_WORDS = ["Continua", "a", "história."] as const;
+
+/**
+ * Números placeholder — cycle 0005. Trocar quando produto fornecer dados reais.
+ *
+ * Usa `motion.div` com variant individual (`statItem`) para entrada com
+ * stagger orquestrado pelo container pai.
+ */
+function Stat({
+  number,
+  label,
+  variants,
+}: {
+  number: string;
+  label: string;
+  variants: Variants;
+}) {
+  return (
+    <motion.div variants={variants} className="flex flex-col gap-1">
+      <span className="t-h3" style={{ color: "var(--accent)" }}>
+        {number}
+      </span>
+      <span className="t-card-sub">{label}</span>
+    </motion.div>
+  );
+}
 
 /**
  * Seção "SKINS NO PONTO. RIFA NA TELA."
@@ -143,7 +194,7 @@ export default function ScrollDrivenHeroGallery() {
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
 
-  const titleRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const eyebrowRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
@@ -428,19 +479,11 @@ export default function ScrollDrivenHeroGallery() {
         tl.to(
           introOverlay,
           {
-            borderRadius: 28,
+            borderRadius: KPR_CARD_BORDER_RADIUS,
             duration: morphDur * 0.35,
             ease: "expo.inOut",
           },
           morphDur * 0.62
-        );
-        tl.set(
-          introOverlay,
-          {
-            clipPath: "url(#kpr-card-shape)",
-            WebkitClipPath: "url(#kpr-card-shape)",
-          },
-          morphDur * 0.84
         );
 
         tl.to(
@@ -541,17 +584,18 @@ export default function ScrollDrivenHeroGallery() {
         PHASE_A_END
       );
 
-      // Shape: o hero card mantem o clip-path KPR durante quase toda a
-      // Fase B — o knife escala e os frames scrubam DENTRO do shape sticker
-      // (notch + mordida), reforcando o "card vivo" estilo KPR. Apenas bem
-      // perto do fim da Fase B (95% do progresso) o clip-path e removido,
-      // permitindo o knife "estourar" para fullscreen retangular sem cantos.
+      // Cantos subtis até ~95% da Fase B; depois raio 0 para o knife cobrir a
+      // tela como retângulo (fullscreen).
       const heroCardEl = heroWrap.firstElementChild as HTMLElement | null;
       const clipReleaseAt = PHASE_A_END + phaseBDur * 0.95;
       if (heroCardEl) {
         tl.set(
           heroCardEl,
-          { clipPath: "none", webkitClipPath: "none" },
+          {
+            clipPath: "none",
+            webkitClipPath: "none",
+            borderRadius: "0",
+          },
           clipReleaseAt
         );
       }
@@ -641,15 +685,13 @@ export default function ScrollDrivenHeroGallery() {
         },
         PHASE_B_END
       );
-      // Re-aplica o clip-path KPR ao recolher (instantaneo, mascarado pelo
-      // scale + tilt + sombra que crescem). A sombra ganha intensidade para
-      // vender o "afastamento" 3D.
+      // Volta o raio subtílio do card ao recuar (instantâneo; mascarado pelo
+      // scale + tilt + sombra que crescem).
       if (heroCardEl) {
         tl.set(
           heroCardEl,
           {
-            clipPath: "url(#kpr-card-shape)",
-            WebkitClipPath: "url(#kpr-card-shape)",
+            borderRadius: KPR_CARD_BORDER_RADIUS,
           },
           PHASE_B_END
         );
@@ -725,27 +767,28 @@ export default function ScrollDrivenHeroGallery() {
           }}
         />
 
-        <div className="relative z-30 flex items-center justify-between px-[5vw] pt-7">
-        </div>
+        <div
+          aria-hidden
+          className="relative z-30 section-padding-x"
+          style={{ paddingTop: "var(--space-4)" }}
+        />
 
-        <div className="relative z-20 px-[5vw] mt-[3vh] max-w-[60rem]">
-          <h1
-            ref={titleRef}
-            className="mt-2"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontWeight: 700,
-              lineHeight: 0.88,
-              letterSpacing: "-0.025em",
-              fontSize: "clamp(36px, 5.6vw, 88px)",
-              color: "rgba(255,255,255,0.96)",
-              textTransform: "uppercase",
-              whiteSpace: "pre-line",
-              opacity: 0,
-            }}
-          >
-            {"DÊ O UPGRADE QUE VOCÊ MERECE."}
-          </h1>
+        <div
+          className="relative z-20 section-padding-x"
+          style={{ marginTop: "3vh" }}
+        >
+          {/* Mesmo padrão horizontal das secções (cycle 0005): gutter + content-wrap */}
+          <div className="content-wrap">
+            <h2
+              ref={titleRef}
+              className="t-h2"
+              style={{
+                opacity: 0,
+              }}
+            >
+              DÊ O UPGRADE QUE VOCÊ MERECE.
+            </h2>
+          </div>
         </div>
 
         <div
@@ -929,10 +972,17 @@ export default function ScrollDrivenHeroGallery() {
 
         <div
           ref={hudRef}
-          className="absolute inset-x-[5vw] bottom-7 z-30 flex items-center justify-between text-[10px] tracking-[0.3em] uppercase pointer-events-none"
-          style={{ color: "rgba(255,255,255,0.6)", opacity: 0 }}
+          className="pointer-events-none absolute inset-x-0 bottom-7 z-30 section-padding-x"
+          style={{ opacity: 0 }}
         >
-          <span>SCROLL ↓</span>
+          <div className="content-wrap">
+            <span
+              className="t-card-sub"
+              style={{ color: "var(--foreground-faint)" }}
+            >
+              SCROLL ↓
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1002,32 +1052,15 @@ export default function ScrollDrivenHeroGallery() {
         />
         <InteractiveSkinBackground ref={narrativaSkinRef} />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-[5vw] py-28 md:py-36">
-          <div className="max-w-xl" style={{ perspective: "900px" }}>
-            <motion.div
-              variants={narrativaVariants.eyebrow}
-              initial="hidden"
-              whileInView="visible"
-              viewport={VIEWPORT_OPTS}
-              className="text-[11px] tracking-[0.28em] uppercase"
-              style={{ color: "var(--highlight)" }}
-            >
-              06 · NARRATIVA
-            </motion.div>
+        <div className="relative z-10 content-wrap section-padding flex h-full flex-col justify-center">
+          <div className="max-w-2xl" style={{ perspective: "1000px" }}>
             <motion.h2
               variants={narrativaVariants.h2Container}
               initial="hidden"
               whileInView="visible"
               viewport={VIEWPORT_OPTS}
-              className="mt-4 overflow-hidden"
+              className="t-h2 overflow-hidden"
               style={{
-                fontFamily: "var(--font-oswald), sans-serif",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                textTransform: "uppercase",
-                fontSize: "clamp(42px, 6vw, 92px)",
-                lineHeight: 0.95,
-                color: "var(--foreground)",
                 transformStyle: "preserve-3d",
               }}
             >
@@ -1051,37 +1084,59 @@ export default function ScrollDrivenHeroGallery() {
               initial="hidden"
               whileInView="visible"
               viewport={VIEWPORT_OPTS}
-              className="mt-6 max-w-md text-[14px] leading-relaxed"
-              style={{ color: "var(--foreground-muted)" }}
+              className="t-body mt-6"
+              style={{ maxWidth: "48ch" }}
             >
-              Cada skin é um novo começo. Bora virar a tua?
+              Skin nova é partida nova. A próxima vitória pode estar a um
+              clique de distância.
             </motion.p>
-            <motion.a
-              variants={narrativaVariants.cta}
+            <div className="mt-8 flex flex-wrap items-center gap-[var(--space-3)]">
+              <motion.a
+                variants={narrativaVariants.ctaPrimary}
+                initial="hidden"
+                whileInView="visible"
+                viewport={VIEWPORT_OPTS}
+                href="#hero-mercado"
+                className="btn-solid t-cta"
+              >
+                Quero a minha skin
+              </motion.a>
+              <motion.a
+                variants={narrativaVariants.ctaSecondary}
+                initial="hidden"
+                whileInView="visible"
+                viewport={VIEWPORT_OPTS}
+                href="#skins-destaque"
+                className="btn-ghost t-cta"
+              >
+                Como funciona
+              </motion.a>
+            </div>
+            <motion.div
+              variants={narrativaVariants.statsContainer}
               initial="hidden"
               whileInView="visible"
               viewport={VIEWPORT_OPTS}
-              href="#hero-mercado"
-              className="mt-8 inline-flex items-center justify-center px-8 py-3 text-[11px] font-semibold tracking-[0.22em] uppercase transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]"
-              style={{
-                background: "var(--accent)",
-                color: "var(--on-accent)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--accent-soft)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "var(--accent)";
-              }}
-              onMouseDown={(e) => {
-                e.currentTarget.style.background = "var(--accent-deep)";
-              }}
-              onMouseUp={(e) => {
-                e.currentTarget.style.background = "var(--accent-soft)";
-              }}
+              aria-label="Estatísticas da plataforma"
+              className="mt-[var(--space-7)] grid grid-cols-3 gap-[var(--space-4)] border-t pt-[var(--space-6)] md:gap-[var(--space-6)]"
+              style={{ borderTopColor: "var(--line-soft)" }}
             >
-              Ver mercado
-            </motion.a>
+              <Stat
+                number="+12k"
+                label="Skins negociadas"
+                variants={narrativaVariants.statItem}
+              />
+              <Stat
+                number="+3.4k"
+                label="Usuários ativos"
+                variants={narrativaVariants.statItem}
+              />
+              <Stat
+                number="24/7"
+                label="Suporte"
+                variants={narrativaVariants.statItem}
+              />
+            </motion.div>
           </div>
         </div>
       </motion.section>

@@ -7,7 +7,8 @@ import type { ReactNode } from "react";
  * Área reservada na hero para mídia substituível (Three.js, `<video muted playsInline>`, etc.).
  * Não faz parte do `ScrollDrivenHeroGallery` — não herda o translate horizontal dos cards.
  *
- * Troca: substitua o conteúdo default em `Hero` ou passe `mediaSlot` desde `app/page.tsx`.
+ * Ciclo 0005: não é consumido pelo `Hero` (a prop `mediaSlot` foi removida). Mantido exportado
+ * para cycles futuras que reintroduzam mídia na capa.
  */
 export function HeroMediaSlot({
   children,
@@ -28,26 +29,23 @@ export function HeroMediaSlot({
 
 /**
  * Hero — face pós-loader (rebrand laranja/creme, spec rebrand-2026-q1).
- * Ciclo 0002: slot de mídia + altura da capa ligeiramente estendida.
+ * Ciclo 0002: slot de mídia + altura da capa.
+ * Ciclo 0005: tipografia/spacings via tokens; sem coluna de mídia;
+ * altura `min-h-[100svh]` para casar com a galeria pinada e evitar que
+ * `100vh` — maior que o ecrã visível em vários browsers — revele logo a próxima secção.
  */
-export default function Hero({
-  loading,
-  mediaSlot,
-}: {
-  loading: boolean;
-  /** Se omitido, usa o placeholder em `public/hero-media-placeholder.svg`. */
-  mediaSlot?: ReactNode;
-}) {
+export default function Hero({ loading }: { loading: boolean }) {
   const show = !loading;
 
-  const headline = ["COMPRA.", "VENDA.", "CONCORRA."];
+  const headline = ["COMPRA.", "VENDE.", "CONCORRA."];
 
   return (
     <section
-      className="relative min-h-[115vh] w-full overflow-hidden pb-16 md:pb-20"
+      className="relative min-h-[100svh] w-full overflow-hidden"
       style={{
         background: "var(--background)",
         color: "var(--foreground)",
+        paddingBottom: "var(--space-7)",
       }}
     >
       <div
@@ -96,60 +94,84 @@ export default function Hero({
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: show ? 1 : 0, y: show ? 0 : -12 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="relative z-10 flex items-center justify-between px-[5vw] py-6 text-[11px] tracking-[0.28em] uppercase"
+        className="relative z-10 flex items-center justify-between section-padding-x py-6"
       >
         <div
-          className="font-bold text-sm tracking-[0.2em]"
-          style={{ fontFamily: "var(--font-oswald), sans-serif" }}
+          className="font-bold text-sm"
+          style={{
+            fontFamily: "var(--font-oswald), sans-serif",
+            letterSpacing: "0.2em",
+          }}
         >
           DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
           <span style={{ color: "var(--accent)" }}>.</span>
         </div>
 
-        <ul
-          className="hidden md:flex items-center gap-10"
-          style={{ color: "var(--foreground-muted)" }}
-        >
-          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
-            Catálogo
+        <ul className="hidden md:flex items-center gap-10">
+          <li>
+            <a
+              href="#skins-destaque"
+              className="hero-nav-catalog-link t-eyebrow cursor-pointer transition"
+            >
+              Catálogo
+            </a>
           </li>
-          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
-            Rifas
+          <li>
+            <a
+              href="#"
+              aria-disabled="true"
+              tabIndex={-1}
+              title="Em breve"
+              className="t-eyebrow transition"
+              style={{
+                cursor: "not-allowed",
+                color: "var(--foreground-faint)",
+              }}
+            >
+              Rifas
+            </a>
           </li>
-          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
-            Coleções
-          </li>
-          <li className="hover:text-[var(--highlight)] cursor-pointer transition">
-            Sobre
+          <li>
+            <a
+              href="#"
+              aria-disabled="true"
+              tabIndex={-1}
+              title="Em breve"
+              className="t-eyebrow transition"
+              style={{
+                cursor: "not-allowed",
+                color: "var(--foreground-faint)",
+              }}
+            >
+              Sobre
+            </a>
           </li>
         </ul>
 
-        <button
-          className="px-4 py-2 text-[10px] font-semibold tracking-[0.28em] transition"
-          style={{
-            border: "1px solid var(--accent)",
-            color: "var(--highlight)",
-            background: "transparent",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--accent)";
-            e.currentTarget.style.color = "var(--on-accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--highlight)";
-          }}
-        >
+        <button type="button" className="btn-ghost t-cta">
           ENTRAR
         </button>
       </motion.nav>
 
       <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: show ? 1 : 0, x: show ? 0 : -20 }}
-        transition={{ duration: 0.7, delay: 0.5 }}
-        className="relative z-10 mt-12 md:mt-16 px-[5vw] max-w-md text-[13px] leading-relaxed"
-        style={{ color: "var(--foreground-muted)" }}
+        initial={{ opacity: 0, x: -60, rotateX: -25, scale: 0.92 }}
+        animate={{
+          opacity: show ? 1 : 0,
+          x: show ? 0 : -60,
+          rotateX: show ? 0 : -25,
+          scale: show ? 1 : 0.92,
+        }}
+        transition={{
+          duration: 0.95,
+          delay: 0.5,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+        className="relative z-10 mt-12 md:mt-16 section-padding-x t-body-sm"
+        style={{
+          maxWidth: "44ch",
+          perspective: 800,
+          transformStyle: "preserve-3d",
+        }}
       >
         <p>
           Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende, concorre —
@@ -157,57 +179,56 @@ export default function Hero({
         </p>
       </motion.div>
 
-      <div className="relative z-10 mt-[5vh] md:mt-[8vh] px-[5vw]">
-        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
-          <div className="min-w-0 flex-1 select-none">
-            <h1
-              style={{
-                fontFamily: "var(--font-oswald), sans-serif",
-                fontWeight: 700,
-                lineHeight: 0.85,
-                letterSpacing: "-0.02em",
-                fontSize: "clamp(64px, 12vw, 200px)",
-                color: "var(--foreground)",
-              }}
-            >
-              {headline.map((word, i) => (
-                <motion.span
-                  key={word}
-                  initial={{ opacity: 0, y: 40, scale: 0.96 }}
-                  animate={{
-                    opacity: show ? 1 : 0,
-                    y: show ? 0 : 40,
-                    scale: show ? 1 : 0.96,
-                  }}
-                  transition={{
-                    duration: 0.8,
-                    delay: 0.7 + i * 0.15,
-                    ease: [0.2, 0.7, 0.2, 1],
-                  }}
-                  className="block"
-                  style={
-                    i === headline.length - 1
-                      ? {
-                          background:
-                            "linear-gradient(90deg, #b83d00 0%, #ff5c0a 40%, #ff7a3d 52%, #ff5c0a 68%, #eed9c4 100%)",
-                          WebkitBackgroundClip: "text",
-                          backgroundClip: "text",
-                          color: "transparent",
-                        }
-                      : undefined
-                  }
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </h1>
-          </div>
-
-          {mediaSlot ? (
-            <div className="flex flex-1 justify-center lg:justify-end">
-              {mediaSlot}
-            </div>
-          ) : null}
+      <div
+        className="relative z-10 mt-[5vh] md:mt-[8vh] section-padding-x"
+        style={{ perspective: 1200 }}
+      >
+        <div className="min-w-0 select-none" style={{ transformStyle: "preserve-3d" }}>
+          <h1 className="t-h1">
+            {headline.map((word, i) => (
+              <motion.span
+                key={word}
+                initial={{
+                  opacity: 0,
+                  y: 90,
+                  x: -120,
+                  rotateY: -55,
+                  scale: 0.7,
+                }}
+                animate={{
+                  opacity: show ? 1 : 0,
+                  y: show ? 0 : 90,
+                  x: show ? 0 : -120,
+                  rotateY: show ? 0 : -55,
+                  scale: show ? 1 : 0.7,
+                }}
+                transition={{
+                  duration: 1.1,
+                  delay: 0.65 + i * 0.18,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="block"
+                style={
+                  i === headline.length - 1
+                    ? {
+                        background:
+                          "linear-gradient(90deg, #b83d00 0%, #ff5c0a 40%, #ff7a3d 52%, #ff5c0a 68%, #eed9c4 100%)",
+                        WebkitBackgroundClip: "text",
+                        backgroundClip: "text",
+                        color: "transparent",
+                        transformStyle: "preserve-3d",
+                        willChange: "transform, opacity",
+                      }
+                    : {
+                        transformStyle: "preserve-3d",
+                        willChange: "transform, opacity",
+                      }
+                }
+              >
+                {word}
+              </motion.span>
+            ))}
+          </h1>
         </div>
       </div>
     </section>
