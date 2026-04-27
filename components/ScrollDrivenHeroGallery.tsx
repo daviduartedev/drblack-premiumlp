@@ -588,22 +588,9 @@ export default function ScrollDrivenHeroGallery() {
         />
 
         <div className="relative z-30 flex items-center justify-between px-[5vw] pt-7">
-          <div
-            className="text-[10px] tracking-[0.32em] uppercase"
-            style={{ color: "rgba(238,217,196,0.85)" }}
-          >
-            02 · ARSENAL
-          </div>
         </div>
 
         <div className="relative z-20 px-[5vw] mt-[3vh] max-w-[60rem]">
-          <div
-            ref={eyebrowRef}
-            className="text-[10px] tracking-[0.32em] uppercase"
-            style={{ color: "var(--highlight)", opacity: 0 }}
-          >
-            ESCOLHE TUA CARTA
-          </div>
           <h1
             ref={titleRef}
             className="mt-2"
@@ -621,14 +608,6 @@ export default function ScrollDrivenHeroGallery() {
           >
             {"SKINS NO PONTO.\nRIFA NA TELA."}
           </h1>
-          <p
-            ref={subRef}
-            className="mt-3 max-w-md text-[12px] leading-relaxed"
-            style={{ color: "rgba(255,255,255,0.72)", opacity: 0 }}
-          >
-            Duas cartas. Uma vira o jogo. Compra, concorre e leva — direto, sem
-            enrolação.
-          </p>
         </div>
 
         <div
