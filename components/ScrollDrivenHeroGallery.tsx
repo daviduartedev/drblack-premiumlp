@@ -158,6 +158,9 @@ export default function ScrollDrivenHeroGallery() {
    * que continua no carrossel por baixo.
    */
   const introOverlayRef = useRef<HTMLDivElement>(null);
+  const introOverlayMediaRef = useRef<HTMLDivElement>(null);
+  const introOverlayCopyRef = useRef<HTMLDivElement>(null);
+  const introInteractiveEnabledRef = useRef(true);
   const heroWrapRef = useRef<HTMLDivElement>(null);
   const heroFilmRef = useRef<HTMLDivElement>(null);
   const heroLabelRef = useRef<HTMLDivElement>(null);
@@ -290,6 +293,47 @@ export default function ScrollDrivenHeroGallery() {
           opacity: 1,
           force3D: true,
         });
+
+        if (introOverlayMediaRef.current) {
+          gsap.set(introOverlayMediaRef.current, {
+            x: 0,
+            y: 0,
+            scale: 1.015,
+            transformOrigin: "50% 50%",
+          });
+        }
+
+        if (introOverlayCopyRef.current) {
+          gsap.set(introOverlayCopyRef.current, { opacity: 1, y: 0 });
+        }
+
+        if (introOverlayMediaRef.current) {
+          const mediaEl = introOverlayMediaRef.current;
+          const moveX = gsap.quickTo(mediaEl, "x", { duration: 0.45, ease: "power3.out" });
+          const moveY = gsap.quickTo(mediaEl, "y", { duration: 0.45, ease: "power3.out" });
+          const handlePointerMove = (ev: PointerEvent) => {
+            if (!introInteractiveEnabledRef.current) return;
+            const rect = introOverlay.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const nx = (ev.clientX - rect.left) / rect.width - 0.5;
+            const ny = (ev.clientY - rect.top) / rect.height - 0.5;
+            moveX(nx * 18);
+            moveY(ny * 12);
+          };
+          const handlePointerLeave = () => {
+            moveX(0);
+            moveY(0);
+          };
+          introOverlay.addEventListener("pointermove", handlePointerMove);
+          introOverlay.addEventListener("pointerleave", handlePointerLeave);
+          gsap.delayedCall(0, () => {
+            // Cleanup com o contexto GSAP quando a secção desmonta.
+            ctx.add(() => {
+              introOverlay.removeEventListener("pointermove", handlePointerMove);
+              introOverlay.removeEventListener("pointerleave", handlePointerLeave);
+            });
+          });
+        }
       } else if (introOverlay && prefersReducedMotion) {
         // Reduced-motion: arranca já escondido (não há morph).
         gsap.set(introOverlay, { opacity: 0, pointerEvents: "none" });
@@ -307,7 +351,7 @@ export default function ScrollDrivenHeroGallery() {
       //   0.85 .. 1.00  Fase C — fly-through (knife escala + tilt + fade)
       // ============================================================
       const PHASE_INTRO_END = prefersReducedMotion ? 0 : 0.18;
-      const PHASE_A_END = 0.45;
+      const PHASE_A_END = 0.4;
       const PHASE_B_END = 0.85;
 
       const tl = gsap.timeline({
@@ -323,6 +367,7 @@ export default function ScrollDrivenHeroGallery() {
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const p = self.progress;
+            introInteractiveEnabledRef.current = p < 0.08;
             // Frame scrub roda durante a fase B; antes da fase B fica em 0,
             // após PHASE_B_END mantém o último frame enquanto a fase C executa.
             let next: number;
@@ -360,11 +405,42 @@ export default function ScrollDrivenHeroGallery() {
             top: () => computeIntroFlip().top,
             width: () => computeIntroFlip().width,
             height: () => computeIntroFlip().height,
-            borderRadius: 28,
+            borderRadius: 0,
             duration: morphDur,
-            ease: "power2.inOut",
+            ease: "expo.inOut",
           },
           0
+        );
+
+        if (introOverlayCopyRef.current) {
+          tl.to(
+            introOverlayCopyRef.current,
+            {
+              opacity: 0,
+              y: -10,
+              duration: PHASE_INTRO_END * 0.32,
+              ease: "power1.out",
+            },
+            0.01
+          );
+        }
+
+        tl.to(
+          introOverlay,
+          {
+            borderRadius: 28,
+            duration: morphDur * 0.35,
+            ease: "expo.inOut",
+          },
+          morphDur * 0.62
+        );
+        tl.set(
+          introOverlay,
+          {
+            clipPath: "url(#kpr-card-shape)",
+            WebkitClipPath: "url(#kpr-card-shape)",
+          },
+          morphDur * 0.84
         );
 
         tl.to(
@@ -426,7 +502,7 @@ export default function ScrollDrivenHeroGallery() {
         {
           x: () => computeShift(),
           duration: phaseADur,
-          ease: "power3.out",
+            ease: "expo.out",
         },
         PHASE_INTRO_END
       );
@@ -460,19 +536,23 @@ export default function ScrollDrivenHeroGallery() {
           scaleY: () => computeHeroScaleXY().scaleY,
           y: () => computeHeroYOffset(),
           duration: phaseBDur,
-          ease: "power2.inOut",
+          ease: "quart.inOut",
         },
         PHASE_A_END
       );
 
-      // Border-radius: card (28) → 0 (sem cantos no fullscreen).
+      // Shape: o hero card mantem o clip-path KPR durante quase toda a
+      // Fase B — o knife escala e os frames scrubam DENTRO do shape sticker
+      // (notch + mordida), reforcando o "card vivo" estilo KPR. Apenas bem
+      // perto do fim da Fase B (95% do progresso) o clip-path e removido,
+      // permitindo o knife "estourar" para fullscreen retangular sem cantos.
       const heroCardEl = heroWrap.firstElementChild as HTMLElement | null;
+      const clipReleaseAt = PHASE_A_END + phaseBDur * 0.95;
       if (heroCardEl) {
-        tl.fromTo(
+        tl.set(
           heroCardEl,
-          { borderRadius: 28 },
-          { borderRadius: 0, duration: phaseBDur, ease: "power2.inOut" },
-          PHASE_A_END
+          { clipPath: "none", webkitClipPath: "none" },
+          clipReleaseAt
         );
       }
 
@@ -524,39 +604,97 @@ export default function ScrollDrivenHeroGallery() {
         );
       }
 
-      // ----- FASE C — saída cinematográfica (0.85 .. 1.00) -----
-      // Fly-through estilo KPR/peachweb: a hero card que ocupa o ecrã
-      // sobre-escala (~1.18×), tilta em rotateX, sobe em Y e desvanece para
-      // opacidade 0, revelando a secção "Continua a história" por baixo.
+      // ----- FASE C — saída cinematográfica estilo KPR/peachweb (0.85 .. 1.00) -----
+      // Em vez de "sumir" (sobre-escalar + fade), o hero RECUA em Z: encolhe
+      // de fullscreen de volta para um card arredondado flutuante, ganhando
+      // sombra/borda à medida que se afasta, com tilt 3D suave e leve
+      // translação vertical para cima — revelando a secção "Continua a
+      // história" que emerge POR BAIXO num parallax sutil.
+      //
+      // Trecho temporal:
+      //   0.85 .. 0.93  (sub-fase C1) — hero solta do fullscreen, recua em Z,
+      //                                ganha radius/shadow, próxima secção
+      //                                começa a aparecer por baixo
+      //   0.93 .. 1.00  (sub-fase C2) — hero finaliza a saída por cima do
+      //                                viewport (translateY) com fade leve,
+      //                                cedendo o palco à narrativa
       const exitDuration = 1 - PHASE_B_END;
+      const C1_RATIO = 0.55;
+      const C1_DUR = exitDuration * C1_RATIO;
+      const C2_START = PHASE_B_END + C1_DUR;
+      const C2_DUR = exitDuration - C1_DUR;
+
+      // Sub-fase C1 — recuo 3D: hero encolhe ~38%, tilta ~8° em X (eixo
+      // horizontal — como uma janela inclinando para trás), sobe um pouco
+      // e ganha border-radius. EASE pesado (expo.out) dá o "snap" KPR.
       tl.to(
         heroWrap,
         {
-          scaleX: () => computeHeroScaleXY().scaleX * 1.18,
-          scaleY: () => computeHeroScaleXY().scaleY * 1.18,
-          y: () => computeHeroYOffset() - 110,
-          rotationX: -12,
-          rotationY: 6,
-          opacity: 0,
-          duration: exitDuration,
-          ease: "power2.in",
+          scaleX: () => computeHeroScaleXY().scaleX * 0.62,
+          scaleY: () => computeHeroScaleXY().scaleY * 0.62,
+          y: () => computeHeroYOffset() - 60,
+          rotationX: -8,
+          rotationY: 0,
+          z: -180,
+          duration: C1_DUR,
+          ease: "expo.out",
         },
         PHASE_B_END
       );
-      if (heroFilmRef.current) {
+      // Re-aplica o clip-path KPR ao recolher (instantaneo, mascarado pelo
+      // scale + tilt + sombra que crescem). A sombra ganha intensidade para
+      // vender o "afastamento" 3D.
+      if (heroCardEl) {
+        tl.set(
+          heroCardEl,
+          {
+            clipPath: "url(#kpr-card-shape)",
+            WebkitClipPath: "url(#kpr-card-shape)",
+          },
+          PHASE_B_END
+        );
         tl.to(
-          heroFilmRef.current,
-          { opacity: 0, duration: exitDuration, ease: "power2.in" },
+          heroCardEl,
+          {
+            boxShadow:
+              "0 36px 86px rgba(0,0,0,0.52), 0 12px 28px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(255,255,255,0.045)",
+            duration: C1_DUR,
+            ease: "expo.out",
+          },
           PHASE_B_END
         );
       }
+      // O film NÃO desvanece durante a Fase C — ele permanece no último
+      // frame (progress=1) enquanto o hero recolhe. A saída inteira é feita
+      // pela transformação do heroWrap (scale/translate/opacity).
+
+      // Sub-fase C2 — saída por cima: hero continua a subir + roda mais um
+      // pouco em X e desvanece, cedendo o palco. A próxima secção ("Continua
+      // a história") fica visível ANTES do hero sumir totalmente, criando o
+      // overlap cinematográfico estilo peachweb.
+      tl.to(
+        heroWrap,
+        {
+          scaleX: () => computeHeroScaleXY().scaleX * 0.5,
+          scaleY: () => computeHeroScaleXY().scaleY * 0.5,
+          y: () => computeHeroYOffset() - window.innerHeight * 0.55,
+          rotationX: -14,
+          rotationZ: 0,
+          z: -260,
+          opacity: 0,
+          duration: C2_DUR,
+          ease: "quart.in",
+        },
+        C2_START
+      );
       if (heroLabelRef.current) {
         tl.to(
           heroLabelRef.current,
-          { opacity: 0, y: -20, duration: exitDuration, ease: "power2.in" },
-          PHASE_B_END
+          { opacity: 0, y: -30, duration: C2_DUR, ease: "quart.in" },
+          C2_START
         );
       }
+
     }, rootRef);
 
     return () => ctx.revert();
@@ -614,7 +752,7 @@ export default function ScrollDrivenHeroGallery() {
           className="absolute inset-x-0 z-10 pointer-events-none"
           style={{
             top: "58%",
-            perspective: "1800px",
+            perspective: "2400px",
             perspectiveOrigin: "50% 50%",
           }}
         >
@@ -644,7 +782,14 @@ export default function ScrollDrivenHeroGallery() {
                   }}
                 >
                   {isHero ? (
-                    <div ref={heroWrapRef} style={{ transformOrigin: "50% 50%" }}>
+                    <div
+                      ref={heroWrapRef}
+                      style={{
+                        transformOrigin: "50% 50%",
+                        transformStyle: "preserve-3d",
+                        willChange: "transform, opacity",
+                      }}
+                    >
                       <KprCard
                         src={card.src}
                         hideLabels
@@ -667,7 +812,6 @@ export default function ScrollDrivenHeroGallery() {
                                 />
                               ) : null}
                             </div>
-
                             {/* labels removidos — durante o fullscreen
                                 a animação ocupa a tela inteira sem
                                 sobreposições */}
@@ -725,17 +869,44 @@ export default function ScrollDrivenHeroGallery() {
           }}
           aria-hidden
         >
-          <Image
-            src="/gallery/card1.jpg"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            quality={100}
-            unoptimized
-            className="object-cover"
-            style={{ transform: "translateZ(0)" }}
-          />
+          <div ref={introOverlayMediaRef} className="absolute inset-0">
+            <Image
+              src="/gallery/card1.jpg"
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              quality={100}
+              unoptimized
+              className="object-cover"
+              style={{ transform: "translateZ(0)" }}
+            />
+          </div>
+          <div
+            ref={introOverlayCopyRef}
+            className="absolute z-[2] pointer-events-none"
+            style={{
+              top: "clamp(22px, 7vh, 72px)",
+              left: "clamp(20px, 6vw, 96px)",
+              maxWidth: "min(90vw, 680px)",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: "rgba(255,255,255,0.96)",
+                fontFamily: "var(--font-oswald), sans-serif",
+                fontSize: "clamp(30px, 5.1vw, 78px)",
+                fontWeight: 700,
+                lineHeight: 0.95,
+                letterSpacing: "-0.02em",
+                textTransform: "uppercase",
+                textShadow: "0 12px 36px rgba(0,0,0,0.42)",
+              }}
+            >
+              Se o seu inventário é básico…
+            </p>
+          </div>
           {/* mesmos vinhetes do KprCard para que o "morph" para o estado de
               card seja visualmente idêntico ao card1 do carrossel */}
           <div
@@ -765,13 +936,23 @@ export default function ScrollDrivenHeroGallery() {
         </div>
       </div>
 
-      <section
+      <motion.section
         id="continua-narrativa"
         className="relative w-full overflow-hidden isolate"
         style={{
           minHeight: "min(100vh, 760px)",
           background: "var(--background)",
           color: "var(--foreground)",
+          transformOrigin: "50% 0%",
+        }}
+        initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 60, scale: 0.96 }}
+        whileInView={
+          reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }
+        }
+        viewport={{ once: false, margin: "-10%" }}
+        transition={{
+          duration: reducedMotion ? 0.3 : 0.95,
+          ease: EASE_OUT_EXPO,
         }}
         onPointerMoveCapture={(e) =>
           narrativaSkinRef.current?.onSectionPointerMove(e)
@@ -819,7 +1000,6 @@ export default function ScrollDrivenHeroGallery() {
               "radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%)",
           }}
         />
-
         <InteractiveSkinBackground ref={narrativaSkinRef} />
 
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-[5vw] py-28 md:py-36">
@@ -904,7 +1084,7 @@ export default function ScrollDrivenHeroGallery() {
             </motion.a>
           </div>
         </div>
-      </section>
+      </motion.section>
     </section>
   );
 }

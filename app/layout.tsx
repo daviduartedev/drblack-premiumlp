@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
+import { KprCardClipDefs } from "@/components/KprCard";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,7 +23,7 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   title: "DR Black Skins | Skins de CS2, rifa, direto",
   description:
-    "Seu ponto de skins e rifas. Compra, venda, concorra — sem enrolação.",
+    "Seu ponto de skins e rifas. Compra, venda, concorra — sem enrolacao.",
 };
 
 export default function RootLayout({
@@ -36,6 +37,8 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        {/* clip-path SVG global usado por todos os KprCard (shape KPR) */}
+        <KprCardClipDefs />
         {children}
       </body>
     </html>

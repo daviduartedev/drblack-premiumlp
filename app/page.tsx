@@ -4,7 +4,6 @@ import { useState } from "react";
 import Loader3D from "@/components/Loader3D";
 import Hero from "@/components/hero";
 import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
-import Dragon3D from "@/components/Dragon3D";
 
 export default function Home() {
   const [revealed, setRevealed] = useState(false);
@@ -41,7 +40,6 @@ export default function Home() {
       <div id="pos-galeria-scroll" className="scroll-mt-4">
         {revealed ? <ScrollDrivenHeroGallery /> : null}
       </div>
-      {revealed ? <Dragon3D /> : null}
     </div>
   );
 }

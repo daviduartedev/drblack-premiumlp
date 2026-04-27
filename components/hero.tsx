@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import type { ReactNode } from "react";
 
 /**
@@ -208,17 +207,7 @@ export default function Hero({
             <div className="flex flex-1 justify-center lg:justify-end">
               {mediaSlot}
             </div>
-          ) : (
-            <HeroMediaSlot>
-              <Image
-                src="/hero-media-placeholder.svg"
-                alt=""
-                fill
-                className="object-cover"
-                aria-hidden
-              />
-            </HeroMediaSlot>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

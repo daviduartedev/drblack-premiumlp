@@ -6,13 +6,63 @@ import { CSSProperties, ReactNode, forwardRef } from "react";
 /**
  * Card uniforme do carrossel "SKINS NO PONTO".
  *
- * Shape (referência ANIMUS CHARACTER enviada pelo usuário):
- *  - Aspect-ratio 16:9 — bate com o tamanho dos frames (1920x1080) para
- *    preservar HD máximo, sem distorcer.
- *  - Cantos arredondados generosos (28px).
- *  - "Plate" flutuante no canto superior-esquerdo simula o notch onde
- *    fica o label tipo "ANIMUS CHARACTER".
+ * Shape (referência KPR — sticker/badge orgânico):
+ *  - Aspect-ratio 16:9
+ *  - Cantos largamente arredondados
+ *  - Recorte subtil no lado esquerdo (miolo)
+ *  - Canto inferior-direito com tratamento próprio (sem "mordida" agressiva)
+ *
+ * Implementação: clip-path: url(#kpr-card-shape) referenciando um
+ * <clipPath clipPathUnits="objectBoundingBox"> injetado uma unica vez via
+ * <KprCardClipDefs /> no app/layout. O path e definido em coordenadas
+ * normalizadas (0..1) — escala automaticamente com qualquer tamanho.
+ *
+ * Referência visual desta calibragem (cycle 0004):
+ * `cycles/Q12026/0004-transicoes-kpr-fieis/reference/animus-character.png`
  */
+export const KPR_CARD_CLIP_ID = "kpr-card-shape";
+
+/**
+ * Shape dos cards (cycle 0004 refinado por feedback):
+ * Baseado em path manual fornecido pelo usuário:
+ * M24,0 H276 Q300,0 300,24 V240 L240,300 H24 Q0,300 0,276 V24 Q0,0 24,0 Z
+ * (normalizado para objectBoundingBox 0..1)
+ */
+export const KPR_CARD_PATH =
+  "M 0.08 0 " +
+  "H 0.92 " +
+  "Q 1 0 1 0.08 " +
+  "V 0.8 " +
+  "L 0.8 1 " +
+  "H 0.08 " +
+  "Q 0 1 0 0.92 " +
+  "V 0.08 " +
+  "Q 0 0 0.08 0 " +
+  "Z";
+
+export function KprCardClipDefs() {
+  return (
+    <svg
+      aria-hidden
+      width="0"
+      height="0"
+      style={{
+        position: "absolute",
+        width: 0,
+        height: 0,
+        overflow: "hidden",
+        pointerEvents: "none",
+      }}
+    >
+      <defs>
+        <clipPath id={KPR_CARD_CLIP_ID} clipPathUnits="objectBoundingBox">
+          <path d={KPR_CARD_PATH} />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
 export type KprCardProps = {
   src: string;
   alt?: string;
@@ -21,22 +71,11 @@ export type KprCardProps = {
   subtitle?: string;
   className?: string;
   style?: CSSProperties;
-  /** Conteudo extra empilhado por cima da imagem (ex: scrubber de frames). */
   overlay?: ReactNode;
-  /** Esconde o indice/titulo - usado pelo card hero durante a expansao. */
   hideLabels?: boolean;
   priority?: boolean;
   sizes?: string;
-  /**
-   * Qualidade JPEG/AVIF do `next/image`. Default 95.
-   * Requer que o valor esteja registado em `next.config.ts` → `images.qualities`.
-   */
   quality?: number;
-  /**
-   * Desliga totalmente a otimização — serve o ficheiro original sem
-   * recompressão. Usar quando a imagem é exibida em fullscreen e qualquer
-   * artefacto de compressão fica visível (ex.: o `card1.jpg` na Fase 0).
-   */
   unoptimized?: boolean;
 };
 
@@ -66,11 +105,11 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
         position: "relative",
         aspectRatio: "16 / 9",
         backgroundColor: "#120f0c",
-        borderRadius: "28px",
+        clipPath: `url(#${KPR_CARD_CLIP_ID})`,
+        WebkitClipPath: `url(#${KPR_CARD_CLIP_ID})`,
         overflow: "hidden",
-        border: "1px solid rgba(238,217,196,0.22)",
         boxShadow:
-          "0 28px 70px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.05)",
+          "inset 0 0 0 1px rgba(255,255,255,0.08), 0 14px 36px rgba(0,0,0,0.32)",
         willChange: "transform, opacity",
         ...style,
       }}
