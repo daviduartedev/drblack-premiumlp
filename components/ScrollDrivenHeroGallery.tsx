@@ -606,7 +606,7 @@ export default function ScrollDrivenHeroGallery() {
               opacity: 0,
             }}
           >
-            {"SKINS NO PONTO.\nRIFA NA TELA."}
+            {"DÊ O UPGRADE QUE VOCÊ MERECE."}
           </h1>
         </div>
 
