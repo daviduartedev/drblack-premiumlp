@@ -762,7 +762,6 @@ export default function ScrollDrivenHeroGallery() {
           style={{ color: "rgba(255,255,255,0.6)", opacity: 0 }}
         >
           <span>SCROLL ↓</span>
-          <span style={{ color: "var(--highlight)" }}>02 / 02 · ARSENAL</span>
         </div>
       </div>
 

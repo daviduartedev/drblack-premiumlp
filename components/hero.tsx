@@ -112,7 +112,7 @@ export default function Hero({
           style={{ color: "var(--foreground-muted)" }}
         >
           <li className="hover:text-[var(--highlight)] cursor-pointer transition">
-            Mercado
+            Catálogo
           </li>
           <li className="hover:text-[var(--highlight)] cursor-pointer transition">
             Rifas
@@ -152,12 +152,6 @@ export default function Hero({
         className="relative z-10 mt-12 md:mt-16 px-[5vw] max-w-md text-[13px] leading-relaxed"
         style={{ color: "var(--foreground-muted)" }}
       >
-        <p
-          className="mb-2 text-[10px] tracking-[0.3em] uppercase"
-          style={{ color: "var(--highlight)" }}
-        >
-          SKINS · CS2 · RIFAS
-        </p>
         <p>
           Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende, concorre —
           direto, sem enrolação.
