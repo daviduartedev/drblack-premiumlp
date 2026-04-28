@@ -6,7 +6,7 @@ import {
   type Variants,
   type MotionProps,
 } from "framer-motion";
-import { useMemo } from "react";
+import { useMemo, type CSSProperties, type JSX } from "react";
 
 /**
  * AnimatedSectionTitle — animação Framer/Webflow agressiva, palavra-a-palavra,
@@ -131,7 +131,7 @@ interface AnimatedSectionTitleProps {
   once?: boolean;
   /** Delay extra (s) antes do stagger começar. */
   delay?: number;
-  style?: React.CSSProperties;
+  style?: CSSProperties;
   /** Margem do viewport para disparar a animação. Ex: "-15%". */
   viewportMargin?: string;
 }
