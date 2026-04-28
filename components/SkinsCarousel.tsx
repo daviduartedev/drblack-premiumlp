@@ -3,6 +3,7 @@
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import Image from "next/image";
 import type { CSSProperties } from "react";
+import AnimatedSectionTitle from "@/components/AnimatedSectionTitle";
 
 /**
  * Skins em destaque — faixa full-bleed + marquee contínuo (duplicado em JS).
@@ -14,16 +15,6 @@ const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const HEADER_CONTAINER: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-};
-
-const HEADER_WORD: Variants = {
-  hidden: { opacity: 0, y: 60, rotateX: -65 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    transition: { duration: 0.85, ease: EASE_OUT_EXPO },
-  },
 };
 
 const HEADER_LINE: Variants = {
@@ -107,8 +98,6 @@ const FEATURED: FeaturedSkin[] = [
   },
 ];
 
-const HEADER_TITLE_WORDS = ["Skins", "em", "destaque"] as const;
-
 /** Tokens da marca — cards escuros + laranja / dourado */
 const CARD = {
   bg: "var(--background-raised)",
@@ -156,40 +145,19 @@ export default function SkinsCarousel() {
           variants={HEADER_CONTAINER}
           className="flex flex-col gap-3"
         >
-          <div style={{ perspective: reducedMotion ? undefined : "900px" }}>
-            <motion.h2
-              variants={{
-                hidden: {},
-                visible: { transition: { staggerChildren: 0.1 } },
-              }}
-              className="t-h2 overflow-hidden"
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              {HEADER_TITLE_WORDS.map((word, i) => (
-                <motion.span
-                  key={`${word}-${i}`}
-                  variants={HEADER_WORD}
-                  className="inline-block"
-                  style={{
-                    marginRight:
-                      i < HEADER_TITLE_WORDS.length - 1 ? "0.25em" : 0,
-                    transformStyle: "preserve-3d",
-                    willChange: reducedMotion ? undefined : "transform, opacity",
-                  }}
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </motion.h2>
-            <motion.p
-              variants={HEADER_LINE}
-              className="t-body-sm mt-3"
-              style={{ maxWidth: "44ch" }}
-            >
-              Vitrine em movimento contínuo, fotos ilustrativas (Unsplash), estilo
-              CS2.
-            </motion.p>
-          </div>
+          <AnimatedSectionTitle
+            text="Skins em destaque"
+            className="t-h2"
+            align="left"
+          />
+          <motion.p
+            variants={HEADER_LINE}
+            className="t-body-sm mt-3"
+            style={{ maxWidth: "44ch" }}
+          >
+            Vitrine em movimento contínuo, fotos ilustrativas (Unsplash), estilo
+            CS2.
+          </motion.p>
         </motion.header>
       </div>
 
@@ -283,9 +251,9 @@ function FeaturedSkinCard({
           ))}
         </div>
 
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,120px)_1fr] sm:gap-5 md:grid-cols-[minmax(0,140px)_1fr]">
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,160px)_1fr] sm:gap-6 md:grid-cols-[minmax(0,180px)_1fr]">
           <div
-            className="relative aspect-square w-full overflow-hidden rounded-2xl sm:w-[120px] md:w-[140px]"
+            className="relative aspect-square w-full overflow-hidden rounded-2xl sm:w-[160px] md:w-[180px]"
             style={{
               background: CARD.imageWell,
               boxShadow: `inset 0 0 0 1px ${CARD.imageRing}`,
@@ -295,7 +263,7 @@ function FeaturedSkinCard({
               src={skin.src}
               alt={duplicate ? "" : `${skin.title}, imagem ilustrativa`}
               fill
-              sizes="(max-width: 640px) 88vw, 140px"
+              sizes="(max-width: 640px) 92vw, 180px"
               quality={90}
               className="object-cover"
             />

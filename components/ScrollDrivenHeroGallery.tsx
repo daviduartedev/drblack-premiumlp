@@ -27,6 +27,7 @@ import {
  */
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
+import AnimatedSectionTitle from "@/components/AnimatedSectionTitle";
 import KprCard, { KPR_CARD_BORDER_RADIUS } from "@/components/KprCard";
 import LightPillar from "@/components/LightPillar";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
@@ -128,7 +129,7 @@ export default function ScrollDrivenHeroGallery() {
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
 
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   const eyebrowRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const hudRef = useRef<HTMLDivElement>(null);
@@ -706,15 +707,18 @@ export default function ScrollDrivenHeroGallery() {
         >
           {/* Mesmo padrão horizontal das secções (cycle 0005): gutter + content-wrap */}
           <div className="content-wrap">
-            <h2
-              ref={titleRef}
-              className="hero-min-black-outline t-h2"
-              style={{
-                opacity: 0,
-              }}
-            >
-              DÊ O UPGRADE QUE VOCÊ MERECE.
-            </h2>
+            {/*
+              Título com animação Framer/Webflow agressiva.
+              O ref no wrapper é mantido para o GSAP controlar opacity/y
+              quando a fase intro entra/sai (timeline pinada).
+            */}
+            <div ref={titleRef} style={{ opacity: 0 }}>
+              <AnimatedSectionTitle
+                text="DÊ O UPGRADE QUE VOCÊ MERECE."
+                className="hero-min-black-outline t-h2"
+                align="left"
+              />
+            </div>
           </div>
         </div>
 
@@ -861,8 +865,11 @@ export default function ScrollDrivenHeroGallery() {
               maxWidth: "min(680px, calc(100vw - 2 * var(--gutter)))",
             }}
           >
-            <p
+            <AnimatedSectionTitle
+              text="Se o seu inventário é básico…"
+              as="h2"
               className="hero-min-black-outline"
+              align="left"
               style={{
                 margin: 0,
                 color: "rgba(255,255,255,0.96)",
@@ -874,9 +881,7 @@ export default function ScrollDrivenHeroGallery() {
                 textTransform: "uppercase",
                 textShadow: "0 12px 36px rgba(0,0,0,0.42)",
               }}
-            >
-              Se o seu inventário é básico…
-            </p>
+            />
           </div>
           {/* mesmos vinhetes do KprCard para que o "morph" para o estado de
               card seja visualmente idêntico ao card1 do carrossel */}
@@ -929,12 +934,15 @@ export default function ScrollDrivenHeroGallery() {
           background: "transparent",
           color: "var(--foreground)",
           transformOrigin: "50% 0%",
-          /* Fade vertical — área de transição maior (22%) deixa o desvanecimento
-             muito mais suave, sem aquela "linha" abrupta de corte. */
+          /* Fade nos 4 lados — composição de dois gradients (vertical + horizontal)
+             via `mask-composite: intersect` faz o conteúdo desvanecer também
+             nas laterais, eliminando a "linha" vertical de corte abrupto. */
           WebkitMaskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%), linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%)",
+          WebkitMaskComposite: "source-in",
           maskImage:
-            "linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%)",
+            "linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%), linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%)",
+          maskComposite: "intersect",
         }}
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 60, scale: 0.96 }}
         whileInView={
@@ -971,6 +979,30 @@ export default function ScrollDrivenHeroGallery() {
             height: "30%",
             background:
               "linear-gradient(to top, #0a0a0a 0%, rgba(10,10,10,0.9) 30%, rgba(10,10,10,0.55) 65%, transparent 100%)",
+          }}
+        />
+        {/*
+          Fades LATERAIS (esquerda/direita) — a seção tem 112vw e extrapola a
+          viewport; sem esses gradients aparece uma "linha" visível na borda
+          onde o conteúdo é cortado. Os overlays empurram as laterais para o
+          preto da página, eliminando a divisória.
+        */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-[20]"
+          style={{
+            width: "20%",
+            background:
+              "linear-gradient(to right, #0a0a0a 0%, #0a0a0a 35%, rgba(10,10,10,0.85) 60%, rgba(10,10,10,0.45) 80%, transparent 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-[20]"
+          style={{
+            width: "20%",
+            background:
+              "linear-gradient(to left, #0a0a0a 0%, #0a0a0a 35%, rgba(10,10,10,0.85) 60%, rgba(10,10,10,0.45) 80%, transparent 100%)",
           }}
         />
         <div

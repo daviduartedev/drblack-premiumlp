@@ -6,6 +6,7 @@ import Hero from "@/components/hero";
 import PostLoginWelcomeModal from "@/components/PostLoginWelcomeModal";
 import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 import SkinsCarousel from "@/components/SkinsCarousel";
+import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 
 function HomeContent() {
@@ -74,6 +75,9 @@ function HomeContent() {
         <div id="pos-galeria-scroll" className="scroll-mt-4">
           {revealed ? <ScrollDrivenHeroGallery /> : null}
         </div>
+
+        {/* Depoimentos da comunidade — vem ANTES do carrossel agora. */}
+        {revealed ? <Testimonials /> : null}
 
         {/* Skins em destaque — só monta após o reveal para não competir com o GSAP. */}
         {revealed ? <SkinsCarousel /> : null}
