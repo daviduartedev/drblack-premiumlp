@@ -971,9 +971,9 @@ export default function ScrollDrivenHeroGallery() {
               <LightPillar
                 topColor="#5227FF"
                 bottomColor="#FF9FFC"
-                intensity={0.8}
+                intensity={0.6}
                 rotationSpeed={0.5}
-                glowAmount={0.006}
+                glowAmount={0.001}
                 pillarWidth={1.6}
                 pillarHeight={0.6}
                 noiseIntensity={0}
