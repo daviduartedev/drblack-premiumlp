@@ -7,7 +7,9 @@
   .upgrade-mobile-root {
     position: relative;
     width: 100%;
-    padding: 80px 22px 64px;
+    /* padding-top maior em mobile para o título "respirar" e cair mais para baixo,
+       criando uma intro mais cinematográfica antes do headline aparecer. */
+    padding: 160px 22px 64px;
     overflow: hidden;
     isolation: isolate;
     background: linear-gradient(

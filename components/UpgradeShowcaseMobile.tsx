@@ -26,15 +26,15 @@ type CardSpec = {
 const CARDS: CardSpec[] = [
   {
     src: "/gallery/card1.jpg",
-    eyebrow: "01 · COMUNIDADE ATIVA",
-    title: "Se o seu inventário é básico…",
-    copy: "Centenas de jogadores se conectam aqui todos os dias para comprar, vender e participar de rifas com skins reais.",
+    eyebrow: "01 · ANTES",
+    title: "Inventário padrão.",
+    copy: "Skins básicas, faca padrão e luvas que ninguém repara. O perfil entra na sala e ninguém olha duas vezes.",
   },
   {
     src: "/gallery/knife.png",
-    eyebrow: "02 · CARTA FORTE",
-    title: "…dá o passo que falta.",
-    copy: "Da faca dourada à AWP rara — o upgrade que vira o jogo está a um tap de distância.",
+    eyebrow: "02 · DEPOIS",
+    title: "Kits absurdos.",
+    copy: "Faca rara, AWP de coleção, luvas premium. Você abre o inventário e a sala inteira para o que está fazendo.",
   },
 ];
 
