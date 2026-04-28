@@ -752,7 +752,7 @@ export default function ScrollDrivenHeroGallery() {
                     cardRefs.current[i] = el;
                   }}
                   style={{
-                    width: "clamp(480px, 52vw, 880px)",
+                    width: "clamp(560px, 60vw, 1040px)",
                     flex: "0 0 auto",
                     willChange: isHero ? "transform" : "opacity",
                   }}
@@ -770,7 +770,7 @@ export default function ScrollDrivenHeroGallery() {
                         src={card.src}
                         hideLabels
                         priority
-                        sizes="(min-width: 1024px) 52vw, 95vw"
+                        sizes="(min-width: 1024px) 60vw, 96vw"
                         overlay={
                           <>
                             <div
@@ -801,7 +801,7 @@ export default function ScrollDrivenHeroGallery() {
                     <KprCard
                       src={card.src}
                       priority={i === INTRO_INDEX}
-                      sizes="(min-width: 1024px) 52vw, 85vw"
+                      sizes="(min-width: 1024px) 60vw, 92vw"
                       quality={95}
                     />
                   )}
