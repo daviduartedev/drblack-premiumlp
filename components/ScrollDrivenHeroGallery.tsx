@@ -2,12 +2,10 @@
 
 import {
   motion,
-  useMotionTemplate,
   useMotionValue,
   useReducedMotion,
   useSpring,
   useTransform,
-  type Variants,
 } from "framer-motion";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -16,7 +14,6 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -31,19 +28,11 @@ import {
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 import KprCard, { KPR_CARD_BORDER_RADIUS } from "@/components/KprCard";
+import LightPillar from "@/components/LightPillar";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/**
- * Variantes para a entrada agressiva (Framer-style) dos textos da secção
- * “Continua a história.” — eyebrow desce do topo, headline entra palavra
- * a palavra desde a direita com `rotateY` 3D, sub e CTA seguem em cascata.
- *
- * `viewport.once: false` faz a animação replay quando o utilizador volta a
- * scrollar. `prefers-reduced-motion` cai no conjunto reduzido (só fade).
- */
-const VIEWPORT_OPTS = { once: false, margin: "-15%" };
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const NARRATIVA_BG_SPRING = { stiffness: 140, damping: 26, mass: 0.5 };
@@ -54,11 +43,12 @@ function useNarrativaBackdropMotion(reducedMotion: boolean | null) {
   const y = useMotionValue(0);
   const sx = useSpring(x, NARRATIVA_BG_SPRING);
   const sy = useSpring(y, NARRATIVA_BG_SPRING);
-  const rotateY = useTransform(sx, [-1, 1], [6.5, -6.5]);
-  const rotateX = useTransform(sy, [-1, 1], [-5.5, 5.5]);
-  const glowX = useTransform(sx, [-1, 1], [18, 82]);
-  const glowY = useTransform(sy, [-1, 1], [24, 76]);
-  const glowBg = useMotionTemplate`radial-gradient(78% 62% at ${glowX}% ${glowY}%, rgba(247,147,0,0.44), transparent 70%)`;
+  // Parallax 3D do background (pillar de luz) — bem leve para não distrair
+  const rotateY = useTransform(sx, [-1, 1], [3.5, -3.5]);
+  const rotateX = useTransform(sy, [-1, 1], [-3, 3]);
+  // Translação leve da AWP — segue o cursor com amplitude pequena (px)
+  const awpX = useTransform(sx, [-1, 1], [-14, 14]);
+  const awpY = useTransform(sy, [-1, 1], [-10, 10]);
 
   const onSectionPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLElement>) => {
@@ -87,127 +77,11 @@ function useNarrativaBackdropMotion(reducedMotion: boolean | null) {
     enabled,
     rotateX,
     rotateY,
-    glowBg,
+    awpX,
+    awpY,
     onSectionPointerMove,
     onSectionPointerLeave,
   };
-}
-
-const NARRATIVA_VARIANTS_FULL = {
-  h2Container: {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
-  } satisfies Variants,
-  h2Word: {
-    hidden: { opacity: 0, y: 72, rotateX: -18, scale: 0.92 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      rotateX: 0,
-      scale: 1,
-      transition: { duration: 1, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
-  sub: {
-    hidden: { opacity: 0, y: 36, rotateX: -12 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      rotateX: 0,
-      transition: { duration: 0.8, delay: 0.45, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
-  ctaPrimary: {
-    hidden: { opacity: 0, y: 60, scale: 0.8 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.75, delay: 0.7, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
-  ctaSecondary: {
-    hidden: { opacity: 0, y: 60, scale: 0.8 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.75, delay: 0.85, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
-  statsContainer: {
-    hidden: {},
-    visible: {
-      transition: { staggerChildren: 0.18, delayChildren: 1 },
-    },
-  } satisfies Variants,
-  statItem: {
-    hidden: { opacity: 0, y: 50, scale: 0.7 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { duration: 0.85, ease: EASE_OUT_EXPO },
-    },
-  } satisfies Variants,
-};
-
-const NARRATIVA_VARIANTS_REDUCED = {
-  h2Container: {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0 } },
-  } satisfies Variants,
-  h2Word: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
-  sub: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
-  ctaPrimary: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
-  ctaSecondary: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
-  statsContainer: {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0 } },
-  } satisfies Variants,
-  statItem: {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.3 } },
-  } satisfies Variants,
-};
-
-const HEADLINE_WORDS = ["Continua", "a", "história."] as const;
-
-/**
- * Números placeholder — cycle 0005. Trocar quando produto fornecer dados reais.
- *
- * Usa `motion.div` com variant individual (`statItem`) para entrada com
- * stagger orquestrado pelo container pai.
- */
-function Stat({
-  number,
-  label,
-  variants,
-}: {
-  number: string;
-  label: string;
-  variants: Variants;
-}) {
-  return (
-    <motion.div variants={variants} className="flex flex-col gap-1">
-      <span className="t-h3" style={{ color: "var(--accent)" }}>
-        {number}
-      </span>
-      <span className="t-card-sub">{label}</span>
-    </motion.div>
-  );
 }
 
 /**
@@ -281,10 +155,6 @@ export default function ScrollDrivenHeroGallery() {
   const expansionProgressRef = useRef(0);
   const reducedMotion = useReducedMotion();
   const narrativaBackdrop = useNarrativaBackdropMotion(reducedMotion);
-  const narrativaVariants = useMemo(
-    () => (reducedMotion ? NARRATIVA_VARIANTS_REDUCED : NARRATIVA_VARIANTS_FULL),
-    [reducedMotion]
-  );
 
   useIsoLayoutEffect(() => {
     if (!rootRef.current || !pinRef.current || !trackRef.current) return;
@@ -838,7 +708,7 @@ export default function ScrollDrivenHeroGallery() {
           <div className="content-wrap">
             <h2
               ref={titleRef}
-              className="t-h2"
+              className="hero-min-black-outline t-h2"
               style={{
                 opacity: 0,
               }}
@@ -992,6 +862,7 @@ export default function ScrollDrivenHeroGallery() {
             }}
           >
             <p
+              className="hero-min-black-outline"
               style={{
                 margin: 0,
                 color: "rgba(255,255,255,0.96)",
@@ -1034,7 +905,7 @@ export default function ScrollDrivenHeroGallery() {
         >
           <div className="content-wrap">
             <span
-              className="t-card-sub"
+              className="hero-min-black-outline t-card-sub"
               style={{ color: "var(--foreground-faint)" }}
             >
               SCROLL ↓
@@ -1071,161 +942,67 @@ export default function ScrollDrivenHeroGallery() {
           style={{ perspective: "1400px", WebkitPerspective: "1400px" }}
         >
           <motion.div
-            className="absolute inset-[-15%] will-change-transform"
+            className="absolute inset-0 will-change-transform"
             style={{
               rotateX: narrativaBackdrop.rotateX,
               rotateY: narrativaBackdrop.rotateY,
-              scale: 1.12,
-              opacity: 0.76,
               transformStyle: "preserve-3d",
             }}
           >
-            <Image
-              src="/img-bg.webp"
-              alt=""
-              fill
-              sizes="120vw"
-              quality={93}
-              className="object-cover object-center contrast-[1.04] brightness-[1.02] [image-rendering:high-quality]"
-              priority={false}
-            />
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                position: "relative",
+              }}
+            >
+              <LightPillar
+                topColor="#5227FF"
+                bottomColor="#FF9FFC"
+                intensity={1}
+                rotationSpeed={0.3}
+                glowAmount={0.002}
+                pillarWidth={3}
+                pillarHeight={0.4}
+                noiseIntensity={0.5}
+                pillarRotation={25}
+                interactive={false}
+                mixBlendMode="screen"
+                quality="high"
+              />
+            </div>
           </motion.div>
         </div>
+        {/*
+          AWP Light — centralizada na seção, escala 1.5x com upscale lossless.
+          Animação leve no pointer move (parallax sutil em translateX/Y) sem
+          efeitos pesados no mouse.
+        */}
         <div
           aria-hidden
-          className="absolute inset-0 z-[1]"
-          style={{
-            background:
-              "radial-gradient(120% 80% at 30% 30%, rgba(94, 58, 0, 0.55) 0%, rgba(21, 21, 21, 0.82) 42%, rgba(10, 10, 10, 0.88) 78%, rgba(10, 10, 10, 0.94) 100%)",
-          }}
-        />
-        {narrativaBackdrop.enabled ? (
+          className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center"
+        >
           <motion.div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-[2]"
+            className="relative"
             style={{
-              background: narrativaBackdrop.glowBg,
-              mixBlendMode: "screen",
-              opacity: 0.55,
+              width: "min(90%, 1140px)",
+              aspectRatio: "5760 / 1116",
+              x: narrativaBackdrop.awpX,
+              y: narrativaBackdrop.awpY,
+              filter: "drop-shadow(0 30px 60px rgba(0,0,0,0.55))",
             }}
-          />
-        ) : null}
-        <div
-          aria-hidden
-          className="absolute -right-[10%] top-[5%] z-[2] h-[80%] w-[70%] opacity-50 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(247,147,0,0.45), rgba(255,179,71,0.15) 45%, transparent 75%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute -left-[10%] bottom-[-20%] z-[2] h-[70%] w-[70%] opacity-[0.38] blur-3xl"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(204,74,8,0.45), rgba(10,10,10,0.2) 55%, transparent 70%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-[2]"
-          style={{
-            background:
-              "radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%)",
-          }}
-        />
-
-        {/* Mesmo alinhamento horizontal que SkinsCarousel: section-padding + content-wrap + texto à esquerda */}
-        <div className="relative z-10 flex min-h-[min(100vh,760px)] w-full flex-col justify-center items-stretch">
-          <div className="content-wrap w-full text-left">
-            <header className="flex w-full flex-col gap-3 md:gap-4">
-              <div className="w-full" style={{ perspective: "1000px" }}>
-                <motion.h2
-                  variants={narrativaVariants.h2Container}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={VIEWPORT_OPTS}
-                  className="t-h2 overflow-hidden text-left"
-                  style={{
-                    transformStyle: "preserve-3d",
-                  }}
-                >
-                  {HEADLINE_WORDS.map((word, i) => (
-                    <motion.span
-                      key={`${word}-${i}`}
-                      variants={narrativaVariants.h2Word}
-                      className="inline-block text-left"
-                      style={{
-                        marginRight:
-                          i < HEADLINE_WORDS.length - 1 ? "0.25em" : 0,
-                        transformStyle: "preserve-3d",
-                        willChange: "transform, opacity",
-                      }}
-                    >
-                      {word}
-                    </motion.span>
-                  ))}
-                </motion.h2>
-                <motion.p
-                  variants={narrativaVariants.sub}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={VIEWPORT_OPTS}
-                  className="t-body-sm mt-3 text-left"
-                  style={{ maxWidth: "44ch" }}
-                >
-                  Skin nova é partida nova. A próxima vitória pode estar a um clique
-                  de distância.
-                </motion.p>
-                <div className="mt-8 flex flex-wrap items-center justify-start gap-[var(--space-3)]">
-                  <motion.a
-                    variants={narrativaVariants.ctaPrimary}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={VIEWPORT_OPTS}
-                    href="#hero-mercado"
-                    className="btn-solid t-cta"
-                  >
-                    Quero a minha skin
-                  </motion.a>
-                  <motion.a
-                    variants={narrativaVariants.ctaSecondary}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={VIEWPORT_OPTS}
-                    href="#skins-destaque"
-                    className="btn-ghost t-cta"
-                  >
-                    Como funciona
-                  </motion.a>
-                </div>
-              </div>
-            </header>
-            <motion.div
-              variants={narrativaVariants.statsContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={VIEWPORT_OPTS}
-              aria-label="Estatísticas da plataforma"
-              className="mt-[var(--space-7)] w-full grid grid-cols-1 gap-[var(--space-5)] border-t border-[var(--line-soft)] pt-[var(--space-6)] text-left sm:grid-cols-3 sm:gap-[var(--space-4)] md:gap-[var(--space-6)]"
-            >
-              <Stat
-                number="+12k"
-                label="Skins negociadas"
-                variants={narrativaVariants.statItem}
-              />
-              <Stat
-                number="+3.4k"
-                label="Usuários ativos"
-                variants={narrativaVariants.statItem}
-              />
-              <Stat
-                number="24/7"
-                label="Sempre online"
-                variants={narrativaVariants.statItem}
-              />
-            </motion.div>
-          </div>
+          >
+            <Image
+              src="/gallery/AWP Light (1)@1.5x.png"
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 90vw, 95vw"
+              quality={100}
+              unoptimized
+              priority={false}
+              className="object-contain object-center [image-rendering:high-quality]"
+            />
+          </motion.div>
         </div>
       </motion.section>
     </section>

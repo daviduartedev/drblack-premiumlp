@@ -224,6 +224,14 @@ body {
 }
 
 /* Hero cinematográfico (referência estilo vitrine — moldura + headline gigante; fundo é CSS). */
+.hero-kpr-headline,
+.hero-min-black-outline {
+  /* Contorno preto mínimo (espessura escala com `em` — pedido: hairline). */
+  -webkit-text-stroke-width: 0.00001em;
+  -webkit-text-stroke-color: rgb(0, 0, 0);
+  paint-order: stroke fill;
+}
+
 .hero-kpr-headline {
   font-family: var(--font-oswald), sans-serif;
   font-weight: 700;
@@ -366,7 +374,7 @@ body {
 }
 
 .skin-card-link:focus-visible {
-  border-radius: 10px;
+  border-radius: 24px;
 }
 
 .hero-nav-catalog-link:hover {
@@ -427,8 +435,7 @@ body.debug-rule::after {
 }
 
 /* ==============================================================
- * CARROSSEL MARQUEE — SkinsCarousel (scroll contínuo, estilo showcase)
- * Duplica a fila em JS; translateX(-50%) alinha o loop ao meio exacto.
+ * CARROSSEL MARQUEE — SkinsCarousel (faixa contínua; duplicação em JS)
  * ============================================================== */
 @keyframes skins-marquee-x {
   from {
@@ -440,12 +447,19 @@ body.debug-rule::after {
 }
 
 .skins-marquee-mask {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
+  width: 100%;
+  min-width: 0;
 }
 
 .skins-marquee-track {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   width: max-content;
+  min-width: min-content;
   gap: var(--skins-marquee-gap, 24px);
   animation: skins-marquee-x var(--skins-marquee-duration, 52s) linear infinite;
   will-change: transform;
@@ -460,6 +474,8 @@ body.debug-rule::after {
   }
 
   .skins-marquee-track {
+    flex-direction: row;
+    flex-wrap: nowrap;
     animation: none;
     transform: none;
     will-change: auto;

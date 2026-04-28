@@ -56,8 +56,8 @@ export default function Hero({ loading }: { loading: boolean }) {
 
   const navLinkClass = (disabled?: boolean) =>
     disabled
-      ? "t-eyebrow transition"
-      : "hero-nav-catalog-link t-eyebrow cursor-pointer transition";
+      ? "hero-min-black-outline t-eyebrow transition"
+      : "hero-min-black-outline hero-nav-catalog-link t-eyebrow cursor-pointer transition";
 
   return (
     <section
@@ -76,7 +76,7 @@ export default function Hero({ loading }: { loading: boolean }) {
         <div className="content-wrap section-padding-x relative flex w-full shrink-0 items-center py-6">
           <div className="relative z-[2] min-w-0 flex-1">
             <div
-              className="truncate font-bold text-sm uppercase"
+              className="hero-min-black-outline truncate font-bold text-sm uppercase"
               style={{
                 fontFamily: "var(--font-oswald), sans-serif",
                 letterSpacing: "0.2em",
@@ -176,7 +176,7 @@ export default function Hero({ loading }: { loading: boolean }) {
                 "calc(-1 * var(--gutter) - clamp(16px, 3.5vw, 40px))",
             }}
           >
-            <p className="t-body-sm">
+            <p className="hero-min-black-outline t-body-sm">
               Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende,
               concorre, direto, sem enrolação.
             </p>
@@ -213,7 +213,7 @@ export default function Hero({ loading }: { loading: boolean }) {
 
           <div className="flex justify-end pt-8 md:pt-10">
             <span
-              className="t-card-sub uppercase"
+              className="hero-min-black-outline t-card-sub uppercase"
               style={{ letterSpacing: "0.28em" }}
             >
               SCROLL ↓

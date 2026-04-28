@@ -1,21 +1,12 @@
 "use client";
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import Image from "next/image";
 import type { CSSProperties } from "react";
-import KprCard from "@/components/KprCard";
 
 /**
- * Skins em destaque — faixa contínua estilo Framer (marquee infinito, sem setas).
- *
- * - Imagens: Unsplash (fotos táticas / facas / airsoft — ilustrativas, não skins
- *   oficiais da Valve; `next.config.ts` declara `images.unsplash.com`).
- * - Duas passagens do mesmo lote + `translateX(-50%)` em `globals.css` → loop
- *   contínuo. Cópia duplicada: `aria-hidden` + `pointer-events: none` (só a
- *   primeira fila leva links e teclado).
- * - Abertura na viewport: perspectiva + faixa em “linha” (`rotateX` + `scaleX` baixo)
- *   expandindo ao plano; cada card afasta-se do eixo central com atraso escalonado.
- * - `prefers-reduced-motion: reduce` — sem 3D/cards-emergência; marquee sem anim
- *   (mask com scroll) via `globals.css`.
+ * Skins em destaque — faixa full-bleed + marquee contínuo (duplicado em JS).
+ * Cards na paleta da marca (sem verde). prefers-reduced-motion: scroll manual.
  */
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -118,6 +109,35 @@ const FEATURED: FeaturedSkin[] = [
 
 const HEADER_TITLE_WORDS = ["Skins", "em", "destaque"] as const;
 
+/** Tokens da marca — cards escuros + laranja / dourado */
+const CARD = {
+  bg: "var(--background-raised)",
+  fg: "var(--foreground)",
+  muted: "var(--foreground-muted)",
+  tagBorder: "var(--line)",
+  tagFg: "var(--highlight)",
+  imageWell: "rgba(255, 255, 255, 0.06)",
+  imageRing: "rgba(255, 193, 7, 0.15)",
+  ctaBg: "var(--accent)",
+  ctaFg: "var(--on-accent)",
+} as const;
+
+const CARD_WIDTH = "min(380px, 88vw)";
+
+function tagsFromSkin(skin: FeaturedSkin): string[] {
+  const after = skin.index.split("·")[1]?.trim();
+  const tags = [after, skin.subtitle].filter(Boolean) as string[];
+  return tags.slice(0, 3);
+}
+
+function cardDescription(skin: FeaturedSkin): string {
+  const bits = [
+    `Ilustração Unsplash — ${skin.subtitle}.`,
+    skin.price ? ` Referência ${skin.price}.` : "",
+  ];
+  return bits.join("");
+}
+
 export default function SkinsCarousel() {
   const reducedMotion = useReducedMotion();
 
@@ -125,18 +145,18 @@ export default function SkinsCarousel() {
     <section
       id="skins-destaque"
       aria-label="Skins em destaque"
-      className="section-padding relative"
+      className="relative overflow-hidden py-[var(--section-py)]"
       style={{ background: "var(--background)" }}
     >
-      <div className="content-wrap">
+      <div className="mx-auto mb-10 max-w-[var(--content-max)] px-[var(--gutter)] md:mb-12">
         <motion.header
           initial="hidden"
           whileInView="visible"
           viewport={VIEWPORT_OPTS}
           variants={HEADER_CONTAINER}
-          className="mb-10 flex flex-col gap-3 md:mb-12"
+          className="flex flex-col gap-3"
         >
-          <div style={{ perspective: "900px" }}>
+          <div style={{ perspective: reducedMotion ? undefined : "900px" }}>
             <motion.h2
               variants={{
                 hidden: {},
@@ -154,7 +174,7 @@ export default function SkinsCarousel() {
                     marginRight:
                       i < HEADER_TITLE_WORDS.length - 1 ? "0.25em" : 0,
                     transformStyle: "preserve-3d",
-                    willChange: "transform, opacity",
+                    willChange: reducedMotion ? undefined : "transform, opacity",
                   }}
                 >
                   {word}
@@ -171,109 +191,37 @@ export default function SkinsCarousel() {
             </motion.p>
           </div>
         </motion.header>
+      </div>
 
-        <div className="relative">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-0 top-0 bottom-0 z-[2]"
-            style={{
-              width: "var(--gutter)",
-              background:
-                "linear-gradient(to right, var(--background), transparent)",
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute right-0 top-0 bottom-0 z-[2]"
-            style={{
-              width: "var(--gutter)",
-              background:
-                "linear-gradient(to left, var(--background), transparent)",
-            }}
-          />
-          {/* Abertura 3D: faixa parte como “linha” no centro do plano e expande para os lados */}
-          <div
-            className="relative"
-            style={
-              reducedMotion
-                ? undefined
-                : ({
-                    perspective: "min(1400px, 155vw)",
-                    perspectiveOrigin: "50% 42%",
-                  } as CSSProperties)
-            }
-          >
-            <motion.div
-              initial={
-                reducedMotion
-                  ? false
-                  : {
-                      rotateX: 82,
-                      scaleX: 0.022,
-                      opacity: 0.82,
-                      y: 36,
-                      filter: "blur(6px)",
-                    }
-              }
-              whileInView={
-                reducedMotion
-                  ? undefined
-                  : {
-                      rotateX: 0,
-                      scaleX: 1,
-                      opacity: 1,
-                      y: 0,
-                      filter: "blur(0px)",
-                    }
-              }
-              viewport={reducedMotion ? undefined : VIEWPORT_OPTS}
-              transition={{
-                rotateX: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
-                scaleX: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
-                opacity: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
-                y: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
-                filter: {
-                  duration: reducedMotion ? 0 : 0.78,
-                  delay: reducedMotion ? 0 : 0.1,
-                  ease: EASE_OUT_EXPO,
-                },
-              }}
-              className="relative"
-              style={{
-                transformStyle: "preserve-3d",
-                transformOrigin: "50% 50%",
-                backfaceVisibility: "hidden",
-              }}
-            >
-              <div
-                className="skins-marquee-mask relative"
-                style={
-                  ({
-                    "--skins-marquee-duration": "52s",
-                  } as CSSProperties)
-                }
-              >
-                <div className="skins-marquee-track">
-                  {FEATURED.map((skin, i) => (
-                    <SkinCard
-                      key={skin.id}
-                      skin={skin}
-                      emergeIndex={i}
-                      emergeTotal={FEATURED.length}
-                    />
-                  ))}
-                  {FEATURED.map((skin, i) => (
-                    <SkinCard
-                      key={`${skin.id}-marquee-loop`}
-                      skin={skin}
-                      duplicate
-                      emergeIndex={i}
-                      emergeTotal={FEATURED.length}
-                    />
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+      <div
+        className="relative w-screen min-w-0 max-w-[100vw] shrink-0"
+        style={{ marginLeft: "calc(50% - 50vw)" }}
+      >
+        <div
+          className="skins-marquee-mask relative w-full"
+          style={
+            ({
+              "--skins-marquee-duration": "52s",
+              "--skins-marquee-gap": "20px",
+            } as CSSProperties)
+          }
+        >
+          <div className="skins-marquee-track flex w-max flex-row flex-nowrap">
+            {FEATURED.map((skin) => (
+              <FeaturedSkinCard
+                key={skin.id}
+                skin={skin}
+                width={CARD_WIDTH}
+              />
+            ))}
+            {FEATURED.map((skin) => (
+              <FeaturedSkinCard
+                key={`${skin.id}-loop`}
+                skin={skin}
+                width={CARD_WIDTH}
+                duplicate
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -281,166 +229,143 @@ export default function SkinsCarousel() {
   );
 }
 
-/* ============================================================
- * SkinCard — wrapper sobre o KprCard (link ou cópia decorativa)
- * ============================================================ */
-function SkinCard({
+function ChevronRightIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden fill="none">
+      <path
+        d="M9 6l6 6-6 6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function FeaturedSkinCard({
   skin,
+  width,
   duplicate = false,
-  emergeIndex = 0,
-  emergeTotal = 1,
 }: {
   skin: FeaturedSkin;
+  width: string;
   duplicate?: boolean;
-  emergeIndex?: number;
-  emergeTotal?: number;
 }) {
-  const reducedMotionLocal = useReducedMotion();
-  const cardWidth = "clamp(240px, 22vw, 320px)";
-  const center = (emergeTotal - 1) / 2;
-  const delta = emergeIndex - center;
-  /** Cards à esquerda/direita começam puxados ao eixo central e deslizam para a posição na faixa */
-  const lateralShift = reducedMotionLocal ? 0 : -delta * 52;
+  const tags = tagsFromSkin(skin);
+  const desc = cardDescription(skin);
 
-  const visual = (
+  const cardInner = (
     <>
-      <div
-        className={`transition duration-300 ease-out ${
-          duplicate
-            ? ""
-            : "group-hover:-translate-y-1 group-focus-visible:-translate-y-1 group-active:-translate-y-0.5 group-active:scale-[0.99] group-hover:shadow-[0_24px_48px_rgba(0,0,0,0.45)]"
-        }`}
-        style={{ willChange: duplicate ? undefined : "transform, box-shadow" }}
-      >
-        <KprCard
-          src={skin.src}
-          alt={duplicate ? "" : `${skin.title}, imagem ilustrativa`}
-          index={skin.index}
-          hideLabels
-          sizes="(min-width: 1024px) 22vw, 80vw"
-          quality={90}
-        />
-
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 z-[3] flex items-start justify-between p-4"
+      <div className="min-w-0 flex-1">
+        <h3
+          className="text-[clamp(17px,2.1vw,22px)] font-semibold uppercase leading-snug tracking-tight"
+          style={{
+            fontFamily: "var(--font-oswald), sans-serif",
+            color: CARD.fg,
+          }}
         >
-          <span
-            className="t-card-sub"
+          {skin.title}
+        </h3>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <span
+              key={t}
+              className="rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wide md:text-xs"
+              style={{
+                borderColor: CARD.tagBorder,
+                color: CARD.tagFg,
+                fontFamily: "var(--font-geist-sans), sans-serif",
+              }}
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,120px)_1fr] sm:gap-5 md:grid-cols-[minmax(0,140px)_1fr]">
+          <div
+            className="relative aspect-square w-full overflow-hidden rounded-2xl sm:w-[120px] md:w-[140px]"
             style={{
-              padding: "6px 10px",
-              borderRadius: "10px",
-              backgroundColor: "rgba(10,10,10,0.55)",
-              border: "1px solid rgba(238,217,196,0.18)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
+              background: CARD.imageWell,
+              boxShadow: `inset 0 0 0 1px ${CARD.imageRing}`,
             }}
           >
-            {skin.index}
-          </span>
+            <Image
+              src={skin.src}
+              alt={duplicate ? "" : `${skin.title}, imagem ilustrativa`}
+              fill
+              sizes="(max-width: 640px) 88vw, 140px"
+              quality={90}
+              className="object-cover"
+            />
+          </div>
+          <div
+            className="flex min-h-0 min-w-0 flex-col justify-between text-[12px] leading-relaxed md:text-[13px]"
+            style={{
+              color: CARD.muted,
+              fontFamily: "var(--font-geist-sans), sans-serif",
+            }}
+          >
+            <p>{desc}</p>
+            {skin.price ? (
+              <p
+                className="mt-2 font-semibold"
+                style={{ color: "var(--accent)" }}
+              >
+                {skin.price}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <div className="t-card-title truncate">{skin.title}</div>
-          <div
-            className="t-card-sub mt-1 truncate"
-            style={{ color: "var(--foreground-faint)" }}
-          >
-            {skin.subtitle}
-          </div>
-        </div>
-        {skin.price ? (
-          <div
-            className="shrink-0 font-semibold"
-            style={{
-              fontFamily: "var(--font-oswald), sans-serif",
-              fontSize: "16px",
-              letterSpacing: "0.01em",
-              color: "var(--accent)",
-            }}
-          >
-            {skin.price}
-          </div>
-        ) : null}
-      </div>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-4 right-4 flex size-10 items-center justify-center rounded-full transition group-hover:scale-105 md:bottom-5 md:right-5 md:size-11"
+        style={{
+          background: CARD.ctaBg,
+          color: CARD.ctaFg,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+        }}
+      >
+        <ChevronRightIcon />
+      </span>
     </>
   );
 
-  const emergeTransition = {
-    duration: reducedMotionLocal ? 0 : 1.08,
-    ease: EASE_OUT_EXPO,
-    delay: reducedMotionLocal ? 0 : 0.08 + Math.abs(delta) * 0.065,
+  const shellClass =
+    "skin-card-link group relative flex min-h-[220px] flex-col rounded-[24px] p-5 shadow-none transition-[transform,box-shadow] duration-300 md:min-h-[240px] md:p-6";
+
+  const shellStyle: CSSProperties = {
+    background: CARD.bg,
+    color: CARD.fg,
   };
 
   if (duplicate) {
-    const inner = (
+    return (
       <div
-        className="relative block h-full w-full pointer-events-none"
+        className="pointer-events-none shrink-0 flex-none select-none"
+        style={{ width }}
         aria-hidden
-        tabIndex={-1}
       >
-        {visual}
-      </div>
-    );
-
-    if (reducedMotionLocal) {
-      return (
-        <div
-          className="relative block flex-none pointer-events-none"
-          style={{ width: cardWidth }}
-          aria-hidden
-          tabIndex={-1}
-        >
-          {visual}
+        <div className={`${shellClass} pointer-events-none`} style={shellStyle}>
+          {cardInner}
         </div>
-      );
-    }
-
-    return (
-      <motion.div
-        className="relative flex-none pointer-events-none"
-        style={{ width: cardWidth }}
-        initial={{ x: lateralShift, opacity: 0.65, scale: 0.9 }}
-        whileInView={{ x: 0, opacity: 1, scale: 1 }}
-        viewport={VIEWPORT_OPTS}
-        transition={emergeTransition}
-      >
-        {inner}
-      </motion.div>
-    );
-  }
-
-  if (reducedMotionLocal) {
-    return (
-      <a
-        data-skin-card
-        href={skin.href ?? "#"}
-        className="skin-card-link group relative block flex-none transition"
-        style={{ width: cardWidth }}
-      >
-        {visual}
-      </a>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      className="flex-none"
-      style={{ width: cardWidth }}
-      initial={{ x: lateralShift, opacity: 0.65, scale: 0.9 }}
-      whileInView={{ x: 0, opacity: 1, scale: 1 }}
-      viewport={VIEWPORT_OPTS}
-      transition={emergeTransition}
-    >
+    <div className="shrink-0 flex-none" style={{ width }}>
       <a
         data-skin-card
         href={skin.href ?? "#"}
-        className="skin-card-link group relative block w-full transition"
+        className={shellClass}
+        style={shellStyle}
       >
-        {visual}
+        {cardInner}
       </a>
-    </motion.div>
+    </div>
   );
 }
