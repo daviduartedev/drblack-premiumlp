@@ -139,6 +139,66 @@
     touch-action: manipulation;
   }
 
+  .skins-mobile-rail {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 2px var(--gutter) 6px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .skins-mobile-card {
+    scroll-snap-align: start;
+    flex: 0 0 min(78vw, 310px);
+    min-height: 332px;
+    border-radius: 20px;
+    padding: 14px;
+    background: var(--background-raised);
+    color: var(--foreground);
+    text-decoration: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.14);
+  }
+
+  .skins-mobile-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .skins-mobile-index {
+    margin: 0;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--foreground-faint);
+  }
+
+  .skins-mobile-title {
+    margin: 8px 0 0;
+    font-family: var(--font-oswald), sans-serif;
+    font-size: clamp(21px, 5.2vw, 26px);
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--foreground);
+  }
+
+  .skins-mobile-subtitle {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--foreground-muted);
+  }
+
+  .skins-mobile-price {
+    margin: 14px 0 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
   /* ----------------------------------------------------------------
    * 6) SECTIONS — animação de entrada com fade-up suave
    * ---------------------------------------------------------------- */

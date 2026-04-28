@@ -4,6 +4,7 @@ import { motion, useReducedMotion, type Variants } from "framer-motion";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import AnimatedSectionTitle from "@/components/AnimatedSectionTitle";
+import SkinsCarouselMobile from "@/components/SkinsCarouselMobile";
 
 /**
  * Skins em destaque — faixa full-bleed + marquee contínuo (duplicado em JS).
@@ -162,7 +163,7 @@ export default function SkinsCarousel() {
       </div>
 
       <div
-        className="relative w-screen min-w-0 max-w-[100vw] shrink-0"
+        className="relative hidden w-screen min-w-0 max-w-[100vw] shrink-0 md:block"
         style={{ marginLeft: "calc(50% - 50vw)" }}
       >
         <div
@@ -193,6 +194,8 @@ export default function SkinsCarousel() {
           </div>
         </div>
       </div>
+
+      <SkinsCarouselMobile skins={FEATURED} />
     </section>
   );
 }
