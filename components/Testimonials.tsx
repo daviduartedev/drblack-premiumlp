@@ -294,7 +294,7 @@ export default function Testimonials() {
       {!reducedMotion ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 z-0"
+          className="pointer-events-none absolute inset-0 z-0 hidden md:block"
           style={{ mixBlendMode: "screen", opacity: 0.7 }}
         >
           <Lightning
