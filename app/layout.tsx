@@ -25,6 +25,10 @@ export const metadata: Metadata = {
   title: "DR Black Skins | Skins de CS2, rifa, direto",
   description:
     "Seu ponto de skins e rifas. Compra, venda, concorra, sem enrolacao.",
+  icons: {
+    icon: "/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.ico",
+    shortcut: "/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.ico",
+  },
 };
 
 /**
