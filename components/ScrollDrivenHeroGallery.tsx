@@ -917,12 +917,24 @@ export default function ScrollDrivenHeroGallery() {
       <motion.section
         id="continua-narrativa"
         aria-label="Continua a história"
-        className="relative isolate block w-full overflow-hidden section-padding"
+        className="relative isolate block overflow-visible section-padding"
         style={{
+          /* Extrapola horizontalmente além da viewport — a seção fica MAIS larga
+             que o conteúdo do site. Compensa com margem negativa para centralizar. */
+          width: "112vw",
+          marginLeft: "-6vw",
           minHeight: "min(100vh, 760px)",
-          background: "var(--background)",
+          /* Background transparente — deixa o preto da página aparecer naturalmente
+             nas extremidades fadeadas, sem criar uma linha visível de transição. */
+          background: "transparent",
           color: "var(--foreground)",
           transformOrigin: "50% 0%",
+          /* Fade vertical — área de transição maior (22%) deixa o desvanecimento
+             muito mais suave, sem aquela "linha" abrupta de corte. */
+          WebkitMaskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%)",
+          maskImage:
+            "linear-gradient(to bottom, transparent 0%, #000 22%, #000 78%, transparent 100%)",
         }}
         initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 60, scale: 0.96 }}
         whileInView={
@@ -959,13 +971,13 @@ export default function ScrollDrivenHeroGallery() {
               <LightPillar
                 topColor="#5227FF"
                 bottomColor="#FF9FFC"
-                intensity={1}
-                rotationSpeed={0.3}
-                glowAmount={0.002}
-                pillarWidth={3}
-                pillarHeight={0.4}
-                noiseIntensity={0.5}
-                pillarRotation={25}
+                intensity={0.8}
+                rotationSpeed={0.5}
+                glowAmount={0.006}
+                pillarWidth={1.6}
+                pillarHeight={0.6}
+                noiseIntensity={0}
+                pillarRotation={269}
                 interactive={false}
                 mixBlendMode="screen"
                 quality="high"
@@ -975,8 +987,9 @@ export default function ScrollDrivenHeroGallery() {
         </div>
         {/*
           AWP Light — centralizada na seção, escala 1.5x com upscale lossless.
-          Animação leve no pointer move (parallax sutil em translateX/Y) sem
-          efeitos pesados no mouse.
+          Fica em PRIMEIRO PLANO sobre o LightPillar (nítida, sem tratamento
+          de background). Animação leve no pointer move (parallax sutil em
+          translateX/Y) sem efeitos pesados no mouse.
         */}
         <div
           aria-hidden
@@ -990,6 +1003,7 @@ export default function ScrollDrivenHeroGallery() {
               x: narrativaBackdrop.awpX,
               y: narrativaBackdrop.awpY,
               filter: "drop-shadow(0 30px 60px rgba(0,0,0,0.55))",
+              willChange: "transform",
             }}
           >
             <Image
