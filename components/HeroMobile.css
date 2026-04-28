@@ -1,0 +1,506 @@
+/* ============================================================
+ * HeroMobile — estilos exclusivos para tablet/mobile (≤ 767px)
+ * IMPORTANTE: tudo está envelopado em @media (max-width: 767px)
+ * para garantir ZERO regressão no desktop.
+ * ============================================================ */
+
+@media (max-width: 767px) {
+  /* Section root — ocupa 100svh */
+  .hero-mobile-root {
+    min-height: 100svh;
+    min-height: 100dvh;
+    color: var(--foreground);
+    isolation: isolate;
+    /* Padding-bottom seguro para safe-area dos iPhones */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ----------------------------------------------------------------
+   * BACKGROUND — vídeo CS2 vertical
+   * ---------------------------------------------------------------- */
+  .hero-mobile-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: var(--background-deep);
+  }
+
+  .hero-mobile-video,
+  .hero-mobile-fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    will-change: opacity;
+    opacity: 0;
+    transition: opacity 800ms ease;
+  }
+
+  .hero-mobile-video[data-ready="1"] {
+    opacity: 1;
+  }
+
+  .hero-mobile-fallback {
+    opacity: 1;
+    background-image:
+      radial-gradient(
+        80% 60% at 75% 25%,
+        rgba(247, 147, 0, 0.22) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        65% 50% at 20% 80%,
+        rgba(247, 147, 0, 0.14) 0%,
+        transparent 55%
+      ),
+      url("/bg-hero.jpg");
+    background-size: auto, auto, cover;
+    background-position: center, center, center;
+    background-repeat: no-repeat;
+  }
+
+  /* Overlay vinheta + dark gradient para garantir leitura */
+  .hero-mobile-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(10, 10, 10, 0.55) 0%,
+        rgba(10, 10, 10, 0.18) 40%,
+        rgba(10, 10, 10, 0.55) 70%,
+        rgba(10, 10, 10, 0.95) 100%
+      ),
+      radial-gradient(
+        110% 70% at 50% 100%,
+        rgba(247, 147, 0, 0.18) 0%,
+        transparent 60%
+      );
+    pointer-events: none;
+  }
+
+  /* Scanlines premium sutil */
+  .hero-mobile-scan {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.018) 0,
+      rgba(255, 255, 255, 0.018) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+  }
+
+  /* ----------------------------------------------------------------
+   * TOPBAR — logo, hamburger, login
+   * ---------------------------------------------------------------- */
+  .hero-mobile-topbar {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 18px 8px;
+  }
+
+  .hero-mobile-burger {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: transform 180ms ease, background 180ms ease;
+  }
+  .hero-mobile-burger:active {
+    transform: scale(0.95);
+    background: rgba(247, 147, 0, 0.18);
+  }
+  .hero-mobile-burger span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    background: var(--highlight);
+    border-radius: 2px;
+  }
+  .hero-mobile-burger span:nth-child(2) {
+    width: 12px;
+    align-self: flex-end;
+    margin-right: 12px;
+  }
+
+  .hero-mobile-brand {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--highlight);
+    text-align: center;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .hero-mobile-login-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 4px 18px rgba(247, 147, 0, 0.35);
+    transition: transform 160ms ease, background 160ms ease;
+  }
+  .hero-mobile-login-pill:active {
+    transform: scale(0.96);
+    background: var(--accent-soft);
+  }
+
+  /* ----------------------------------------------------------------
+   * CONTEÚDO — eyebrow / headline / sub / CTAs
+   * ---------------------------------------------------------------- */
+  .hero-mobile-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: calc(100svh - 70px);
+    padding: 18px 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  }
+
+  .hero-mobile-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--highlight);
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 193, 7, 0.32);
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    margin-bottom: 18px;
+  }
+
+  .hero-mobile-headline {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    font-size: clamp(46px, 14vw, 78px);
+    color: var(--highlight);
+    margin: 0 0 16px;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+  }
+  .hero-mobile-headline span:nth-child(2) {
+    color: #ffffff;
+  }
+  .hero-mobile-headline span:nth-child(3) {
+    background: linear-gradient(
+      90deg,
+      var(--accent-deep) 0%,
+      var(--accent) 50%,
+      var(--highlight) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-mobile-sub {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 24px;
+    max-width: 32ch;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  }
+
+  .hero-mobile-ctas {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .hero-mobile-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 52px;
+    padding: 0 20px;
+    border-radius: 14px;
+    background: linear-gradient(
+      135deg,
+      var(--accent) 0%,
+      var(--accent-soft) 100%
+    );
+    color: var(--on-accent);
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid rgba(255, 193, 7, 0.6);
+    box-shadow:
+      0 10px 32px rgba(247, 147, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+  .hero-mobile-cta-primary:active {
+    transform: scale(0.98) translateY(1px);
+    box-shadow: 0 4px 16px rgba(247, 147, 0, 0.35);
+  }
+
+  .hero-mobile-cta-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 52px;
+    padding: 0 20px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--highlight);
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: transform 180ms ease, background 180ms ease;
+  }
+  .hero-mobile-cta-ghost:active {
+    transform: scale(0.98);
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* ----------------------------------------------------------------
+   * SCROLL HINT
+   * ---------------------------------------------------------------- */
+  .hero-mobile-scroll-hint {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    align-self: center;
+    font-size: 9px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .hero-mobile-scroll-line {
+    position: relative;
+    width: 2px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.15);
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .hero-mobile-scroll-dot {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--accent) 100%
+    );
+    animation: hero-mobile-scroll-fall 1.6s ease-in-out infinite;
+  }
+  @keyframes hero-mobile-scroll-fall {
+    0% {
+      top: -10px;
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    100% {
+      top: 100%;
+      opacity: 0;
+    }
+  }
+
+  /* ----------------------------------------------------------------
+   * DRAWER — menu mobile
+   * ---------------------------------------------------------------- */
+  .hero-mobile-drawer-root {
+    position: fixed;
+    inset: 0;
+    z-index: 130;
+  }
+  .hero-mobile-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 5, 8, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: hero-mobile-fade 240ms ease both;
+  }
+  .hero-mobile-drawer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(86%, 360px);
+    background: linear-gradient(
+      180deg,
+      #131313 0%,
+      #0a0a0a 100%
+    );
+    border-right: 1px solid rgba(255, 193, 7, 0.18);
+    box-shadow: 24px 0 64px rgba(0, 0, 0, 0.55);
+    padding: calc(env(safe-area-inset-top, 0px) + 18px) 22px
+      calc(env(safe-area-inset-bottom, 0px) + 22px);
+    display: flex;
+    flex-direction: column;
+    animation: hero-mobile-slide 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes hero-mobile-slide {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes hero-mobile-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .hero-mobile-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 193, 7, 0.14);
+    margin-bottom: 8px;
+  }
+  .hero-mobile-drawer-title {
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--highlight);
+  }
+  .hero-mobile-drawer-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--highlight);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .hero-mobile-drawer-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+    flex: 1;
+  }
+  .hero-mobile-drawer-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 4px;
+    color: var(--foreground);
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: color 180ms ease, padding-left 220ms ease;
+  }
+  .hero-mobile-drawer-link:not(.is-disabled):active {
+    color: var(--accent);
+    padding-left: 8px;
+  }
+  .hero-mobile-drawer-link.is-disabled {
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+  }
+  .hero-mobile-drawer-soon {
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    color: rgba(247, 147, 0, 0.7);
+    background: rgba(247, 147, 0, 0.08);
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  .hero-mobile-drawer-foot {
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 193, 7, 0.14);
+  }
+
+  /* ----------------------------------------------------------------
+   * Reduced motion
+   * ---------------------------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-mobile-scroll-dot,
+    .hero-mobile-drawer,
+    .hero-mobile-drawer-backdrop {
+      animation: none;
+    }
+    .hero-mobile-video {
+      display: none;
+    }
+    .hero-mobile-fallback {
+      display: block !important;
+    }
+  }
+}
+
+/* ============================================================
+ * Acima de 768px (desktop/tablet grande): este componente NUNCA
+ * deve aparecer — o wrapper já o esconde via .hidden md:block,
+ * mas garantimos uma trava CSS extra de defesa em profundidade.
+ * ============================================================ */
+@media (min-width: 768px) {
+  .hero-mobile-root {
+    display: none !important;
+  }
+}

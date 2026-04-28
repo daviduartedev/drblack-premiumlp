@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import HeroMobile from "@/components/HeroMobile";
+import "@/components/HeroMobile.css";
 
 /**
  * Área reservada na hero para mídia substituível (Three.js, `<video muted playsInline>`, etc.).
@@ -60,8 +62,20 @@ export default function Hero({ loading }: { loading: boolean }) {
       : "hero-min-black-outline hero-nav-catalog-link t-eyebrow cursor-pointer transition";
 
   return (
-    <section
-      className="relative min-h-[100svh] w-full overflow-hidden border border-white/20"
+    <>
+      {/* ============================================================
+          Mobile (≤ 767px) — experiência exclusiva, vídeo CS2 vertical.
+          Desktop é renderizado abaixo intacto.
+          ============================================================ */}
+      <div className="block md:hidden">
+        <HeroMobile loading={loading} />
+      </div>
+
+      {/* ============================================================
+          Desktop (≥ 768px) — markup original 100% preservado.
+          ============================================================ */}
+      <section
+      className="hero-desktop-section relative min-h-[100svh] w-full overflow-hidden border border-white/20 hidden md:block"
       style={{
         color: "var(--foreground)",
       }}
@@ -222,5 +236,6 @@ export default function Hero({ loading }: { loading: boolean }) {
         </div>
       </div>
     </section>
+    </>
   );
 }

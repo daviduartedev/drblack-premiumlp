@@ -31,6 +31,10 @@ import AnimatedSectionTitle from "@/components/AnimatedSectionTitle";
 import KprCard, { KPR_CARD_BORDER_RADIUS } from "@/components/KprCard";
 import LightPillar from "@/components/LightPillar";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
+import UpgradeShowcaseMobile from "@/components/UpgradeShowcaseMobile";
+import "@/components/UpgradeShowcaseMobile.css";
+import NarrativaMobile from "@/components/NarrativaMobile";
+import "@/components/NarrativaMobile.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -125,7 +129,13 @@ const TOTAL_CARDS = CARDS.length;
 const INTRO_INDEX = 0;
 const HERO_INDEX = TOTAL_CARDS - 1;
 
-export default function ScrollDrivenHeroGallery() {
+/**
+ * Versão DESKTOP — markup e timeline GSAP originais 100% preservados.
+ * Em mobile (≤ 767px), o wrapper `ScrollDrivenHeroGallery` (default export)
+ * substitui esta versão pelo `UpgradeShowcaseMobile` + `NarrativaMobile`,
+ * leves e estilo Framer/Webflow.
+ */
+function ScrollDrivenHeroGalleryDesktop() {
   const rootRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
 
@@ -671,7 +681,7 @@ export default function ScrollDrivenHeroGallery() {
   }, []);
 
   return (
-    <section ref={rootRef} className="w-full">
+    <section ref={rootRef} className="w-full scroll-driven-gallery-desktop">
       <div
         ref={pinRef}
         className="relative h-[100svh] w-full overflow-hidden"
@@ -1080,4 +1090,50 @@ export default function ScrollDrivenHeroGallery() {
       </motion.section>
     </section>
   );
+}
+
+/**
+ * ScrollDrivenHeroGallery — wrapper que escolhe a experiência por viewport.
+ *
+ * Mobile (≤ 767px): renderiza `UpgradeShowcaseMobile` + `NarrativaMobile`,
+ *   versões leves e modernas estilo Framer/Webflow. Sem GSAP pinning
+ *   (que ficava desproporcional) e sem WebGL pesado.
+ *
+ * Desktop (≥ 768px): renderiza `ScrollDrivenHeroGalleryDesktop`, com a
+ *   timeline GSAP original 100% preservada e o LightPillar WebGL.
+ *
+ * A separação acontece em duas camadas:
+ *  1) `useState` + `matchMedia` decide qual ramo montar (evita carregar GSAP
+ *     em mobile e WebGL pesado).
+ *  2) Defesa em profundidade: cada CSS mobile tem trava
+ *     `@media (min-width: 768px) { display: none !important }`.
+ */
+export default function ScrollDrivenHeroGallery() {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Antes do primeiro frame de matchMedia: render do desktop é "seguro"
+  // (SSR vê desktop). Renderiza desktop por padrão e troca após mount.
+  if (isMobile === null) {
+    return <ScrollDrivenHeroGalleryDesktop />;
+  }
+
+  if (isMobile) {
+    return (
+      <>
+        <UpgradeShowcaseMobile />
+        <NarrativaMobile />
+      </>
+    );
+  }
+
+  return <ScrollDrivenHeroGalleryDesktop />;
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useId } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
+import WelcomeModalMobile from "@/components/WelcomeModalMobile";
+import "@/components/WelcomeModalMobile.css";
 
 type Props = {
   onClose: () => void;
@@ -12,6 +14,20 @@ type Props = {
  */
 export default function PostLoginWelcomeModal({ onClose }: Props) {
   const titleId = useId();
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  /**
+   * Detecta mobile em runtime (matchMedia) — mantém o desktop intacto.
+   * Enquanto `isMobile === null` (primeiro paint SSR), renderizamos `null`
+   * para evitar mismatch — o modal aparece logo no próximo frame.
+   */
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   const dismiss = useCallback(() => {
     onClose();
@@ -31,9 +47,17 @@ export default function PostLoginWelcomeModal({ onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [dismiss]);
 
+  // Antes do primeiro frame de matchMedia, não renderiza nada (SSR safety).
+  if (isMobile === null) return null;
+
+  // Mobile: bottom-sheet premium dedicado.
+  if (isMobile) {
+    return <WelcomeModalMobile onClose={onClose} />;
+  }
+
   return (
     <div
-      className="fixed inset-0 z-[140] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[140] flex items-center justify-center p-4 hidden md:flex"
       style={{
         background: "rgba(5, 5, 8, 0.72)",
         backdropFilter: "blur(8px)",

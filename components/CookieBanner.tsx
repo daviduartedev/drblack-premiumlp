@@ -80,6 +80,7 @@ export default function CookieBanner() {
       role="dialog"
       aria-modal="false"
       aria-labelledby="cookie-banner-title"
+      data-cookie-banner
       className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none"
     >
       <div className="content-wrap section-padding-x" style={{ paddingBlock: "var(--space-4)" }}>

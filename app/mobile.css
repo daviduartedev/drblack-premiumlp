@@ -1,0 +1,247 @@
+/* ============================================================
+ * mobile.css — refinamentos globais para tablet/mobile (≤ 767px)
+ *
+ * REGRAS:
+ *  - Toda regra DEVE estar dentro de @media (max-width: 767px).
+ *  - Nada aqui pode afetar desktop.
+ *  - Apenas ajustes de leitura, hierarquia, spacing, motion, depth.
+ *
+ * Estrutura:
+ *  1) Tipografia mobile (refinamento das classes .t-*)
+ *  2) Spacing e gutters mobile
+ *  3) Microinterações touch (active states)
+ *  4) Footer mobile
+ *  5) Cards e grids mobile
+ *  6) Carrossel e seções
+ *  7) Scrollbar
+ *  8) Safe-area-aware
+ * ============================================================ */
+
+@media (max-width: 767px) {
+  :root {
+    /* Sobrescreve tokens de spacing para mobile — gutter mais compacto. */
+    --gutter: 22px;
+    --section-py: clamp(56px, 14vw, 96px);
+  }
+
+  /* ----------------------------------------------------------------
+   * 1) TIPOGRAFIA — escala mobile mais agressiva e legível
+   * ---------------------------------------------------------------- */
+  .t-h1 {
+    font-size: clamp(48px, 14vw, 72px);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+  }
+  .t-h2 {
+    font-size: clamp(34px, 9vw, 52px);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+  }
+  .t-h3 {
+    font-size: clamp(20px, 5vw, 26px);
+    line-height: 1.1;
+  }
+  .t-body {
+    font-size: 14.5px;
+    line-height: 1.62;
+  }
+  .t-body-sm {
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .t-eyebrow {
+    font-size: 10.5px;
+    letter-spacing: 0.28em;
+  }
+
+  /* Smooth scroll global em mobile */
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* iOS: segura a fonte de aumentar com input focus */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* ----------------------------------------------------------------
+   * 2) SPACING — reduz gutter desktop para mobile
+   * ---------------------------------------------------------------- */
+  .section-padding {
+    padding-block: var(--section-py);
+    padding-inline: var(--gutter);
+  }
+  .section-padding-x {
+    padding-inline: var(--gutter);
+  }
+
+  /* ----------------------------------------------------------------
+   * 3) MICROINTERAÇÕES TOUCH — active feedback em todos os botões
+   * ---------------------------------------------------------------- */
+  .btn-solid,
+  .btn-ghost,
+  .hero-kpr-cta {
+    min-height: 48px;
+    padding-inline: 22px;
+    transition: transform 160ms ease, background 180ms ease, color 180ms ease;
+  }
+  .btn-solid:active,
+  .btn-ghost:active,
+  .hero-kpr-cta:active {
+    transform: scale(0.97);
+  }
+
+  /* Hover do desktop — em mobile vira active suave */
+  .btn-icon-sm,
+  .btn-icon {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ----------------------------------------------------------------
+   * 4) FOOTER — empilhamento, separadores e espaçamento mobile
+   * ---------------------------------------------------------------- */
+  footer .grid {
+    gap: 28px !important;
+  }
+  footer h3.t-eyebrow {
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 193, 7, 0.14);
+    padding-bottom: 10px;
+  }
+  footer ul.flex.flex-col {
+    gap: 14px !important;
+  }
+  footer .footer-link {
+    font-size: 14.5px;
+    line-height: 1.4;
+  }
+  /* Botões sociais — touch-friendly */
+  footer .btn-icon-sm {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Barra inferior — empilha info legal */
+  footer .md\\:flex-row {
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  /* ----------------------------------------------------------------
+   * 5) CARDS & GRIDS — leve depth e radius maior em mobile
+   * ---------------------------------------------------------------- */
+  /* SkinsCarousel cards: tornar mais "tappáveis" */
+  .skin-card-link {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* ----------------------------------------------------------------
+   * 6) SECTIONS — animação de entrada com fade-up suave
+   * ---------------------------------------------------------------- */
+  /* Pequena vinheta inferior para dar continuidade entre seções */
+  body::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    inset: auto 0 0 0;
+    height: 80px;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0) 0%,
+      rgba(10, 10, 10, 0.55) 100%
+    );
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+  body.has-mobile-fade-bottom::after {
+    opacity: 1;
+  }
+
+  /* ----------------------------------------------------------------
+   * 7) SCROLLBAR — visualmente discreta em mobile
+   * ---------------------------------------------------------------- */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  /* ----------------------------------------------------------------
+   * 8) FOCUS — acessibilidade (não muda visual passivo)
+   * ---------------------------------------------------------------- */
+  :where(a, button, [role="button"]):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+
+  /* ----------------------------------------------------------------
+   * 9) HERO DESKTOP em mobile — força esconder se algo escapar
+   * ---------------------------------------------------------------- */
+  .hero-desktop-section {
+    display: none !important;
+  }
+
+  /* ScrollDrivenHeroGallery em modo desktop NÃO pode aparecer em mobile.
+     O wrapper já troca via matchMedia; isto é uma defesa de profundidade
+     (e cobre o flash do primeiro paint SSR antes de matchMedia setar). */
+  .scroll-driven-gallery-desktop {
+    display: none !important;
+  }
+
+  /* ----------------------------------------------------------------
+   * 10) TESTIMONIALS — espaçamento + radius maior
+   * ---------------------------------------------------------------- */
+  /* Cards de testemunhos: respiram mais em mobile */
+  [data-testimonial-card] {
+    border-radius: 18px;
+  }
+
+  /* ----------------------------------------------------------------
+   * 11) ANIMAÇÕES — premium fade-in genérico (ativável via classe)
+   * ---------------------------------------------------------------- */
+  @keyframes mobile-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-fade-up {
+    animation: mobile-fade-up 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* ----------------------------------------------------------------
+   * 12) HEADERS DE SEÇÃO — ajusta hero/galeria para mobile
+   * ---------------------------------------------------------------- */
+  /* SkinsCarousel header: padding horizontal próprio mobile */
+  #skins-destaque {
+    scroll-margin-top: 12px;
+  }
+
+  /* ----------------------------------------------------------------
+   * 13) Cookie banner — mobile premium
+   * ---------------------------------------------------------------- */
+  /* Se o banner usar fixed bottom, garante respeito da safe-area */
+  [data-cookie-banner],
+  .cookie-banner {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 14px) !important;
+  }
+}
+
+/* ============================================================
+ * Reduced motion respeito mobile
+ * ============================================================ */
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .mobile-fade-up {
+    animation: none;
+  }
+}

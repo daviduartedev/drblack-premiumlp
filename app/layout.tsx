@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
 import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
+import "./mobile.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,19 @@ export const metadata: Metadata = {
   title: "DR Black Skins | Skins de CS2, rifa, direto",
   description:
     "Seu ponto de skins e rifas. Compra, venda, concorra, sem enrolacao.",
+};
+
+/**
+ * Viewport mobile-first com `viewport-fit=cover` para que o `env(safe-area-inset-*)`
+ * funcione nos iPhones com notch/dynamic island. `themeColor` casa com a paleta da
+ * marca para a barra de URL do Safari/Chrome mobile.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({

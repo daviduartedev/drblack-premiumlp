@@ -1,0 +1,330 @@
+/* ============================================================
+ * NarrativaMobile — substitui a seção `continua-narrativa`
+ * Estilo: WebGL/Framer mas em CSS puro (≤ 767px)
+ * ============================================================ */
+
+@media (max-width: 767px) {
+  .narrativa-mobile-root {
+    position: relative;
+    width: 100%;
+    min-height: 92svh;
+    padding: 90px 24px 110px;
+    overflow: hidden;
+    isolation: isolate;
+    background: radial-gradient(
+        80% 50% at 50% 0%,
+        rgba(82, 39, 255, 0.16) 0%,
+        transparent 60%
+      ),
+      linear-gradient(
+        180deg,
+        #0a0a0a 0%,
+        #0d0a14 50%,
+        #0a0a0a 100%
+      );
+  }
+
+  /* ----------------------------------------------------------------
+   * AURORAS — orbs de cor flutuantes (CSS puro)
+   * ---------------------------------------------------------------- */
+  .narrativa-mobile-aurora {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+    will-change: transform, opacity;
+  }
+  .narrativa-mobile-aurora-a {
+    top: 8%;
+    left: -20%;
+    width: 70vw;
+    height: 70vw;
+    background: radial-gradient(
+      circle at 30% 30%,
+      rgba(82, 39, 255, 0.55) 0%,
+      rgba(255, 159, 252, 0.28) 50%,
+      transparent 80%
+    );
+    animation: narrativa-mobile-orbit-a 14s ease-in-out infinite;
+  }
+  .narrativa-mobile-aurora-b {
+    bottom: 6%;
+    right: -25%;
+    width: 80vw;
+    height: 80vw;
+    background: radial-gradient(
+      circle at 70% 70%,
+      rgba(247, 147, 0, 0.45) 0%,
+      rgba(255, 193, 7, 0.18) 50%,
+      transparent 80%
+    );
+    animation: narrativa-mobile-orbit-b 18s ease-in-out infinite;
+  }
+
+  @keyframes narrativa-mobile-orbit-a {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+      opacity: 0.85;
+    }
+    50% {
+      transform: translate(8vw, 4vw) scale(1.1);
+      opacity: 1;
+    }
+  }
+  @keyframes narrativa-mobile-orbit-b {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translate(-10vw, -6vw) scale(1.15);
+      opacity: 1;
+    }
+  }
+
+  /* Grid sutil — efeito KPR */
+  .narrativa-mobile-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+      );
+    background-size: 56px 56px;
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 50%,
+      #000 0%,
+      transparent 80%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 50%,
+      #000 0%,
+      transparent 80%
+    );
+    opacity: 0.6;
+  }
+
+  /* Vinheta para amarrar */
+  .narrativa-mobile-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(
+        ellipse 100% 60% at 50% 50%,
+        transparent 0%,
+        rgba(10, 10, 10, 0.6) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(10, 10, 10, 0.9) 0%,
+        transparent 12%,
+        transparent 88%,
+        rgba(10, 10, 10, 0.95) 100%
+      );
+  }
+
+  /* ----------------------------------------------------------------
+   * STACK — layout vertical
+   * ---------------------------------------------------------------- */
+  .narrativa-mobile-stack {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 18px;
+  }
+
+  /* Chip "DESTAQUE" */
+  .narrativa-mobile-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 10px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--highlight);
+    background: rgba(255, 193, 7, 0.08);
+    border: 1px solid rgba(255, 193, 7, 0.32);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .narrativa-mobile-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(247, 147, 0, 0.8);
+    animation: narrativa-mobile-pulse 2s ease-in-out infinite;
+  }
+  @keyframes narrativa-mobile-pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.4);
+    }
+  }
+
+  /* Headline em 3 linhas */
+  .narrativa-mobile-headline {
+    font-family: var(--font-oswald), sans-serif;
+    font-weight: 700;
+    font-size: clamp(40px, 12vw, 64px);
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin: 4px 0 8px;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  }
+  .narrativa-mobile-headline-line {
+    display: block;
+    will-change: transform, opacity;
+  }
+  .narrativa-mobile-headline-accent {
+    background: linear-gradient(
+      90deg,
+      #ff9ffc 0%,
+      var(--accent) 50%,
+      var(--highlight) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* Sweep animado no gradient — premium */
+    background-size: 200% 100%;
+    animation: narrativa-mobile-shine 6s ease-in-out infinite;
+  }
+  @keyframes narrativa-mobile-shine {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* ----------------------------------------------------------------
+   * AWP — figura central com glow
+   * ---------------------------------------------------------------- */
+  .narrativa-mobile-awp {
+    position: relative;
+    width: min(96vw, 480px);
+    aspect-ratio: 5760 / 1116;
+    margin: 14px auto 8px;
+    will-change: transform;
+    filter: drop-shadow(0 30px 50px rgba(0, 0, 0, 0.55))
+      drop-shadow(0 0 26px rgba(247, 147, 0, 0.18));
+  }
+  .narrativa-mobile-awp-glow {
+    position: absolute;
+    inset: -25% -10%;
+    background: radial-gradient(
+      ellipse 60% 80% at 50% 50%,
+      rgba(247, 147, 0, 0.32) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(20px);
+    animation: narrativa-mobile-glow-pulse 4s ease-in-out infinite;
+  }
+  @keyframes narrativa-mobile-glow-pulse {
+    0%, 100% {
+      opacity: 0.7;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
+  /* ----------------------------------------------------------------
+   * SUB + CTA
+   * ---------------------------------------------------------------- */
+  .narrativa-mobile-sub {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.72);
+    margin: 0;
+    max-width: 30ch;
+  }
+
+  .narrativa-mobile-cta-wrap {
+    margin-top: 8px;
+  }
+  .narrativa-mobile-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 22px;
+    border-radius: 14px;
+    background: linear-gradient(
+      135deg,
+      var(--accent) 0%,
+      var(--accent-soft) 100%
+    );
+    color: var(--on-accent);
+    font-family: var(--font-oswald), sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid rgba(255, 193, 7, 0.6);
+    box-shadow:
+      0 12px 32px rgba(247, 147, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transition: transform 180ms ease;
+  }
+  .narrativa-mobile-cta:active {
+    transform: scale(0.97);
+  }
+  .narrativa-mobile-cta svg {
+    transition: transform 220ms ease;
+  }
+  .narrativa-mobile-cta:hover svg,
+  .narrativa-mobile-cta:active svg {
+    transform: translateX(4px);
+  }
+
+  /* ----------------------------------------------------------------
+   * Reduced motion
+   * ---------------------------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .narrativa-mobile-aurora-a,
+    .narrativa-mobile-aurora-b,
+    .narrativa-mobile-chip-dot,
+    .narrativa-mobile-headline-accent,
+    .narrativa-mobile-awp-glow {
+      animation: none;
+    }
+  }
+}
+
+/* Trava de defesa — nunca renderiza em desktop */
+@media (min-width: 768px) {
+  .narrativa-mobile-root {
+    display: none !important;
+  }
+}
