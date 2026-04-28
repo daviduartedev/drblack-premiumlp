@@ -116,7 +116,7 @@ export default function HeroMobile({ loading }: { loading: boolean }) {
           <video
             ref={videoRef}
             className="hero-mobile-video"
-            src="/NOVOVIDEO.mp4"
+            src="/gallery/recenter%20video.mp4"
             poster="/bg-hero.jpg"
             autoPlay
             muted
