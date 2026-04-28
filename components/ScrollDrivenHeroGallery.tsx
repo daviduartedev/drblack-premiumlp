@@ -717,6 +717,8 @@ export default function ScrollDrivenHeroGallery() {
                 text="DÊ O UPGRADE QUE VOCÊ MERECE."
                 className="hero-min-black-outline t-h2"
                 align="left"
+                containerStyle={{ paddingTop: "0.28em" }}
+                style={{ marginTop: "0.18em" }}
               />
             </div>
           </div>

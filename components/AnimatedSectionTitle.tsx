@@ -132,6 +132,8 @@ interface AnimatedSectionTitleProps {
   /** Delay extra (s) antes do stagger começar. */
   delay?: number;
   style?: CSSProperties;
+  /** Estilos aplicados ao container (onde existe overflow-hidden). */
+  containerStyle?: CSSProperties;
   /** Margem do viewport para disparar a animação. Ex: "-15%". */
   viewportMargin?: string;
 }
@@ -150,6 +152,7 @@ export default function AnimatedSectionTitle({
   once = false,
   delay = 0,
   style,
+  containerStyle,
   viewportMargin = "-12%",
 }: AnimatedSectionTitleProps) {
   const reducedMotion = useReducedMotion() === true;
@@ -178,7 +181,10 @@ export default function AnimatedSectionTitle({
   return (
     <div
       className={`overflow-hidden ${alignClassMap[align]}`}
-      style={{ perspective: reducedMotion ? undefined : 1100 }}
+      style={{
+        perspective: reducedMotion ? undefined : 1100,
+        ...containerStyle,
+      }}
     >
       <MotionTag
         className={`${className} inline-block`}
