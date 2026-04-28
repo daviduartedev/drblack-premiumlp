@@ -948,6 +948,31 @@ export default function ScrollDrivenHeroGallery() {
         onPointerMoveCapture={narrativaBackdrop.onSectionPointerMove}
         onPointerLeave={narrativaBackdrop.onSectionPointerLeave}
       >
+        {/*
+          Overlays de fade preto — sobre todo o conteúdo, reforçando a
+          transição para o preto da página em CIMA e EMBAIXO. Necessário
+          porque o canvas WebGL do LightPillar é opaco e não
+          respeita 100% a máscara CSS aplicada na seção. z-[20] garante que
+          fica acima do pillar, do lightning, da AWP e dos demais conteúdos.
+        */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-[20]"
+          style={{
+            height: "30%",
+            background:
+              "linear-gradient(to bottom, #0a0a0a 0%, rgba(10,10,10,0.9) 30%, rgba(10,10,10,0.55) 65%, transparent 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[20]"
+          style={{
+            height: "30%",
+            background:
+              "linear-gradient(to top, #0a0a0a 0%, rgba(10,10,10,0.9) 30%, rgba(10,10,10,0.55) 65%, transparent 100%)",
+          }}
+        />
         <div
           aria-hidden
           className="absolute inset-0 overflow-hidden"
@@ -971,13 +996,13 @@ export default function ScrollDrivenHeroGallery() {
               <LightPillar
                 topColor="#5227FF"
                 bottomColor="#FF9FFC"
-                intensity={0.6}
-                rotationSpeed={0.5}
-                glowAmount={0.001}
-                pillarWidth={1.6}
-                pillarHeight={0.6}
-                noiseIntensity={0}
-                pillarRotation={269}
+                intensity={1}
+                rotationSpeed={0.3}
+                glowAmount={0.002}
+                pillarWidth={3}
+                pillarHeight={0.4}
+                noiseIntensity={0.5}
+                pillarRotation={65}
                 interactive={false}
                 mixBlendMode="screen"
                 quality="high"
