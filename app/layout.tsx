@@ -23,7 +23,7 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   title: "DR Black Skins | Skins de CS2, rifa, direto",
   description:
-    "Seu ponto de skins e rifas. Compra, venda, concorra — sem enrolacao.",
+    "Seu ponto de skins e rifas. Compra, venda, concorra, sem enrolacao.",
 };
 
 export default function RootLayout({

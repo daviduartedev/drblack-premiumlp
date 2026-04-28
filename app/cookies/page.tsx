@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Política de Cookies | DR Black Skins",
   description:
-    "Como usamos cookies e tecnologias semelhantes — categorias, finalidade e como gerenciar.",
+    "Como usamos cookies e tecnologias semelhantes, categorias, finalidade e como gerenciar.",
 };
 
 const UPDATED_AT = "27 de abril de 2026";
@@ -41,7 +41,7 @@ export default function CookiesPage() {
             <p>
               Cookies são pequenos arquivos de texto que sites colocam no seu
               dispositivo para lembrar preferências e medir uso. Tecnologias
-              semelhantes — como localStorage e pixels de rastreamento —
+              semelhantes, como localStorage e pixels de rastreamento,
               também são tratadas por esta política.
             </p>
           </Section>
@@ -103,7 +103,7 @@ export default function CookiesPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="t-h3" style={{ color: "var(--foreground)" }}>
+      <h2 className="t-h3">
         {title}
       </h2>
       <div

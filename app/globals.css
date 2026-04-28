@@ -2,25 +2,25 @@
 
 :root {
   /* ============================================================
-   * COR — Rebrand 2026 Q1 (ver spec/features/rebrand-2026-q1/readme.md)
+   * COR — paleta marca (preto profundo / laranja vibrante / dourado)
    * ============================================================ */
   --background: #0a0a0a;
-  --background-raised: #141414;
-  --background-deep: #0f0c0a;
-  --card-bg: #120f0c;
+  --background-raised: #151515;
+  --background-deep: #0a0a0a;
+  --card-bg: #151515;
   --foreground: #ffffff;
-  --foreground-muted: rgba(255, 255, 255, 0.68);
-  --foreground-faint: rgba(255, 255, 255, 0.42);
-  --paper: #eed9c4;
+  --foreground-muted: #d9d9d9;
+  --foreground-faint: #6e6e6e;
+  --paper: #ffffff;
   --ink: #0a0a0a;
-  --accent: #ff5c0a;
-  --accent-soft: #ff7a3d;
-  --accent-deep: #cc4a08;
-  --accent-darkest: #b83d00;
+  --accent: #f79300;
+  --accent-soft: #ffb347;
+  --accent-deep: #c76a00;
+  --accent-darkest: #5e3a00;
   --on-accent: #0a0a0a;
-  --highlight: #eed9c4;
-  --line: rgba(238, 217, 196, 0.28);
-  --line-soft: rgba(238, 217, 196, 0.12);
+  --highlight: #ffc107;
+  --line: rgba(255, 193, 7, 0.32);
+  --line-soft: rgba(255, 193, 7, 0.12);
   --muted: var(--foreground-muted);
 
   /* ============================================================
@@ -109,7 +109,7 @@ body {
   line-height: 0.85;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--foreground);
+  color: var(--highlight);
 }
 
 .t-h2 {
@@ -119,7 +119,7 @@ body {
   line-height: 0.95;
   letter-spacing: -0.02em;
   text-transform: uppercase;
-  color: var(--foreground);
+  color: var(--highlight);
 }
 
 .t-h3 {
@@ -129,7 +129,7 @@ body {
   line-height: 1.05;
   letter-spacing: -0.01em;
   text-transform: uppercase;
-  color: var(--foreground);
+  color: var(--highlight);
 }
 
 .t-body {
@@ -155,7 +155,7 @@ body {
   font-size: var(--fs-card-sub);
   letter-spacing: var(--tracking-card-sub);
   text-transform: uppercase;
-  color: rgba(238, 217, 196, 0.78);
+  color: rgba(255, 193, 7, 0.82);
 }
 
 .t-cta {
@@ -167,6 +167,12 @@ body {
 
 /* ==============================================================
  * UTILITÁRIOS DE LAYOUT
+ * Coluna editorial canónica (texto / headings em todas as secções):
+ *   • `section-padding` — secção completa (py + gutter horizontal), ou
+ *   • `section-padding-x` + `content-wrap` no mesmo fluxo — gutter + largura
+ *     máxima `--content-max` centrada (equivalente ao bloco principal do footer
+ *     e ao header do carrossel dentro de `section-padding`).
+ * Não misturar `8vw` / `5vw` soltos para margens de texto — usar `--gutter`.
  * ============================================================== */
 .section-padding {
   padding-block: var(--section-py);
@@ -178,6 +184,84 @@ body {
 .content-wrap {
   max-width: var(--content-max);
   margin-inline: auto;
+}
+
+/**
+ * Fundo da hero sem imagem: profundidade + glow laranja (marca), leitura do branco sobreposto.
+ */
+.hero-brand-backdrop {
+  background-color: var(--background-deep);
+  /* Camada inferior: foto hero (path servido em /public). Gradientes por cima mantêm leitura. */
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(21, 21, 21, 0.92) 0%,
+      rgba(10, 10, 10, 0.45) 42%,
+      rgba(10, 10, 10, 0.94) 100%
+    ),
+    radial-gradient(
+      85% 70% at 78% 18%,
+      rgba(247, 147, 0, 0.2) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      60% 45% at 18% 72%,
+      rgba(247, 147, 0, 0.11) 0%,
+      transparent 52%
+    ),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    url("/bg-hero.jpg");
+  background-size: auto, auto, auto, 52px 52px, 52px 52px, cover;
+  background-position:
+    center,
+    center,
+    center,
+    0 0,
+    0 0,
+    center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat;
+}
+
+/* Hero cinematográfico (referência estilo vitrine — moldura + headline gigante; fundo é CSS). */
+.hero-kpr-headline {
+  font-family: var(--font-oswald), sans-serif;
+  font-weight: 700;
+  font-size: var(--fs-h1);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--highlight);
+}
+
+.hero-kpr-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border: 1px solid var(--accent-deep);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 2px;
+  font-size: var(--fs-cta);
+  letter-spacing: var(--tracking-cta);
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.hero-kpr-cta:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.hero-kpr-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* ==============================================================
@@ -303,7 +387,7 @@ body.debug-rule::before {
   bottom: 0;
   left: var(--gutter);
   width: 1px;
-  background: rgba(255, 92, 10, 0.45);
+  background: rgba(247, 147, 0, 0.45);
   z-index: 9999;
   pointer-events: none;
 }
@@ -314,7 +398,7 @@ body.debug-rule::after {
   bottom: 0;
   right: var(--gutter);
   width: 1px;
-  background: rgba(255, 92, 10, 0.45);
+  background: rgba(247, 147, 0, 0.45);
   z-index: 9999;
   pointer-events: none;
 }
@@ -391,6 +475,26 @@ body.debug-rule::after {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Modal pós-login (PostLoginWelcomeModal) */
+@keyframes post-login-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.post-login-welcome-dialog {
+  animation: post-login-pop 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-login-welcome-dialog {
+    animation: none;
+  }
 }
 
 /* ==============================================================

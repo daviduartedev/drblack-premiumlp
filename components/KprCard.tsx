@@ -53,7 +53,7 @@ const KprCard = forwardRef<HTMLDivElement, KprCardProps>(function KprCard(
       style={{
         position: "relative",
         aspectRatio: "16 / 9",
-        backgroundColor: "var(--card-bg, #120f0c)",
+        backgroundColor: "var(--card-bg, #151515)",
         borderRadius: KPR_CARD_BORDER_RADIUS,
         overflow: "hidden",
         boxShadow:

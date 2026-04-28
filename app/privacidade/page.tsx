@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Política de Privacidade | DR Black Skins",
   description:
-    "Como tratamos seus dados pessoais — base legal, finalidades, retenção e seus direitos sob a LGPD.",
+    "Como tratamos seus dados pessoais, base legal, finalidades, retenção e seus direitos sob a LGPD.",
 };
 
 const UPDATED_AT = "27 de abril de 2026";
@@ -42,7 +42,7 @@ export default function PrivacidadePage() {
               <strong>[Razão Social Ltda.]</strong>, CNPJ{" "}
               <strong>XX.XXX.XXX/0001-XX</strong>, é a controladora dos seus
               dados pessoais conforme a Lei Geral de Proteção de Dados (Lei nº
-              13.709/2018 — LGPD).
+              13.709/2018, LGPD).
             </p>
           </Section>
 
@@ -50,7 +50,7 @@ export default function PrivacidadePage() {
             <p>
               Coletamos: dados de cadastro (nome, e-mail, CPF, data de
               nascimento), dados financeiros para processar pagamentos (CPF,
-              dados bancários ou de cartão — pelo provedor parceiro), dados de
+              dados bancários ou de cartão, pelo provedor parceiro), dados de
               navegação (IP, dispositivo, cookies), dados da Steam (Steam ID,
               inventário público) quando você conecta sua conta, e
               comunicações que você nos envia.
@@ -61,7 +61,7 @@ export default function PrivacidadePage() {
             <p>
               Para criar e manter sua conta, processar transações e rifas,
               prevenir fraudes, cumprir obrigações legais e fiscais, atender
-              suporte, e — apenas com seu consentimento — enviar comunicações
+              suporte e, apenas com seu consentimento, enviar comunicações
               de marketing e melhorar a experiência via análises agregadas.
             </p>
           </Section>
@@ -86,7 +86,7 @@ export default function PrivacidadePage() {
           <Section title="6. Retenção">
             <p>
               Mantemos os dados pelo tempo necessário às finalidades acima e
-              pelos prazos legais — mínimo de 5 anos para registros financeiros
+              pelos prazos legais, mínimo de 5 anos para registros financeiros
               e fiscais, conforme legislação tributária. Após esse período, os
               dados são anonimizados ou eliminados.
             </p>
@@ -132,9 +132,9 @@ export default function PrivacidadePage() {
 
           <Section title="10. Segurança">
             <p>
-              Adotamos medidas técnicas e organizacionais — criptografia em
+              Adotamos medidas técnicas e organizacionais, criptografia em
               trânsito (TLS), controle de acesso, monitoramento, backups e
-              treinamento da equipe — para proteger seus dados. Em caso de
+              treinamento da equipe, para proteger seus dados. Em caso de
               incidente relevante, comunicaremos a ANPD e os titulares
               afetados conforme a LGPD.
             </p>
@@ -202,7 +202,7 @@ function Section({
 }) {
   return (
     <section id={id} style={{ scrollMarginTop: "var(--space-7)" }}>
-      <h2 className="t-h3" style={{ color: "var(--foreground)" }}>
+      <h2 className="t-h3">
         {title}
       </h2>
       <div

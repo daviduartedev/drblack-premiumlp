@@ -394,7 +394,7 @@ function FlyingCreature({
         wingLRef={wingLRef}
         wingRRef={wingRRef}
         color="#ffffff"
-        glow="#ffaa3a"
+        glow="#f79300"
       />
       <points ref={trailRef} geometry={trailGeom} material={trailMat} />
     </>
@@ -449,12 +449,12 @@ export default function Dragon3D({ zIndex = 5 }: DragonProps) {
         <directionalLight
           position={[3, 4, 5]}
           intensity={1.0}
-          color="#fff2dc"
+          color="#fff8e7"
         />
         <pointLight
           position={[-3, -2, 3]}
           intensity={0.6}
-          color="#ffaa3a"
+          color="#f79300"
         />
         <FlyingCreature scrollRef={scrollRef} />
       </Canvas>

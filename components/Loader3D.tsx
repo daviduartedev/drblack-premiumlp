@@ -7,7 +7,7 @@ import gsap from "gsap";
  * Loader inicial estilo KPR — paleta preto/branco.
  *
  * Visual:
- *  - Fundo PRETO (#000) com letras BRANCAS (#fff).
+ *  - Fundo preto profundo (#0A0A0A) com letras brancas.
  *  - Wordmark uppercase top-left.
  *  - Headline gigante "DR · BLACK SKINS" central.
  *  - Contador grande (000 → 100) + barra fina embaixo à direita.
@@ -22,8 +22,11 @@ import gsap from "gsap";
  */
 export default function Loader3D({
   onRequestFlip,
+  onLoaderComplete,
 }: {
   onRequestFlip: () => void;
+  /** Dispara quando a sequência 3D (portas) termina e o loader some por completo. */
+  onLoaderComplete?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,14 @@ export default function Loader3D({
   // Guarda se a sequência principal já rodou — evita execução dupla
   // em React StrictMode (dev) e re-mounts.
   const ranRef = useRef(false);
+  /** Evita re-disparar o `useEffect` da timeline quando o pai passa novas funções. */
+  const onRequestFlipRef = useRef(onRequestFlip);
+  const onLoaderCompleteRef = useRef(onLoaderComplete);
+
+  useEffect(() => {
+    onRequestFlipRef.current = onRequestFlip;
+    onLoaderCompleteRef.current = onLoaderComplete;
+  });
 
   const [pct, setPct] = useState(0);
   const [statusText, setStatusText] = useState("INITIALIZING SYSTEM");
@@ -93,7 +104,7 @@ export default function Loader3D({
           const out = gsap.timeline({
             delay: 0.25,
             onStart: () => {
-              onRequestFlip();
+              onRequestFlipRef.current();
             },
             onComplete: () => {
               // Garante que o loader não bloqueie a hero ao final.
@@ -101,6 +112,7 @@ export default function Loader3D({
                 rootRef.current.style.pointerEvents = "none";
                 rootRef.current.style.visibility = "hidden";
               }
+              onLoaderCompleteRef.current?.();
             },
           });
 
@@ -179,7 +191,7 @@ export default function Loader3D({
     // rodando. O contexto será garbage-collected quando o loader for
     // desmontado de vez (após onRequestFlip).
     void ctx;
-  }, [onRequestFlip]);
+  }, []);
 
   // Conteúdo de cada metade — duplicado idêntico, mas cada metade
   // mostra apenas sua porção via clip-path. Assim quando giram em 3D
@@ -191,7 +203,7 @@ export default function Loader3D({
         style={{
           position: "absolute",
           inset: 0,
-          backgroundColor: "#000000",
+          backgroundColor: "#0a0a0a",
           clipPath: isLeft
             ? "polygon(0 0, 50% 0, 50% 100%, 0 100%)"
             : "polygon(50% 0, 100% 0, 100% 100%, 50% 100%)",
@@ -236,7 +248,7 @@ export default function Loader3D({
         position: "fixed",
         inset: 0,
         overflow: "hidden",
-        backgroundColor: "#000000",
+        backgroundColor: "#0a0a0a",
         color: "#ffffff",
         zIndex: 100,
         willChange: "transform, opacity",
@@ -324,7 +336,7 @@ export default function Loader3D({
               fontSize: "11px",
               letterSpacing: "0.32em",
               textTransform: "uppercase",
-              color: "rgba(255,255,255,0.55)",
+              color: "#d9d9d9",
               marginBottom: "12px",
             }}
           >
@@ -339,7 +351,7 @@ export default function Loader3D({
               letterSpacing: "-0.025em",
               fontSize: "clamp(56px, 11vw, 200px)",
               textTransform: "uppercase",
-              color: "#ffffff",
+              color: "#ffc107",
               margin: 0,
             }}
           >
@@ -358,7 +370,7 @@ export default function Loader3D({
             fontSize: "10px",
             letterSpacing: "0.32em",
             textTransform: "uppercase",
-            color: "rgba(255,255,255,0.7)",
+            color: "#d9d9d9",
             zIndex: 2,
           }}
         >
@@ -367,7 +379,7 @@ export default function Loader3D({
               display: "inline-block",
               width: 6,
               height: 6,
-              backgroundColor: "#ffffff",
+              backgroundColor: "#f79300",
               borderRadius: "50%",
               marginRight: 10,
               verticalAlign: "middle",
@@ -425,7 +437,7 @@ export default function Loader3D({
                 position: "absolute",
                 inset: 0,
                 width: 0,
-                backgroundColor: "#ffffff",
+                backgroundColor: "#f79300",
               }}
             />
           </div>

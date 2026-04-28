@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Termos de Uso | DR Black Skins",
   description:
-    "Termos e condições de uso da plataforma DR Black Skins — compra, venda e rifa de skins de CS2.",
+    "Termos e condições de uso da plataforma DR Black Skins, compra, venda e rifa de skins de CS2.",
 };
 
 const UPDATED_AT = "27 de abril de 2026";
@@ -152,7 +152,7 @@ export default function TermosPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="t-h3" style={{ color: "var(--foreground)" }}>
+      <h2 className="t-h3">
         {title}
       </h2>
       <div

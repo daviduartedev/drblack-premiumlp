@@ -150,7 +150,7 @@ export default function CookieBanner() {
 
               <ConsentRow
                 label="Essenciais"
-                description="Sessão, login, segurança. Necessários — não podem ser desativados."
+                description="Sessão, login, segurança. Necessários, não podem ser desativados."
                 checked
                 disabled
                 onChange={() => undefined}

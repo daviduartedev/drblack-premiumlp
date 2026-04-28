@@ -12,8 +12,10 @@ import KprCard from "@/components/KprCard";
  * - Duas passagens do mesmo lote + `translateX(-50%)` em `globals.css` → loop
  *   contínuo. Cópia duplicada: `aria-hidden` + `pointer-events: none` (só a
  *   primeira fila leva links e teclado).
- * - `prefers-reduced-motion: reduce` — animação desligada; o mask passa a
- *   `overflow-x: auto` para leitura sem desconforto.
+ * - Abertura na viewport: perspectiva + faixa em “linha” (`rotateX` + `scaleX` baixo)
+ *   expandindo ao plano; cada card afasta-se do eixo central com atraso escalonado.
+ * - `prefers-reduced-motion: reduce` — sem 3D/cards-emergência; marquee sem anim
+ *   (mask com scroll) via `globals.css`.
  */
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
@@ -164,7 +166,7 @@ export default function SkinsCarousel() {
               className="t-body-sm mt-3"
               style={{ maxWidth: "44ch" }}
             >
-              Vitrine em movimento contínuo — fotos ilustrativas (Unsplash), estilo
+              Vitrine em movimento contínuo, fotos ilustrativas (Unsplash), estilo
               CS2.
             </motion.p>
           </div>
@@ -189,29 +191,90 @@ export default function SkinsCarousel() {
                 "linear-gradient(to left, var(--background), transparent)",
             }}
           />
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={VIEWPORT_OPTS}
-            transition={{ duration: 0.85, ease: EASE_OUT_EXPO }}
-            className="skins-marquee-mask relative"
+          {/* Abertura 3D: faixa parte como “linha” no centro do plano e expande para os lados */}
+          <div
+            className="relative"
             style={
               reducedMotion
                 ? undefined
                 : ({
-                    "--skins-marquee-duration": "52s",
+                    perspective: "min(1400px, 155vw)",
+                    perspectiveOrigin: "50% 42%",
                   } as CSSProperties)
             }
           >
-            <div className="skins-marquee-track">
-              {FEATURED.map((skin) => (
-                <SkinCard key={skin.id} skin={skin} />
-              ))}
-              {FEATURED.map((skin) => (
-                <SkinCard key={`${skin.id}-marquee-loop`} skin={skin} duplicate />
-              ))}
-            </div>
-          </motion.div>
+            <motion.div
+              initial={
+                reducedMotion
+                  ? false
+                  : {
+                      rotateX: 82,
+                      scaleX: 0.022,
+                      opacity: 0.82,
+                      y: 36,
+                      filter: "blur(6px)",
+                    }
+              }
+              whileInView={
+                reducedMotion
+                  ? undefined
+                  : {
+                      rotateX: 0,
+                      scaleX: 1,
+                      opacity: 1,
+                      y: 0,
+                      filter: "blur(0px)",
+                    }
+              }
+              viewport={reducedMotion ? undefined : VIEWPORT_OPTS}
+              transition={{
+                rotateX: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
+                scaleX: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
+                opacity: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
+                y: { duration: reducedMotion ? 0 : 1.22, ease: EASE_OUT_EXPO },
+                filter: {
+                  duration: reducedMotion ? 0 : 0.78,
+                  delay: reducedMotion ? 0 : 0.1,
+                  ease: EASE_OUT_EXPO,
+                },
+              }}
+              className="relative"
+              style={{
+                transformStyle: "preserve-3d",
+                transformOrigin: "50% 50%",
+                backfaceVisibility: "hidden",
+              }}
+            >
+              <div
+                className="skins-marquee-mask relative"
+                style={
+                  ({
+                    "--skins-marquee-duration": "52s",
+                  } as CSSProperties)
+                }
+              >
+                <div className="skins-marquee-track">
+                  {FEATURED.map((skin, i) => (
+                    <SkinCard
+                      key={skin.id}
+                      skin={skin}
+                      emergeIndex={i}
+                      emergeTotal={FEATURED.length}
+                    />
+                  ))}
+                  {FEATURED.map((skin, i) => (
+                    <SkinCard
+                      key={`${skin.id}-marquee-loop`}
+                      skin={skin}
+                      duplicate
+                      emergeIndex={i}
+                      emergeTotal={FEATURED.length}
+                    />
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>
@@ -224,11 +287,20 @@ export default function SkinsCarousel() {
 function SkinCard({
   skin,
   duplicate = false,
+  emergeIndex = 0,
+  emergeTotal = 1,
 }: {
   skin: FeaturedSkin;
   duplicate?: boolean;
+  emergeIndex?: number;
+  emergeTotal?: number;
 }) {
+  const reducedMotionLocal = useReducedMotion();
   const cardWidth = "clamp(240px, 22vw, 320px)";
+  const center = (emergeTotal - 1) / 2;
+  const delta = emergeIndex - center;
+  /** Cards à esquerda/direita começam puxados ao eixo central e deslizam para a posição na faixa */
+  const lateralShift = reducedMotionLocal ? 0 : -delta * 52;
 
   const visual = (
     <>
@@ -242,7 +314,7 @@ function SkinCard({
       >
         <KprCard
           src={skin.src}
-          alt={duplicate ? "" : `${skin.title} — imagem ilustrativa`}
+          alt={duplicate ? "" : `${skin.title}, imagem ilustrativa`}
           index={skin.index}
           hideLabels
           sizes="(min-width: 1024px) 22vw, 80vw"
@@ -296,27 +368,79 @@ function SkinCard({
     </>
   );
 
+  const emergeTransition = {
+    duration: reducedMotionLocal ? 0 : 1.08,
+    ease: EASE_OUT_EXPO,
+    delay: reducedMotionLocal ? 0 : 0.08 + Math.abs(delta) * 0.065,
+  };
+
   if (duplicate) {
-    return (
+    const inner = (
       <div
-        className="relative block flex-none pointer-events-none"
-        style={{ width: cardWidth }}
+        className="relative block h-full w-full pointer-events-none"
         aria-hidden
         tabIndex={-1}
       >
         {visual}
       </div>
     );
+
+    if (reducedMotionLocal) {
+      return (
+        <div
+          className="relative block flex-none pointer-events-none"
+          style={{ width: cardWidth }}
+          aria-hidden
+          tabIndex={-1}
+        >
+          {visual}
+        </div>
+      );
+    }
+
+    return (
+      <motion.div
+        className="relative flex-none pointer-events-none"
+        style={{ width: cardWidth }}
+        initial={{ x: lateralShift, opacity: 0.65, scale: 0.9 }}
+        whileInView={{ x: 0, opacity: 1, scale: 1 }}
+        viewport={VIEWPORT_OPTS}
+        transition={emergeTransition}
+      >
+        {inner}
+      </motion.div>
+    );
+  }
+
+  if (reducedMotionLocal) {
+    return (
+      <a
+        data-skin-card
+        href={skin.href ?? "#"}
+        className="skin-card-link group relative block flex-none transition"
+        style={{ width: cardWidth }}
+      >
+        {visual}
+      </a>
+    );
   }
 
   return (
-    <a
-      data-skin-card
-      href={skin.href ?? "#"}
-      className="skin-card-link group relative block flex-none transition"
+    <motion.div
+      className="flex-none"
       style={{ width: cardWidth }}
+      initial={{ x: lateralShift, opacity: 0.65, scale: 0.9 }}
+      whileInView={{ x: 0, opacity: 1, scale: 1 }}
+      viewport={VIEWPORT_OPTS}
+      transition={emergeTransition}
     >
-      {visual}
-    </a>
+      <a
+        data-skin-card
+        href={skin.href ?? "#"}
+        className="skin-card-link group relative block w-full transition"
+      >
+        {visual}
+      </a>
+    </motion.div>
   );
 }

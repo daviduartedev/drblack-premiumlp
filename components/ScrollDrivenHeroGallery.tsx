@@ -1,10 +1,26 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useReducedMotion,
+  useSpring,
+  useTransform,
+  type Variants,
+} from "framer-motion";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 /**
  * `useLayoutEffect` corre antes do paint — necessário para a Fase 0 aplicar o
@@ -14,9 +30,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
  */
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
-import InteractiveSkinBackground, {
-  type InteractiveSkinBackgroundHandle,
-} from "@/components/InteractiveSkinBackground";
 import KprCard, { KPR_CARD_BORDER_RADIUS } from "@/components/KprCard";
 import ScrollFilmFrames from "@/components/ScrollFilmFrames";
 
@@ -33,26 +46,73 @@ gsap.registerPlugin(ScrollTrigger);
 const VIEWPORT_OPTS = { once: false, margin: "-15%" };
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
+const NARRATIVA_BG_SPRING = { stiffness: 140, damping: 26, mass: 0.5 };
+
+function useNarrativaBackdropMotion(reducedMotion: boolean | null) {
+  const enabled = reducedMotion === false;
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, NARRATIVA_BG_SPRING);
+  const sy = useSpring(y, NARRATIVA_BG_SPRING);
+  const rotateY = useTransform(sx, [-1, 1], [6.5, -6.5]);
+  const rotateX = useTransform(sy, [-1, 1], [-5.5, 5.5]);
+  const glowX = useTransform(sx, [-1, 1], [18, 82]);
+  const glowY = useTransform(sy, [-1, 1], [24, 76]);
+  const glowBg = useMotionTemplate`radial-gradient(78% 62% at ${glowX}% ${glowY}%, rgba(247,147,0,0.44), transparent 70%)`;
+
+  const onSectionPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLElement>) => {
+      if (!enabled) return;
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia("(pointer: coarse)").matches
+      ) {
+        return;
+      }
+      const rect = e.currentTarget.getBoundingClientRect();
+      const nx = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
+      const ny = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+      x.set(Math.max(-1, Math.min(1, nx)));
+      y.set(Math.max(-1, Math.min(1, ny)));
+    },
+    [enabled, x, y]
+  );
+
+  const onSectionPointerLeave = useCallback(() => {
+    x.set(0);
+    y.set(0);
+  }, [x, y]);
+
+  return {
+    enabled,
+    rotateX,
+    rotateY,
+    glowBg,
+    onSectionPointerMove,
+    onSectionPointerLeave,
+  };
+}
+
 const NARRATIVA_VARIANTS_FULL = {
   h2Container: {
     hidden: {},
     visible: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
   } satisfies Variants,
   h2Word: {
-    hidden: { opacity: 0, x: 200, rotateY: 45, scale: 0.85 },
+    hidden: { opacity: 0, y: 72, rotateX: -18, scale: 0.92 },
     visible: {
       opacity: 1,
-      x: 0,
-      rotateY: 0,
+      y: 0,
+      rotateX: 0,
       scale: 1,
       transition: { duration: 1, ease: EASE_OUT_EXPO },
     },
   } satisfies Variants,
   sub: {
-    hidden: { opacity: 0, x: 120, rotateX: -15 },
+    hidden: { opacity: 0, y: 36, rotateX: -12 },
     visible: {
       opacity: 1,
-      x: 0,
+      y: 0,
       rotateX: 0,
       transition: { duration: 0.8, delay: 0.45, ease: EASE_OUT_EXPO },
     },
@@ -219,9 +279,8 @@ export default function ScrollDrivenHeroGallery() {
 
   const [expansionProgress, setExpansionProgress] = useState(0);
   const expansionProgressRef = useRef(0);
-  const narrativaSkinRef = useRef<InteractiveSkinBackgroundHandle>(null);
-
   const reducedMotion = useReducedMotion();
+  const narrativaBackdrop = useNarrativaBackdropMotion(reducedMotion);
   const narrativaVariants = useMemo(
     () => (reducedMotion ? NARRATIVA_VARIANTS_REDUCED : NARRATIVA_VARIANTS_FULL),
     [reducedMotion]
@@ -235,9 +294,9 @@ export default function ScrollDrivenHeroGallery() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     /** Ciclo 0002: scrub mais suave atenua saltos (trilha da barra); menor em reduced-motion. */
-    const scrubSeconds = prefersReducedMotion ? 0.35 : 1.45;
-    /** +700% no full-motion para acomodar a Fase 0 (intro do card1) sem comprimir as restantes. */
-    const scrollEnd = prefersReducedMotion ? "+=200%" : "+=700%";
+    const scrubSeconds = prefersReducedMotion ? 0.35 : 1.05;
+    /** Distância pinada — valores altos esticam demais a saída após o film/card sumir. */
+    const scrollEnd = prefersReducedMotion ? "+=200%" : "+=520%";
 
     const ctx = gsap.context(() => {
       const track = trackRef.current!;
@@ -398,12 +457,13 @@ export default function ScrollDrivenHeroGallery() {
       //   0.00 .. 0.18  Fase 0 — card1 fullscreen → encolhe e vira card
       //                          (textos do título/HUD aparecem em cascata)
       //   0.18 .. 0.45  Fase A — carrossel desliza (card1 centro → knife centro)
-      //   0.45 .. 0.85  Fase B — knife expande + frames scrubam EM PARALELO
-      //   0.85 .. 1.00  Fase C — fly-through (knife escala + tilt + fade)
+      //   0.45 .. 0.88  Fase B — knife expande + frames scrubam EM PARALELO
+      //   0.88 .. 1.00  Fase C — fly-through (curta: menos scroll morto antes da próxima secção)
       // ============================================================
       const PHASE_INTRO_END = prefersReducedMotion ? 0 : 0.18;
       const PHASE_A_END = 0.4;
-      const PHASE_B_END = 0.85;
+      /** Mais tempo ao film + menos fatia à saída 3D = menos arrasto após o card sumir. */
+      const PHASE_B_END = 0.88;
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
@@ -648,22 +708,19 @@ export default function ScrollDrivenHeroGallery() {
         );
       }
 
-      // ----- FASE C — saída cinematográfica estilo KPR/peachweb (0.85 .. 1.00) -----
+      // ----- FASE C — saída cinematográfica (PHASE_B_END .. 1.00, ~12% do progress) -----
       // Em vez de "sumir" (sobre-escalar + fade), o hero RECUA em Z: encolhe
       // de fullscreen de volta para um card arredondado flutuante, ganhando
       // sombra/borda à medida que se afasta, com tilt 3D suave e leve
       // translação vertical para cima — revelando a secção "Continua a
       // história" que emerge POR BAIXO num parallax sutil.
       //
-      // Trecho temporal:
-      //   0.85 .. 0.93  (sub-fase C1) — hero solta do fullscreen, recua em Z,
-      //                                ganha radius/shadow, próxima secção
-      //                                começa a aparecer por baixo
-      //   0.93 .. 1.00  (sub-fase C2) — hero finaliza a saída por cima do
-      //                                viewport (translateY) com fade leve,
-      //                                cedendo o palco à narrativa
+      // Trecho temporal (com PHASE_B_END = 0.88):
+      //   0.88 .. ~0.94  (sub-fase C1) — hero solta do fullscreen, recua em Z,
+      //   ~0.94 .. 1.00  (sub-fase C2) — saída por cima + fade
       const exitDuration = 1 - PHASE_B_END;
-      const C1_RATIO = 0.55;
+      /** C2 um pouco mais curta para o fade/zero-opacity chegar antes ao fim do pin */
+      const C1_RATIO = 0.5;
       const C1_DUR = exitDuration * C1_RATIO;
       const C2_START = PHASE_B_END + C1_DUR;
       const C2_DUR = exitDuration - C1_DUR;
@@ -754,7 +811,7 @@ export default function ScrollDrivenHeroGallery() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(80% 60% at 28% 22%, rgba(255,92,10,0.10) 0%, rgba(10,10,10,0) 60%), radial-gradient(60% 50% at 80% 90%, rgba(238,217,196,0.06) 0%, rgba(10,10,10,0) 70%)",
+              "radial-gradient(80% 60% at 28% 22%, rgba(247,147,0,0.12) 0%, rgba(10,10,10,0) 60%), radial-gradient(60% 50% at 80% 90%, rgba(255,193,7,0.06) 0%, rgba(10,10,10,0) 70%)",
           }}
         />
         <div
@@ -762,7 +819,7 @@ export default function ScrollDrivenHeroGallery() {
           className="absolute inset-0 pointer-events-none opacity-[0.06]"
           style={{
             backgroundImage:
-              "linear-gradient(to right, #ff5c0a 1px, transparent 1px), linear-gradient(to bottom, #ff5c0a 1px, transparent 1px)",
+              "linear-gradient(to right, #f79300 1px, transparent 1px), linear-gradient(to bottom, #f79300 1px, transparent 1px)",
             backgroundSize: "72px 72px",
           }}
         />
@@ -803,9 +860,9 @@ export default function ScrollDrivenHeroGallery() {
             ref={trackRef}
             className="relative flex items-center"
             style={{
-              gap: "clamp(20px, 2.4vw, 44px)",
-              paddingLeft: "8vw",
-              paddingRight: "8vw",
+              gap: "var(--space-5)",
+              paddingLeft: "var(--gutter)",
+              paddingRight: "var(--gutter)",
               width: "max-content",
               willChange: "transform",
             }}
@@ -903,7 +960,7 @@ export default function ScrollDrivenHeroGallery() {
             height: "100%",
             overflow: "hidden",
             borderRadius: 0,
-            backgroundColor: "#120f0c",
+            backgroundColor: "var(--card-bg)",
             willChange: "left, top, width, height, opacity",
             // shadow só faz sentido quando o overlay já encolheu para o
             // formato de card; nos primeiros frames (fullscreen) é invisível
@@ -929,9 +986,9 @@ export default function ScrollDrivenHeroGallery() {
             ref={introOverlayCopyRef}
             className="absolute z-[2] pointer-events-none"
             style={{
-              top: "clamp(22px, 7vh, 72px)",
-              left: "clamp(20px, 6vw, 96px)",
-              maxWidth: "min(90vw, 680px)",
+              top: "clamp(var(--space-6), 7vh, var(--space-8))",
+              left: "var(--gutter)",
+              maxWidth: "min(680px, calc(100vw - 2 * var(--gutter)))",
             }}
           >
             <p
@@ -988,7 +1045,8 @@ export default function ScrollDrivenHeroGallery() {
 
       <motion.section
         id="continua-narrativa"
-        className="relative w-full overflow-hidden isolate"
+        aria-label="Continua a história"
+        className="relative isolate block w-full overflow-hidden section-padding"
         style={{
           minHeight: "min(100vh, 760px)",
           background: "var(--background)",
@@ -1004,30 +1062,65 @@ export default function ScrollDrivenHeroGallery() {
           duration: reducedMotion ? 0.3 : 0.95,
           ease: EASE_OUT_EXPO,
         }}
-        onPointerMoveCapture={(e) =>
-          narrativaSkinRef.current?.onSectionPointerMove(e)
-        }
-        onPointerLeave={() => narrativaSkinRef.current?.onSectionPointerLeave()}
+        onPointerMoveCapture={narrativaBackdrop.onSectionPointerMove}
+        onPointerLeave={narrativaBackdrop.onSectionPointerLeave}
       >
         <div
           aria-hidden
-          className="absolute inset-0"
+          className="absolute inset-0 overflow-hidden"
+          style={{ perspective: "1400px", WebkitPerspective: "1400px" }}
+        >
+          <motion.div
+            className="absolute inset-[-15%] will-change-transform"
+            style={{
+              rotateX: narrativaBackdrop.rotateX,
+              rotateY: narrativaBackdrop.rotateY,
+              scale: 1.12,
+              opacity: 0.76,
+              transformStyle: "preserve-3d",
+            }}
+          >
+            <Image
+              src="/img-bg.webp"
+              alt=""
+              fill
+              sizes="120vw"
+              quality={93}
+              className="object-cover object-center contrast-[1.04] brightness-[1.02] [image-rendering:high-quality]"
+              priority={false}
+            />
+          </motion.div>
+        </div>
+        <div
+          aria-hidden
+          className="absolute inset-0 z-[1]"
           style={{
             background:
-              "radial-gradient(120% 80% at 30% 30%, #1a0f0a 0%, #0f0c0a 45%, #0a0a0a 80%, #000 100%)",
+              "radial-gradient(120% 80% at 30% 30%, rgba(94, 58, 0, 0.55) 0%, rgba(21, 21, 21, 0.82) 42%, rgba(10, 10, 10, 0.88) 78%, rgba(10, 10, 10, 0.94) 100%)",
+          }}
+        />
+        {narrativaBackdrop.enabled ? (
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[2]"
+            style={{
+              background: narrativaBackdrop.glowBg,
+              mixBlendMode: "screen",
+              opacity: 0.55,
+            }}
+          />
+        ) : null}
+        <div
+          aria-hidden
+          className="absolute -right-[10%] top-[5%] z-[2] h-[80%] w-[70%] opacity-50 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(closest-side, rgba(247,147,0,0.45), rgba(255,179,71,0.15) 45%, transparent 75%)",
           }}
         />
         <div
           aria-hidden
-          className="absolute -right-[10%] top-[5%] w-[70%] h-[80%] opacity-50 blur-3xl"
-          style={{
-            background:
-              "radial-gradient(closest-side, rgba(255,92,10,0.45), rgba(255,122,61,0.15) 45%, transparent 75%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute -left-[10%] bottom-[-20%] w-[70%] h-[70%] opacity-[0.38] blur-3xl"
+          className="absolute -left-[10%] bottom-[-20%] z-[2] h-[70%] w-[70%] opacity-[0.38] blur-3xl"
           style={{
             background:
               "radial-gradient(closest-side, rgba(204,74,8,0.45), rgba(10,10,10,0.2) 55%, transparent 70%)",
@@ -1035,91 +1128,86 @@ export default function ScrollDrivenHeroGallery() {
         />
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.07] pointer-events-none"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #ff5c0a 1px, transparent 1px), linear-gradient(to bottom, #ff5c0a 1px, transparent 1px)",
-            backgroundSize: "72px 72px",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0 z-[2]"
           style={{
             background:
               "radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.65) 100%)",
           }}
         />
-        <InteractiveSkinBackground ref={narrativaSkinRef} />
 
-        <div className="relative z-10 content-wrap section-padding flex h-full flex-col justify-center">
-          <div className="max-w-2xl" style={{ perspective: "1000px" }}>
-            <motion.h2
-              variants={narrativaVariants.h2Container}
-              initial="hidden"
-              whileInView="visible"
-              viewport={VIEWPORT_OPTS}
-              className="t-h2 overflow-hidden"
-              style={{
-                transformStyle: "preserve-3d",
-              }}
-            >
-              {HEADLINE_WORDS.map((word, i) => (
-                <motion.span
-                  key={`${word}-${i}`}
-                  variants={narrativaVariants.h2Word}
-                  className="inline-block"
+        {/* Mesmo alinhamento horizontal que SkinsCarousel: section-padding + content-wrap + texto à esquerda */}
+        <div className="relative z-10 flex min-h-[min(100vh,760px)] w-full flex-col justify-center items-stretch">
+          <div className="content-wrap w-full text-left">
+            <header className="flex w-full flex-col gap-3 md:gap-4">
+              <div className="w-full" style={{ perspective: "1000px" }}>
+                <motion.h2
+                  variants={narrativaVariants.h2Container}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={VIEWPORT_OPTS}
+                  className="t-h2 overflow-hidden text-left"
                   style={{
-                    marginRight: i < HEADLINE_WORDS.length - 1 ? "0.25em" : 0,
                     transformStyle: "preserve-3d",
-                    willChange: "transform, opacity",
                   }}
                 >
-                  {word}
-                </motion.span>
-              ))}
-            </motion.h2>
-            <motion.p
-              variants={narrativaVariants.sub}
-              initial="hidden"
-              whileInView="visible"
-              viewport={VIEWPORT_OPTS}
-              className="t-body mt-6"
-              style={{ maxWidth: "48ch" }}
-            >
-              Skin nova é partida nova. A próxima vitória pode estar a um
-              clique de distância.
-            </motion.p>
-            <div className="mt-8 flex flex-wrap items-center gap-[var(--space-3)]">
-              <motion.a
-                variants={narrativaVariants.ctaPrimary}
-                initial="hidden"
-                whileInView="visible"
-                viewport={VIEWPORT_OPTS}
-                href="#hero-mercado"
-                className="btn-solid t-cta"
-              >
-                Quero a minha skin
-              </motion.a>
-              <motion.a
-                variants={narrativaVariants.ctaSecondary}
-                initial="hidden"
-                whileInView="visible"
-                viewport={VIEWPORT_OPTS}
-                href="#skins-destaque"
-                className="btn-ghost t-cta"
-              >
-                Como funciona
-              </motion.a>
-            </div>
+                  {HEADLINE_WORDS.map((word, i) => (
+                    <motion.span
+                      key={`${word}-${i}`}
+                      variants={narrativaVariants.h2Word}
+                      className="inline-block text-left"
+                      style={{
+                        marginRight:
+                          i < HEADLINE_WORDS.length - 1 ? "0.25em" : 0,
+                        transformStyle: "preserve-3d",
+                        willChange: "transform, opacity",
+                      }}
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </motion.h2>
+                <motion.p
+                  variants={narrativaVariants.sub}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={VIEWPORT_OPTS}
+                  className="t-body-sm mt-3 text-left"
+                  style={{ maxWidth: "44ch" }}
+                >
+                  Skin nova é partida nova. A próxima vitória pode estar a um clique
+                  de distância.
+                </motion.p>
+                <div className="mt-8 flex flex-wrap items-center justify-start gap-[var(--space-3)]">
+                  <motion.a
+                    variants={narrativaVariants.ctaPrimary}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={VIEWPORT_OPTS}
+                    href="#hero-mercado"
+                    className="btn-solid t-cta"
+                  >
+                    Quero a minha skin
+                  </motion.a>
+                  <motion.a
+                    variants={narrativaVariants.ctaSecondary}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={VIEWPORT_OPTS}
+                    href="#skins-destaque"
+                    className="btn-ghost t-cta"
+                  >
+                    Como funciona
+                  </motion.a>
+                </div>
+              </div>
+            </header>
             <motion.div
               variants={narrativaVariants.statsContainer}
               initial="hidden"
               whileInView="visible"
               viewport={VIEWPORT_OPTS}
               aria-label="Estatísticas da plataforma"
-              className="mt-[var(--space-7)] grid grid-cols-3 gap-[var(--space-4)] border-t pt-[var(--space-6)] md:gap-[var(--space-6)]"
-              style={{ borderTopColor: "var(--line-soft)" }}
+              className="mt-[var(--space-7)] w-full grid grid-cols-1 gap-[var(--space-5)] border-t border-[var(--line-soft)] pt-[var(--space-6)] text-left sm:grid-cols-3 sm:gap-[var(--space-4)] md:gap-[var(--space-6)]"
             >
               <Stat
                 number="+12k"
@@ -1133,7 +1221,7 @@ export default function ScrollDrivenHeroGallery() {
               />
               <Stat
                 number="24/7"
-                label="Suporte"
+                label="Sempre online"
                 variants={narrativaVariants.statItem}
               />
             </motion.div>
