@@ -122,7 +122,7 @@ const CARD = {
   ctaFg: "var(--on-accent)",
 } as const;
 
-const CARD_WIDTH = "min(380px, 88vw)";
+const CARD_WIDTH = "min(460px, 92vw)";
 
 function tagsFromSkin(skin: FeaturedSkin): string[] {
   const after = skin.index.split("·")[1]?.trim();
