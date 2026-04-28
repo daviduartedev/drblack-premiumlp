@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -151,8 +152,18 @@ export default function HeroMobile({ loading }: { loading: boolean }) {
         </button>
 
         <div className="hero-mobile-brand" aria-label="DR Black Skins">
-          DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
-          <span style={{ color: "var(--accent)" }}>.</span>
+          <Image
+            src="/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.webp"
+            alt="Logo DR Black"
+            width={28}
+            height={28}
+            className="hero-mobile-brand-logo"
+            priority
+          />
+          <span>
+            DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
+            <span style={{ color: "var(--accent)" }}>.</span>
+          </span>
         </div>
 
         <Link

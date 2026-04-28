@@ -145,6 +145,10 @@
   }
 
   .hero-mobile-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     font-family: var(--font-oswald), sans-serif;
     font-weight: 700;
     font-size: 14px;
@@ -153,6 +157,13 @@
     color: var(--highlight);
     text-align: center;
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .hero-mobile-brand-logo {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
   }
 
   .hero-mobile-login-pill {

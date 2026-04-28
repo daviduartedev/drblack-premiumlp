@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import HeroMobile from "@/components/HeroMobile";
@@ -89,15 +90,25 @@ export default function Hero({ loading }: { loading: boolean }) {
         {/* Barra superior — logo | nav centrada (md+) | CTA */}
         <div className="content-wrap section-padding-x relative flex w-full shrink-0 items-center py-6">
           <div className="relative z-[2] min-w-0 flex-1">
-            <div
-              className="hero-min-black-outline truncate font-bold text-sm uppercase"
-              style={{
-                fontFamily: "var(--font-oswald), sans-serif",
-                letterSpacing: "0.2em",
-              }}
-            >
-              DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
-              <span style={{ color: "var(--accent)" }}>.</span>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.webp"
+                alt="Logo DR Black"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+                priority
+              />
+              <div
+                className="hero-min-black-outline truncate font-bold text-sm uppercase"
+                style={{
+                  fontFamily: "var(--font-oswald), sans-serif",
+                  letterSpacing: "0.2em",
+                }}
+              >
+                DR<span style={{ color: "var(--accent)" }}>·</span>BLACK
+                <span style={{ color: "var(--accent)" }}>.</span>
+              </div>
             </div>
           </div>
 
