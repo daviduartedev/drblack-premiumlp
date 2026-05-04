@@ -228,20 +228,6 @@ export default function HeroMobile({ loading }: { loading: boolean }) {
             Fazer login
           </Link>
         </motion.div>
-
-        {/* Indicador de scroll animado */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: show ? 0.7 : 0 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="hero-mobile-scroll-hint"
-          aria-hidden
-        >
-          <span>SCROLL</span>
-          <div className="hero-mobile-scroll-line">
-            <div className="hero-mobile-scroll-dot" />
-          </div>
-        </motion.div>
       </div>
 
       {/* ============================================================

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Loader3D from "@/components/Loader3D";
 import Hero from "@/components/hero";
+import MobileOnboardingCarousel from "@/components/MobileOnboardingCarousel";
 import PostLoginWelcomeModal from "@/components/PostLoginWelcomeModal";
 import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 import SkinsCarousel from "@/components/SkinsCarousel";
@@ -10,34 +10,33 @@ import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 
 function HomeContent() {
-  const [revealed, setRevealed] = useState(false);
-  const [loaderDone, setLoaderDone] = useState(false);
-  /** Fechamento apenas nesta permanência na página; novo carregamento da LP volta a mostrar */
+  /**
+   * Detecta mobile no primeiro paint client-side.
+   * Usado para condicionar:
+   *  - PostLoginWelcomeModal (popup) — apenas desktop.
+   *  - MobileOnboardingCarousel (tela fullscreen 3 vídeos) — apenas mobile.
+   */
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  /** Fechamento apenas nesta permanência na página; novo carregamento da LP volta a mostrar. */
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
-  /** Depois que o loader termina, a hero está acessível — popup em toda visita à LP */
-  const showHeroWelcome = revealed && loaderDone && !welcomeDismissed;
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  /** Popup APENAS no desktop. */
+  const showHeroWelcome = isMobile === false && !welcomeDismissed;
+
+  /** Tela onboarding APENAS no mobile. */
+  const showMobileOnboarding = isMobile === true && !welcomeDismissed;
 
   const closeWelcome = useCallback(() => {
     setWelcomeDismissed(true);
   }, []);
-
-  const handleRequestFlip = useCallback(() => setRevealed(true), []);
-  const handleLoaderComplete = useCallback(() => setLoaderDone(true), []);
-
-  /** Depois do loader: alinhar topo da página à viewport (pin da galeria pode mexer em scroll ao montar). */
-  useEffect(() => {
-    if (!revealed) return;
-    const scrollTop = () =>
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    scrollTop();
-    const t0 = window.setTimeout(scrollTop, 0);
-    const t1 = window.setTimeout(scrollTop, 120);
-    return () => {
-      window.clearTimeout(t0);
-      window.clearTimeout(t1);
-    };
-  }, [revealed]);
 
   return (
     <div
@@ -64,28 +63,29 @@ function HomeContent() {
             position: "relative",
           }}
         >
-          <Hero loading={!revealed} />
+          {/* Hero aparece direto — sem loader. `loading={false}` mantém o contrato
+              do componente: as animações de entrada (motion) usam `show=true`. */}
+          <Hero loading={false} />
         </div>
 
-        <Loader3D
-          onRequestFlip={handleRequestFlip}
-          onLoaderComplete={handleLoaderComplete}
-        />
-
         <div id="pos-galeria-scroll" className="scroll-mt-4">
-          {revealed ? <ScrollDrivenHeroGallery /> : null}
+          <ScrollDrivenHeroGallery />
         </div>
 
         {/* Depoimentos da comunidade — vem ANTES do carrossel agora. */}
-        {revealed ? <Testimonials /> : null}
+        <Testimonials />
 
-        {/* Skins em destaque — só monta após o reveal para não competir com o GSAP. */}
-        {revealed ? <SkinsCarousel /> : null}
+        {/* Skins em destaque. */}
+        <SkinsCarousel />
 
         <Footer />
 
         {showHeroWelcome ? (
           <PostLoginWelcomeModal onClose={closeWelcome} />
+        ) : null}
+
+        {showMobileOnboarding ? (
+          <MobileOnboardingCarousel onClose={closeWelcome} />
         ) : null}
       </div>
     </div>

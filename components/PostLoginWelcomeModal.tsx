@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useId, useState } from "react";
-import WelcomeModalMobile from "@/components/WelcomeModalMobile";
-import "@/components/WelcomeModalMobile.css";
 
 type Props = {
   onClose: () => void;
@@ -50,9 +48,9 @@ export default function PostLoginWelcomeModal({ onClose }: Props) {
   // Antes do primeiro frame de matchMedia, não renderiza nada (SSR safety).
   if (isMobile === null) return null;
 
-  // Mobile: bottom-sheet premium dedicado.
+  // Mobile: popup totalmente removido — apenas desktop exibe o card.
   if (isMobile) {
-    return <WelcomeModalMobile onClose={onClose} />;
+    return null;
   }
 
   return (

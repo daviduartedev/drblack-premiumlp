@@ -1,0 +1,471 @@
+/* ============================================================
+ * MobileOnboardingCarousel — fullscreen mobile only
+ * Reproduz a referência (estilo "adidas adiclub onboarding")
+ * Renderiza apenas em ≤ 767px; em desktop NUNCA aparece.
+ * ============================================================ */
+
+.mob-onb-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #0a0a0a;
+  color: #ffffff;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 320ms ease;
+  /* Respeita safe-area do iPhone */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mob-onb-root.is-mounted {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------
+ * Background — vídeos verticais empilhados em cross-fade
+ * ---------------------------------------------------------------- */
+.mob-onb-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #0a0a0a;
+}
+
+.mob-onb-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.mob-onb-video.is-active {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------
+ * Placeholders — usados enquanto não há vídeos.
+ * 3 variantes (1, 2, 3) — cada uma com gradient diferente na paleta da marca.
+ * ---------------------------------------------------------------- */
+.mob-onb-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.mob-onb-placeholder.is-active {
+  opacity: 1;
+}
+
+/* Variante 1 — laranja vibrante "compra" */
+.mob-onb-placeholder-1 {
+  background:
+    radial-gradient(
+      85% 65% at 30% 25%,
+      rgba(247, 147, 0, 0.55) 0%,
+      rgba(247, 147, 0, 0.18) 35%,
+      transparent 65%
+    ),
+    radial-gradient(
+      70% 50% at 80% 85%,
+      rgba(255, 193, 7, 0.4) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #1a1208 0%, #0a0a0a 100%);
+}
+
+/* Variante 2 — dourado profundo "venda" */
+.mob-onb-placeholder-2 {
+  background:
+    radial-gradient(
+      90% 60% at 70% 30%,
+      rgba(255, 193, 7, 0.5) 0%,
+      rgba(199, 106, 0, 0.22) 40%,
+      transparent 70%
+    ),
+    radial-gradient(
+      75% 55% at 20% 90%,
+      rgba(247, 147, 0, 0.32) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, #150f06 0%, #0a0a0a 100%);
+}
+
+/* Variante 3 — laranja escuro "concorra" — vibe de competição */
+.mob-onb-placeholder-3 {
+  background:
+    radial-gradient(
+      100% 70% at 50% 20%,
+      rgba(199, 106, 0, 0.55) 0%,
+      rgba(247, 147, 0, 0.18) 40%,
+      transparent 75%
+    ),
+    radial-gradient(
+      60% 50% at 50% 100%,
+      rgba(94, 58, 0, 0.6) 0%,
+      transparent 70%
+    ),
+    linear-gradient(180deg, #1c1206 0%, #0a0a0a 100%);
+}
+
+/* Pattern sutil de grid sobre os placeholders — dá textura "premium" enquanto
+ * não tem vídeo. Some quando o vídeo de verdade for adicionado. */
+.mob-onb-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+}
+
+/* "Pulso" de luz lento — dá sensação de algo vivo no fundo */
+.mob-onb-placeholder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    50% 35% at 50% 50%,
+    rgba(255, 193, 7, 0.18) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  animation: mob-onb-pulse 6s ease-in-out infinite;
+}
+
+@keyframes mob-onb-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+.mob-onb-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0.55) 0%,
+      rgba(10, 10, 10, 0.18) 28%,
+      rgba(10, 10, 10, 0.18) 60%,
+      rgba(10, 10, 10, 0.78) 100%
+    );
+}
+
+/* ----------------------------------------------------------------
+ * Tap zones — toque lateral avança/volta
+ * ---------------------------------------------------------------- */
+.mob-onb-tap-zones {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------
+ * Progress bars — 3 tracks no topo (estilo stories)
+ * ---------------------------------------------------------------- */
+.mob-onb-progress {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  gap: 6px;
+  padding: 12px 18px 0;
+}
+
+.mob-onb-progress-track {
+  flex: 1;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mob-onb-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.mob-onb-progress-fill.is-done {
+  width: 100%;
+}
+
+.mob-onb-progress-fill.is-active {
+  animation: mob-onb-progress 5200ms linear forwards;
+}
+
+@keyframes mob-onb-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* ----------------------------------------------------------------
+ * Header — logos centralizadas + close absoluto à direita
+ * ---------------------------------------------------------------- */
+.mob-onb-header {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* CENTRALIZA as logos horizontalmente */
+  padding: 18px 18px 10px;
+  min-height: 64px;
+}
+
+.mob-onb-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
+.mob-onb-brand-text {
+  /* Tamanho aumentado — destaque para a marca */
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.mob-onb-brand-divider {
+  display: inline-block;
+  width: 1.5px;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+}
+
+.mob-onb-brand-logo {
+  /* Tamanho aumentado para combinar com o texto à esquerda */
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.mob-onb-close {
+  /* Posicionado absoluto à direita — não interfere na centralização das logos */
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.mob-onb-close:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-50%) scale(0.94);
+}
+
+/* ----------------------------------------------------------------
+ * Conteúdo central — headline grande + subline
+ * ---------------------------------------------------------------- */
+.mob-onb-content {
+  position: relative;
+  z-index: 3;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  text-align: center;
+  pointer-events: none; /* deixa as tap zones funcionarem */
+}
+
+.mob-onb-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  margin-bottom: 28px;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.mob-onb-headline {
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  font-weight: 700;
+  font-size: clamp(56px, 16vw, 96px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  color: #ffffff;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+  animation: mob-onb-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.mob-onb-subline {
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 400;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 28ch;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  animation: mob-onb-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+@keyframes mob-onb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ----------------------------------------------------------------
+ * CTAs — botões grandes na parte inferior
+ * ---------------------------------------------------------------- */
+.mob-onb-ctas {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px calc(env(safe-area-inset-bottom, 0px) + 22px);
+}
+
+.mob-onb-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 22px;
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 180ms ease, color 180ms ease, transform 160ms ease,
+    box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.mob-onb-cta:active {
+  transform: scale(0.985);
+}
+
+/* PRIMÁRIO — laranja da marca (--accent), texto preto (--on-accent) */
+.mob-onb-cta-primary {
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-soft) 100%
+  );
+  color: var(--on-accent);
+  border: 1.5px solid rgba(255, 193, 7, 0.6);
+  box-shadow:
+    0 10px 32px rgba(247, 147, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.mob-onb-cta-primary:active {
+  background: linear-gradient(
+    135deg,
+    var(--accent-deep) 0%,
+    var(--accent) 100%
+  );
+  box-shadow: 0 4px 16px rgba(247, 147, 0, 0.32);
+}
+
+/* SECUNDÁRIO — outline dourado (--highlight), texto dourado, fundo translúcido */
+.mob-onb-cta-secondary {
+  background: rgba(10, 10, 10, 0.5);
+  color: var(--highlight);
+  border: 1.5px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mob-onb-cta-secondary:active {
+  background: rgba(255, 193, 7, 0.12);
+  border-color: var(--highlight);
+  color: var(--highlight);
+}
+
+/* ----------------------------------------------------------------
+ * Defesa de profundidade — esconder em desktop
+ * ---------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .mob-onb-root {
+    display: none !important;
+  }
+}
+
+/* Reduced motion — para usuários com preferência reduzida */
+@media (prefers-reduced-motion: reduce) {
+  .mob-onb-root,
+  .mob-onb-video,
+  .mob-onb-placeholder,
+  .mob-onb-headline,
+  .mob-onb-subline {
+    transition: none;
+    animation: none;
+  }
+  .mob-onb-placeholder::after {
+    animation: none;
+    opacity: 0.5;
+  }
+  .mob-onb-progress-fill.is-active {
+    /* Em motion reduzido o auto-avanço continua, mas sem barra animada */
+    animation: none;
+    width: 50%;
+  }
+}

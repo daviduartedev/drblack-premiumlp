@@ -139,25 +139,85 @@
     touch-action: manipulation;
   }
 
-  .skins-mobile-rail {
+  /* ============================================================
+   * MARQUEE MOBILE — carrossel contínuo (sem touch necessário)
+   * ------------------------------------------------------------
+   * Substitui o scroll-snap antigo. A faixa anda sozinha em loop
+   * usando @keyframes. Em :active a animação pausa, permitindo
+   * que o usuário "segure" um card antes de tocá-lo.
+   * ============================================================ */
+  .skins-mobile-marquee {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* Máscara nas bordas — fade-in/out elegante. */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 6%,
+      #000 94%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 6%,
+      #000 94%,
+      transparent 100%
+    );
+  }
+
+  .skins-mobile-marquee-track {
     display: flex;
-    gap: 14px;
-    overflow-x: auto;
-    padding: 2px var(--gutter) 6px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    width: max-content;
+    gap: var(--skins-mobile-marquee-gap, 14px);
+    padding: 4px 0 8px;
+    animation: skins-mobile-marquee
+      var(--skins-mobile-marquee-duration, 32s) linear infinite;
+    will-change: transform;
+  }
+
+  /* Pausa quando o usuário está tocando — boa UX em mobile. */
+  .skins-mobile-marquee:active .skins-mobile-marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes skins-mobile-marquee {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      /* Anda metade da track (a outra metade é a duplicação) e dá o "loop perfeito". */
+      transform: translate3d(calc(-50% - (var(--skins-mobile-marquee-gap, 14px) / 2)), 0, 0);
+    }
   }
 
   .skins-mobile-card {
-    scroll-snap-align: start;
-    flex: 0 0 min(78vw, 310px);
-    min-height: 332px;
+    flex: 0 0 min(72vw, 290px);
+    min-height: 320px;
     border-radius: 20px;
     padding: 14px;
     background: var(--background-raised);
     color: var(--foreground);
     text-decoration: none;
-    box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.14);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 193, 7, 0.14),
+      0 8px 24px rgba(0, 0, 0, 0.32);
+    transition: transform 220ms ease, box-shadow 220ms ease;
+  }
+
+  .skins-mobile-card:active {
+    transform: scale(0.98);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 193, 7, 0.28),
+      0 4px 14px rgba(0, 0, 0, 0.42);
+  }
+
+  /* Os cards duplicados não recebem foco/hover/click — são puramente visuais. */
+  .skins-mobile-card-duplicate {
+    pointer-events: none;
+    user-select: none;
   }
 
   .skins-mobile-image-wrap {
@@ -180,20 +240,20 @@
   .skins-mobile-title {
     margin: 8px 0 0;
     font-family: var(--font-oswald), sans-serif;
-    font-size: clamp(21px, 5.2vw, 26px);
-    line-height: 1;
+    font-size: clamp(20px, 5vw, 24px);
+    line-height: 1.05;
     text-transform: uppercase;
     color: var(--foreground);
   }
 
   .skins-mobile-subtitle {
     margin: 8px 0 0;
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--foreground-muted);
   }
 
   .skins-mobile-price {
-    margin: 14px 0 0;
+    margin: 12px 0 0;
     font-size: 14px;
     font-weight: 700;
     color: var(--accent);
@@ -303,5 +363,22 @@
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
   .mobile-fade-up {
     animation: none;
+  }
+  /* Marquee contínua: usuário com motion reduzido recebe scroll
+     horizontal manual (snap) em vez de animação infinita. */
+  .skins-mobile-marquee {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .skins-mobile-marquee-track {
+    animation: none !important;
+    width: max-content;
+    padding-inline: var(--gutter);
+  }
+  .skins-mobile-card {
+    scroll-snap-align: start;
   }
 }

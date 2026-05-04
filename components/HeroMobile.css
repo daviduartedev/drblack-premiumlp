@@ -311,55 +311,6 @@
   }
 
   /* ----------------------------------------------------------------
-   * SCROLL HINT
-   * ---------------------------------------------------------------- */
-  .hero-mobile-scroll-hint {
-    margin-top: 24px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    align-self: center;
-    font-size: 9px;
-    letter-spacing: 0.34em;
-    text-transform: uppercase;
-    color: var(--highlight);
-  }
-  .hero-mobile-scroll-line {
-    position: relative;
-    width: 2px;
-    height: 26px;
-    background: rgba(255, 255, 255, 0.15);
-    overflow: hidden;
-    border-radius: 2px;
-  }
-  .hero-mobile-scroll-dot {
-    position: absolute;
-    top: -10px;
-    left: 0;
-    width: 100%;
-    height: 10px;
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      var(--accent) 100%
-    );
-    animation: hero-mobile-scroll-fall 1.6s ease-in-out infinite;
-  }
-  @keyframes hero-mobile-scroll-fall {
-    0% {
-      top: -10px;
-      opacity: 0;
-    }
-    20% {
-      opacity: 1;
-    }
-    100% {
-      top: 100%;
-      opacity: 0;
-    }
-  }
-
-  /* ----------------------------------------------------------------
    * DRAWER — menu mobile
    * ---------------------------------------------------------------- */
   .hero-mobile-drawer-root {
@@ -483,7 +434,6 @@
    * Reduced motion
    * ---------------------------------------------------------------- */
   @media (prefers-reduced-motion: reduce) {
-    .hero-mobile-scroll-dot,
     .hero-mobile-drawer,
     .hero-mobile-drawer-backdrop {
       animation: none;
