@@ -7,7 +7,6 @@ import PostLoginWelcomeModal from "@/components/PostLoginWelcomeModal";
 import ScrollDrivenHeroGallery from "@/components/ScrollDrivenHeroGallery";
 import SkinsCarousel from "@/components/SkinsCarousel";
 import Testimonials from "@/components/Testimonials";
-import RubySapphirePublicSection from "@/components/RubySapphirePublicSection";
 import Footer from "@/components/Footer";
 
 function HomeContent() {
@@ -75,8 +74,6 @@ function HomeContent() {
 
         {/* Depoimentos da comunidade — vem ANTES do carrossel agora. */}
         <Testimonials />
-
-        <RubySapphirePublicSection />
 
         {/* Skins em destaque. */}
         <SkinsCarousel />
