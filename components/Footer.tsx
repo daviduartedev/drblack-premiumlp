@@ -98,12 +98,12 @@ export default function Footer() {
               style={{ maxWidth: "min(100%, 320px)" }}
             >
               <Image
-                src="/TEXTO%20GOLD%20(1).png"
+                src="/new-logo.png"
                 alt="Dr. Black Skins, assinatura"
-                width={640}
-                height={180}
-                className="h-auto w-full object-contain object-left"
-                sizes="(max-width: 768px) 72vw, 320px"
+                width={500}
+                height={500}
+                className="h-20 w-20 object-contain object-left"
+                sizes="80px"
               />
             </div>
             <p

@@ -92,7 +92,7 @@ export default function Hero({ loading }: { loading: boolean }) {
           <div className="relative z-[2] min-w-0 flex-1">
             <div className="flex items-center gap-3">
               <Image
-                src="/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.webp"
+                src="/new-logo.png"
                 alt="Logo DR Black"
                 width={36}
                 height={36}

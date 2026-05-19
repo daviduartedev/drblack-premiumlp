@@ -377,6 +377,28 @@ body {
   border-radius: 24px;
 }
 
+.admin-input {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--foreground);
+  padding: 11px 12px;
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-body);
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.admin-input:focus {
+  border-color: rgba(91, 168, 255, 0.72);
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: 0 0 0 3px rgba(91, 168, 255, 0.14);
+}
+
 .hero-nav-catalog-link:hover {
   color: var(--highlight);
 }

@@ -113,7 +113,7 @@ export default function TermosPage() {
 
           <Section title="9. Limitação de responsabilidade">
             <p>
-              A plataforma é fornecida "como está". Não nos responsabilizamos por
+              A plataforma é fornecida &quot;como está&quot;. Não nos responsabilizamos por
               indisponibilidade da Steam/Valve, por flutuações de mercado de
               skins ou por danos indiretos decorrentes do uso. Nossa
               responsabilidade fica limitada ao valor da última transação do

@@ -67,7 +67,7 @@ export default function MobileOnboardingCarousel({ onClose }: Props) {
   const [isMounted, setIsMounted] = useState(false);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const timerRef = useRef<number | null>(null);
-  const startedAtRef = useRef<number>(Date.now());
+  const startedAtRef = useRef<number>(0);
 
   /** Anima a entrada (fade-in). */
   useEffect(() => {

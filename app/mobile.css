@@ -125,7 +125,7 @@
   }
 
   /* Barra inferior — empilha info legal */
-  footer .md\\:flex-row {
+  footer .md\:flex-row {
     align-items: flex-start !important;
     gap: 8px !important;
   }

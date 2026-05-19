@@ -54,7 +54,8 @@ const LightPillar = ({
     const gl =
       canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
     if (!gl) {
-      setWebGLSupported(false);
+      const id = window.requestAnimationFrame(() => setWebGLSupported(false));
+      return () => window.cancelAnimationFrame(id);
     }
   }, []);
 
@@ -131,8 +132,8 @@ const LightPillar = ({
         depth: false,
       });
     } catch {
-      setWebGLSupported(false);
-      return;
+      const id = window.requestAnimationFrame(() => setWebGLSupported(false));
+      return () => window.cancelAnimationFrame(id);
     }
 
     renderer.setSize(width, height);

@@ -1,8 +1,11 @@
-# Especificações (hub)
+# Especificacoes (hub)
 
-Ponto de entrada para o comportamento e a intenção do produto versionada no repositório.
+Ponto de entrada para o comportamento e a intencao do produto versionada no repositorio.
 
-- **Features por pasta:** `spec/features/<id>/` — um `readme.md` por feature com tokens, regras de conteúdo, exclusões e links para ciclos que implementaram a mudança.
-- **Ciclos de trabalho:** `cycles/Q{Y}{N}/{id}-{slug}/` — contém `request.md`, `plan.md` (delta), `tasks.md` e `scenarios.feature` para a entrega agêntica.
+- **Features por pasta:** `spec/features/<id>/` - um `readme.md` por feature com tokens, regras de conteudo, exclusoes e links para ciclos que implementaram a mudanca.
+- **Ciclos de trabalho:** `cycles/Q{Y}{N}/{id}-{slug}/` - contem `request.md`, `plan.md` (delta), `tasks.md` e `scenarios.feature` para a entrega agentica.
 
-Feature ativo de rebranding: `spec/features/rebrand-2026-q1/` (inclui após o ciclo 0002 a secção *Hero: slot de mídia e scroll*, após o ciclo 0003 a secção *Continua a narrativa: ponte interativa*, após o ciclo 0004 a secção *Transições KPR fiéis* — shape refinado, easings por fase, morph fluido com `flubber`, frame highlight + glow Fase B e saída cinematográfica refinada — e, após o ciclo 0005, a secção *Padronização e layout pós-rebrand* — sistema unificado de botões `.btn-ghost`/`.btn-solid`/`.btn-icon`/`.btn-icon-sm`/`.footer-link`, hero sem `mediaSlot` com altura `min-h-screen`, narrativa em 2 colunas com bloco de stats placeholder, vinheta lateral no carrossel, footer com bordas únicas e alinhamento baseline e cookie banner em max-width 980px).
+## Features canonicas
+
+- `spec/features/rebrand-2026-q1/` - feature ativa de rebranding publico. Inclui ciclos 0001 a 0005: cores/copy, hero, narrativa interativa, transicoes KPR e padronizacao pos-rebrand.
+- `spec/features/painel-admin-ruby-safira/` - feature criada no ciclo `cycles/Q12026/0006-painel-admin-ruby-safira/`. Define novas secoes/efeitos Ruby/Safira, dashboard cliente, painel admin, ficha tecnica, calculadora de lucro, seed local e contrato futuro Supabase/Vercel.

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import AnimatedSectionTitle from "@/components/AnimatedSectionTitle";
@@ -129,8 +129,6 @@ function cardDescription(skin: FeaturedSkin): string {
 }
 
 export default function SkinsCarousel() {
-  const reducedMotion = useReducedMotion();
-
   return (
     <section
       id="skins-destaque"

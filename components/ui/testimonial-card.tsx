@@ -74,12 +74,17 @@ const AnimatedStatCard = ({ value, label }: Stat) => {
 
   React.useEffect(() => {
     if (!parsed || reducedMotion) {
-      setDisplay(value);
+      const id = window.requestAnimationFrame(() => setDisplay(value));
+      return () => window.cancelAnimationFrame(id);
+    }
+    const displayId = window.requestAnimationFrame(() =>
+      setDisplay(`${parsed.prefix}0${parsed.suffix}`)
+    );
+    const node = ref.current;
+    if (!node) {
+      window.cancelAnimationFrame(displayId);
       return;
     }
-    setDisplay(`${parsed.prefix}0${parsed.suffix}`);
-    const node = ref.current;
-    if (!node) return;
 
     const obs = new IntersectionObserver(
       (entries) => {
@@ -105,7 +110,10 @@ const AnimatedStatCard = ({ value, label }: Stat) => {
       { threshold: 0.4 }
     );
     obs.observe(node);
-    return () => obs.disconnect();
+    return () => {
+      window.cancelAnimationFrame(displayId);
+      obs.disconnect();
+    };
   }, [parsed, reducedMotion, value]);
 
   return (

@@ -1,0 +1,223 @@
+import "server-only";
+
+import type {
+  FinancialEntry,
+  Purchase,
+  Raffle,
+  SaleHistoryEntry,
+  Skin,
+  Ticket,
+  User,
+} from "@/lib/ruby-safira-types";
+import { TEST_CREDENTIALS } from "@/lib/test-credentials";
+export { TEST_CREDENTIALS };
+
+export const users: User[] = [
+  {
+    id: "usr_customer_001",
+    email: TEST_CREDENTIALS.customer.email,
+    name: "Cliente Safira",
+    role: "customer",
+  },
+  {
+    id: "usr_admin_001",
+    email: TEST_CREDENTIALS.admin.email,
+    name: "Admin Ruby",
+    role: "admin",
+  },
+];
+
+export const skins: Skin[] = [
+  {
+    id: "skin_ak_ruby_001",
+    name: "AK-47 | Ruby Core",
+    weapon: "AK-47",
+    pattern: "Case Hardened Ruby",
+    float: 0.0184,
+    rarity: "Covert",
+    image: "/gallery/Dragon-Lore_LR.webp",
+    paidValue: 4200,
+    estimatedMarketValue: 5100,
+    desiredProfitValue: 1260,
+    desiredProfitPercent: 30,
+    ticketCount: 546,
+    ticketPrice: 10,
+    status: "em_rifa",
+    internalNotes:
+      "Skin principal para validar margem com taxa estimada. Conferir compliance antes de operar.",
+  },
+  {
+    id: "skin_awp_sapphire_001",
+    name: "AWP | Sapphire Mirage",
+    weapon: "AWP",
+    pattern: "Fade Sapphire",
+    float: 0.0221,
+    rarity: "Contraband",
+    image: "/gallery/AWP Light (1).png",
+    paidValue: 7800,
+    estimatedMarketValue: 9200,
+    desiredProfitValue: 2340,
+    desiredProfitPercent: 30,
+    ticketCount: 1014,
+    ticketPrice: 10,
+    status: "em_estoque",
+    internalNotes:
+      "Alta demanda. Preparar rifa somente apos validacao juridica e liquidez.",
+  },
+  {
+    id: "skin_karambit_001",
+    name: "Karambit | Neon Safira",
+    weapon: "Karambit",
+    pattern: "Doppler Phase Sapphire",
+    float: 0.0072,
+    rarity: "Exceedingly Rare",
+    image: "/gallery/knife.png",
+    paidValue: 11200,
+    estimatedMarketValue: 12900,
+    desiredProfitValue: 2800,
+    desiredProfitPercent: 25,
+    ticketCount: 700,
+    ticketPrice: 20,
+    status: "vendida",
+    internalNotes: "Rifa encerrada com entrega pendente de confirmacao manual.",
+  },
+  {
+    id: "skin_m4_archive_001",
+    name: "M4A1-S | Redline Vault",
+    weapon: "M4A1-S",
+    pattern: "Redline",
+    float: 0.148,
+    rarity: "Classified",
+    image: "/gallery/card1.jpg",
+    paidValue: 980,
+    estimatedMarketValue: 1240,
+    desiredProfitValue: 294,
+    desiredProfitPercent: 30,
+    ticketCount: 127,
+    ticketPrice: 10,
+    status: "arquivada",
+    internalNotes: "Arquivo de validacao visual. Nao publicar.",
+  },
+];
+
+export const raffles: Raffle[] = [
+  {
+    id: "raffle_ruby_001",
+    skinId: "skin_ak_ruby_001",
+    title: "AK Ruby Core - drop da semana",
+    status: "ativa",
+    ticketCount: 546,
+    ticketPrice: 10,
+    soldTickets: 318,
+    drawDate: "2026-06-06",
+  },
+  {
+    id: "raffle_karambit_001",
+    skinId: "skin_karambit_001",
+    title: "Karambit Neon Safira",
+    status: "ganha",
+    ticketCount: 700,
+    ticketPrice: 20,
+    soldTickets: 700,
+    drawDate: "2026-05-12",
+  },
+  {
+    id: "raffle_m4_001",
+    skinId: "skin_m4_archive_001",
+    title: "M4A1-S Redline Vault",
+    status: "perdida",
+    ticketCount: 127,
+    ticketPrice: 10,
+    soldTickets: 127,
+    drawDate: "2026-04-28",
+  },
+  {
+    id: "raffle_awp_preview_001",
+    skinId: "skin_awp_sapphire_001",
+    title: "AWP Sapphire Mirage",
+    status: "aguardando_sorteio",
+    ticketCount: 1014,
+    ticketPrice: 10,
+    soldTickets: 0,
+    drawDate: "2026-06-20",
+  },
+  {
+    id: "raffle_closed_001",
+    skinId: "skin_m4_archive_001",
+    title: "Vault turbo encerrado",
+    status: "encerrada",
+    ticketCount: 100,
+    ticketPrice: 12,
+    soldTickets: 92,
+    drawDate: "2026-05-02",
+  },
+];
+
+export const tickets: Ticket[] = [
+  { id: "t_001", raffleId: "raffle_ruby_001", userId: "usr_customer_001", number: "014", status: "ativa" },
+  { id: "t_002", raffleId: "raffle_ruby_001", userId: "usr_customer_001", number: "089", status: "ativa" },
+  { id: "t_003", raffleId: "raffle_ruby_001", userId: "usr_customer_001", number: "317", status: "ativa" },
+  { id: "t_004", raffleId: "raffle_karambit_001", userId: "usr_customer_001", number: "620", status: "ganha" },
+  { id: "t_005", raffleId: "raffle_m4_001", userId: "usr_customer_001", number: "044", status: "perdida" },
+  { id: "t_006", raffleId: "raffle_awp_preview_001", userId: "usr_customer_001", number: "102", status: "aguardando_sorteio" },
+  { id: "t_007", raffleId: "raffle_closed_001", userId: "usr_customer_001", number: "077", status: "encerrada" },
+];
+
+export const purchases: Purchase[] = [
+  {
+    id: "pur_001",
+    userId: "usr_customer_001",
+    raffleId: "raffle_ruby_001",
+    date: "2026-05-18",
+    tickets: 3,
+    total: 30,
+    status: "pago",
+  },
+  {
+    id: "pur_002",
+    userId: "usr_customer_001",
+    raffleId: "raffle_karambit_001",
+    date: "2026-05-10",
+    tickets: 1,
+    total: 20,
+    status: "pago",
+  },
+  {
+    id: "pur_003",
+    userId: "usr_customer_001",
+    raffleId: "raffle_m4_001",
+    date: "2026-04-25",
+    tickets: 1,
+    total: 10,
+    status: "pago",
+  },
+];
+
+export const salesHistory: SaleHistoryEntry[] = [
+  {
+    id: "sale_001",
+    userId: "usr_customer_001",
+    date: "2026-05-14",
+    type: "indicacao",
+    description: "Indicacao validada no drop Karambit",
+    value: 18,
+  },
+  {
+    id: "sale_002",
+    userId: "usr_customer_001",
+    date: "2026-05-16",
+    type: "revenda",
+    description: "Credito interno de revenda assistida",
+    value: 42,
+  },
+];
+
+export const financialEntries: FinancialEntry[] = [
+  { id: "fin_001", skinId: "skin_ak_ruby_001", raffleId: "raffle_ruby_001", kind: "custo", label: "Compra AK Ruby Core", amount: -4200, date: "2026-05-01" },
+  { id: "fin_002", skinId: "skin_ak_ruby_001", raffleId: "raffle_ruby_001", kind: "receita", label: "Bilhetes vendidos", amount: 3180, date: "2026-05-18" },
+  { id: "fin_003", skinId: "skin_ak_ruby_001", raffleId: "raffle_ruby_001", kind: "taxa", label: "Taxas estimadas", amount: -159, date: "2026-05-18" },
+  { id: "fin_004", skinId: "skin_karambit_001", raffleId: "raffle_karambit_001", kind: "custo", label: "Compra Karambit", amount: -11200, date: "2026-04-20" },
+  { id: "fin_005", skinId: "skin_karambit_001", raffleId: "raffle_karambit_001", kind: "receita", label: "Rifa completa", amount: 14000, date: "2026-05-12" },
+  { id: "fin_006", skinId: "skin_karambit_001", raffleId: "raffle_karambit_001", kind: "taxa", label: "Taxas liquidadas", amount: -700, date: "2026-05-12" },
+  { id: "fin_007", skinId: "skin_karambit_001", raffleId: "raffle_karambit_001", kind: "lucro_realizado", label: "Lucro realizado", amount: 2100, date: "2026-05-12" },
+];

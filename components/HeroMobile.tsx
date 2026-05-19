@@ -64,8 +64,8 @@ export default function HeroMobile({ loading }: { loading: boolean }) {
       conn?.effectiveType === "2g" || conn?.effectiveType === "slow-2g";
 
     if (reduced || saveData || slow) {
-      setVideoFailed(true);
-      return;
+      const id = window.requestAnimationFrame(() => setVideoFailed(true));
+      return () => window.cancelAnimationFrame(id);
     }
 
     const onCanPlay = () => setVideoReady(true);
@@ -153,7 +153,7 @@ export default function HeroMobile({ loading }: { loading: boolean }) {
 
         <div className="hero-mobile-brand" aria-label="DR Black Skins">
           <Image
-            src="/gallery/13bc242a-1908-46cf-bcfa-9ccd9633dafa_1.webp"
+            src="/new-logo.png"
             alt="Logo DR Black"
             width={28}
             height={28}
