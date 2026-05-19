@@ -22,7 +22,7 @@ export default function CookiesPage() {
           className="t-eyebrow"
           style={{ color: "var(--highlight)" }}
         >
-          ← Voltar para o início
+         Voltar para o início
         </Link>
 
         <h1 className="t-h2 mt-6">Política de Cookies</h1>
