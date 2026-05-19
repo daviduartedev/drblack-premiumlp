@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Oswald } from "next/font/google";
+import { Geist_Mono, Inter, Oswald, Syne } from "next/font/google";
 import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 import "./mobile.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -16,6 +17,13 @@ const geistMono = Geist_Mono({
 
 const oswald = Oswald({
   variable: "--font-oswald",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  display: "swap",
+});
+
+const syne = Syne({
+  variable: "--font-syne",
   subsets: ["latin"],
   weight: ["400", "600", "700"],
   display: "swap",
@@ -53,7 +61,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${oswald.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}

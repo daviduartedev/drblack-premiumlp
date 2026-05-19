@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
   Calculator,
@@ -13,6 +13,7 @@ import {
   Save,
   ShieldCheck,
   Ticket,
+  TrendingUp,
 } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
 import {
@@ -36,12 +37,12 @@ const STATUS_LABEL: Record<SkinStatus, string> = {
   arquivada: "Arquivada",
 };
 
-const STATUS_TONE: Record<SkinStatus, string> = {
-  em_estoque: "rgba(91,168,255,0.2)",
-  em_rifa: "rgba(255,193,7,0.18)",
-  vendida: "rgba(180,16,58,0.18)",
-  entregue: "rgba(99,255,186,0.14)",
-  arquivada: "rgba(255,255,255,0.08)",
+const STATUS_STYLE: Record<SkinStatus, { bg: string; fg: string }> = {
+  em_rifa: { bg: "rgba(245,166,35,0.15)", fg: "#F5A623" },
+  em_estoque: { bg: "rgba(59,130,246,0.15)", fg: "#3B82F6" },
+  vendida: { bg: "rgba(34,197,94,0.15)", fg: "#22C55E" },
+  entregue: { bg: "rgba(34,197,94,0.15)", fg: "#22C55E" },
+  arquivada: { bg: "rgba(85,85,85,0.2)", fg: "#888888" },
 };
 
 const EMPTY_SKIN: Omit<Skin, "id"> = {
@@ -69,6 +70,8 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [draft, setDraft] = useState<Omit<Skin, "id">>(
     selectedSkin ? stripId(selectedSkin) : EMPTY_SKIN
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
 
   const calculation = useMemo(() => {
     const calculatorInput: ProfitCalculatorInput = {
@@ -103,17 +106,21 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   }, [data.summary, skins]);
 
   function selectSkin(skin: Skin) {
+    setIsSwitchingSkin(true);
     setSelectedSkinId(skin.id);
     setDraft(stripId(skin));
+    window.setTimeout(() => setIsSwitchingSkin(false), 200);
   }
 
   function saveDraft() {
-    if (!selectedSkin) return;
+    if (!selectedSkin || isSaving) return;
+    setIsSaving(true);
     setSkins((current) =>
       current.map((skin) =>
         skin.id === selectedSkin.id ? { ...skin, ...draft } : skin
       )
     );
+    window.setTimeout(() => setIsSaving(false), 650);
   }
 
   function createSkin() {
@@ -142,59 +149,80 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   }
 
   return (
-    <main className="min-h-[100svh] bg-[var(--background)] text-[var(--foreground)]">
-      <section className="mx-auto w-full max-w-[1440px] px-5 py-5 md:px-8 md:py-7">
-        <header className="rounded-[8px] border border-white/10 bg-[var(--background-raised)] p-4 md:p-5">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="t-card-sub text-[var(--highlight)]">Painel admin</p>
-              <h1 className="mt-2 font-display text-[clamp(28px,4vw,54px)] font-bold uppercase leading-[0.95] text-[var(--foreground)]">
-                Precifique a rifa antes de publicar
-              </h1>
-              <p className="t-body-sm mt-3 max-w-[72ch]">
-                Escolha a skin, informe custo e margem desejada. O painel
-                calcula o valor alvo e sugere pacotes de bilhetes para levar ao
-                WhatsApp com menos chute e mais controle.
-              </p>
-            </div>
-
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <Link href="/rifas" className="btn-ghost t-cta">
-                Ver rifas
-              </Link>
-              <Link href="/" className="btn-ghost t-cta">
-                Home
-              </Link>
-              <form action={logoutAction}>
-                <button className="btn-solid t-cta" type="submit">
-                  Sair
-                </button>
-              </form>
-            </div>
+    <main className="min-h-[100svh] bg-[#0D0D0D] font-sans text-[#F0F0F0]">
+      <section className="mx-auto w-full max-w-[1440px] p-6">
+        <header className="flex flex-col gap-5 border-b border-white/[0.06] pb-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-[560px]">
+            <p className="text-[12px] font-medium text-[#888888]">
+              Admin / Precificacao
+            </p>
+            <h1 className="mt-3 font-display text-[36px] font-bold leading-[1.04] text-[#F0F0F0]">
+              Ficha antes da rifa
+            </h1>
+            <p className="mt-3 max-w-[480px] text-[14px] leading-6 text-[#888888]">
+              Calcule custo, margem e bilhetes antes de levar a skin para o
+              WhatsApp. Menos chute, mais decisao financeira.
+            </p>
           </div>
+
+          <nav className="flex flex-wrap gap-2">
+            <Link href="/rifas" className="admin-nav-button">
+              Ver Rifas
+            </Link>
+            <Link href="/" className="admin-nav-button">
+              Home
+            </Link>
+            <form action={logoutAction}>
+              <button className="admin-nav-button hover:text-[#EF4444]" type="submit">
+                Sair
+              </button>
+            </form>
+          </nav>
         </header>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric icon={<Coins />} label="Receita bruta" value={formatBRL(syncedSummary.grossRevenue)} />
-          <Metric icon={<Package />} label="Custo total" value={formatBRL(syncedSummary.totalCost)} />
-          <Metric icon={<Calculator />} label="Lucro esperado" value={formatBRL(syncedSummary.expectedProfit)} />
-          <Metric icon={<Gem />} label="Estoque" value={formatBRL(syncedSummary.stockValue)} />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Metric
+            icon={<Coins />}
+            label="Receita bruta"
+            value={syncedSummary.grossRevenue}
+            accent="#F5A623"
+          />
+          <Metric
+            icon={<Package />}
+            label="Custo total"
+            value={syncedSummary.totalCost}
+            accent="#EF4444"
+          />
+          <Metric
+            icon={<Calculator />}
+            label="Lucro esperado"
+            value={syncedSummary.expectedProfit}
+            accent="#22C55E"
+          />
+          <Metric
+            icon={<Gem />}
+            label="Estoque"
+            value={syncedSummary.stockValue}
+            accent="#3B82F6"
+          />
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+        <div className="mt-5 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
           <Panel title="Estoque" icon={<Package size={17} />}>
-            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
-              <p className="t-body-sm">{skins.length} skins cadastradas</p>
+            <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
+              <p className="text-[14px] text-[#888888]">
+                {skins.length} skins cadastradas
+              </p>
               <button
                 type="button"
                 onClick={createSkin}
-                className="inline-flex size-9 items-center justify-center rounded-full border border-[var(--line)] text-[var(--highlight)] transition hover:bg-white/5"
+                className="inline-flex size-10 items-center justify-center rounded-lg border border-dashed border-white/15 text-[#F5A623] transition-all duration-150 ease-in-out hover:border-[#F5A623] hover:bg-[rgba(245,166,35,0.08)]"
                 aria-label="Criar skin"
               >
-                <Plus size={16} />
+                <Plus size={18} />
               </button>
             </div>
-            <div className="mt-3 grid max-h-[660px] gap-2 overflow-y-auto pr-1">
+            <div className="mt-4 grid max-h-[660px] gap-2 overflow-y-auto pr-1">
               {skins.map((skin) => (
                 <SkinButton
                   key={skin.id}
@@ -207,8 +235,13 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
           </Panel>
 
           <Panel title="Ficha tecnica" icon={<ShieldCheck size={17} />}>
-            <form className="grid gap-5" onSubmit={(event) => event.preventDefault()}>
-              <div className="grid gap-4 rounded-[8px] border border-[rgba(91,168,255,0.28)] bg-[rgba(91,168,255,0.055)] p-4 lg:grid-cols-3">
+            <form
+              className={`grid gap-5 transition-opacity duration-200 ${
+                isSwitchingSkin ? "opacity-55" : "opacity-100"
+              }`}
+              onSubmit={(event) => event.preventDefault()}
+            >
+              <div className="grid gap-4 rounded-xl border border-[rgba(245,166,35,0.18)] bg-[rgba(245,166,35,0.04)] p-5 lg:grid-cols-3">
                 <Field label="Skin">
                   <select
                     value={selectedSkin?.id ?? ""}
@@ -229,7 +262,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                   <input
                     value={draft.paidValue}
                     onChange={(e) => updateDraft("paidValue", Number(e.target.value))}
-                    className="admin-input"
+                    className="admin-input font-medium tabular-nums"
                     type="number"
                     min="0"
                   />
@@ -240,27 +273,43 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                     onChange={(e) =>
                       updateDraft("desiredProfitPercent", Number(e.target.value))
                     }
-                    className="admin-input"
+                    className="admin-input font-medium tabular-nums"
                     type="number"
                     min="0"
                   />
                 </Field>
               </div>
 
-              <div className="grid gap-5 lg:grid-cols-[1fr_220px]">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_230px]">
                 <div className="grid gap-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Nome">
-                      <input value={draft.name} onChange={(e) => updateDraft("name", e.target.value)} className="admin-input" />
+                      <input
+                        value={draft.name}
+                        onChange={(e) => updateDraft("name", e.target.value)}
+                        className="admin-input"
+                      />
                     </Field>
                     <Field label="Tipo/arma">
-                      <input value={draft.weapon} onChange={(e) => updateDraft("weapon", e.target.value)} className="admin-input" />
+                      <input
+                        value={draft.weapon}
+                        onChange={(e) => updateDraft("weapon", e.target.value)}
+                        className="admin-input"
+                      />
                     </Field>
                     <Field label="Padrao">
-                      <input value={draft.pattern} onChange={(e) => updateDraft("pattern", e.target.value)} className="admin-input" />
+                      <input
+                        value={draft.pattern}
+                        onChange={(e) => updateDraft("pattern", e.target.value)}
+                        className="admin-input"
+                      />
                     </Field>
                     <Field label="Raridade">
-                      <input value={draft.rarity} onChange={(e) => updateDraft("rarity", e.target.value)} className="admin-input" />
+                      <input
+                        value={draft.rarity}
+                        onChange={(e) => updateDraft("rarity", e.target.value)}
+                        className="admin-input"
+                      />
                     </Field>
                     <Field label="Float">
                       <input
@@ -271,7 +320,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                             e.target.value === "" ? null : Number(e.target.value)
                           )
                         }
-                        className="admin-input"
+                        className="admin-input tabular-nums"
                         type="number"
                         step="0.0001"
                       />
@@ -297,7 +346,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                         onChange={(e) =>
                           updateDraft("estimatedMarketValue", Number(e.target.value))
                         }
-                        className="admin-input"
+                        className="admin-input tabular-nums"
                         type="number"
                         min="0"
                       />
@@ -306,7 +355,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                       <input
                         value={draft.ticketCount}
                         onChange={(e) => updateDraft("ticketCount", Number(e.target.value))}
-                        className="admin-input"
+                        className="admin-input tabular-nums"
                         type="number"
                         min="1"
                       />
@@ -317,18 +366,30 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                     <textarea
                       value={draft.internalNotes}
                       onChange={(e) => updateDraft("internalNotes", e.target.value)}
-                      className="admin-input min-h-28"
+                      className="admin-input min-h-20"
                     />
                   </Field>
+
+                  <div className="rounded-xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+                    <div className="flex items-center gap-3">
+                      <SteamMark />
+                      <div>
+                        <p className="admin-section-label">Mercado Steam</p>
+                        <p className="mt-1 text-[13px] text-[#888888]">
+                          Integracao em breve
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid content-start gap-3">
-                  <div className="relative aspect-square overflow-hidden rounded-[8px] border border-white/10 bg-black/30">
+                  <div className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-[#1A1A1A]">
                     <Image
                       src={draft.image}
                       alt={draft.name || "Skin selecionada"}
                       fill
-                      sizes="220px"
+                      sizes="230px"
                       className="object-cover"
                     />
                   </div>
@@ -336,15 +397,33 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 border-t border-white/10 pt-4">
-                <button type="button" onClick={saveDraft} className="btn-solid t-cta gap-2">
-                  <Save size={15} /> Salvar
+              <div className="flex flex-wrap gap-3 border-t border-white/[0.06] pt-4">
+                <button
+                  type="button"
+                  onClick={saveDraft}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#F5A623] px-5 text-[14px] font-semibold text-black transition-all duration-150 ease-in-out hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <span className="admin-spinner size-4 rounded-full border-2 border-black/30 border-t-black" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  {isSaving ? "Salvando" : "Salvar"}
                 </button>
-                <button type="button" onClick={createSkin} className="btn-ghost t-cta gap-2">
-                  <Plus size={15} /> Nova skin
+                <button
+                  type="button"
+                  onClick={createSkin}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#F5A623] px-5 text-[14px] font-semibold text-[#F5A623] transition-all duration-150 ease-in-out hover:bg-[rgba(245,166,35,0.08)] active:scale-[0.98]"
+                >
+                  <Plus size={16} /> Nova Skin
                 </button>
-                <button type="button" onClick={archiveSelected} className="btn-ghost t-cta gap-2">
-                  <Archive size={15} /> Arquivar
+                <button
+                  type="button"
+                  onClick={archiveSelected}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#888888] transition-all duration-150 ease-in-out hover:text-[#EF4444] active:scale-[0.98]"
+                >
+                  <Archive size={16} /> Arquivar
                 </button>
               </div>
             </form>
@@ -353,10 +432,12 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
           <CalculatorPanel
             calculation={calculation}
             suggestions={packageSuggestions}
+            selectedTicketCount={draft.ticketCount}
+            onSelectTicketCount={(ticketCount) => updateDraft("ticketCount", ticketCount)}
           />
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+        <div className="mt-5 grid gap-5 xl:grid-cols-3">
           <Panel title="Rifas" icon={<Ticket size={17} />}>
             <Table
               rows={data.raffles.map((raffle) => [
@@ -414,29 +495,24 @@ function SkinButton({
     <button
       type="button"
       onClick={onClick}
-      className="grid w-full grid-cols-[56px_1fr] gap-3 rounded-[8px] border p-2.5 text-left transition hover:bg-white/[0.04]"
-      style={{
-        borderColor: selected ? "rgba(91,168,255,0.62)" : "rgba(255,255,255,0.09)",
-        background: selected ? "rgba(91,168,255,0.08)" : "rgba(0,0,0,0.18)",
-      }}
+      className={`grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/[0.06] p-2.5 text-left transition-all duration-150 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.04] ${
+        selected
+          ? "border-l-2 border-l-[#F5A623] bg-[#1A1A1A]"
+          : "bg-transparent"
+      }`}
     >
-      <span className="relative aspect-square overflow-hidden rounded-[6px] bg-black/30">
-        <Image src={skin.image} alt="" fill sizes="56px" className="object-cover" />
+      <span className="relative size-12 overflow-hidden rounded-lg bg-[#1A1A1A]">
+        <Image src={skin.image} alt="" fill sizes="48px" className="object-cover" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[13px] font-semibold text-[var(--foreground)]">
+        <span className="block truncate text-[14px] font-medium leading-5 text-[#F0F0F0]">
           {skin.name}
         </span>
-        <span className="mt-1 block truncate text-[11px] text-[var(--foreground-muted)]">
-          {skin.weapon} · {skin.rarity}
-        </span>
-        <span
-          className="mt-2 inline-flex rounded-full border border-white/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.18em]"
-          style={{ background: STATUS_TONE[skin.status], color: "var(--highlight)" }}
-        >
-          {STATUS_LABEL[skin.status]}
+        <span className="mt-0.5 block truncate text-[12px] leading-4 text-[#888888]">
+          {skin.weapon} - {skin.rarity}
         </span>
       </span>
+      <StatusPill status={skin.status} compact />
     </button>
   );
 }
@@ -464,26 +540,52 @@ function Metric({
   icon,
   label,
   value,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: number;
+  accent: string;
 }) {
   return (
-    <article className="rounded-[8px] border border-white/10 bg-[var(--background-raised)] p-4">
+    <article className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#141414] px-6 py-5 transition-all duration-150 ease-in-out hover:border-white/[0.12]">
+      <span
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{ backgroundColor: accent }}
+      />
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="t-card-sub">{label}</p>
-          <p className="mt-2 text-[22px] font-bold leading-none text-[var(--foreground)]">
-            {value}
+          <p className="admin-section-label">{label}</p>
+          <p className="mt-3 text-[28px] font-bold leading-none tabular-nums text-[#F0F0F0]">
+            <CountUpBRL value={value} />
           </p>
         </div>
-        <div className="rounded-full border border-white/10 bg-black/25 p-2 text-[var(--highlight)] [&>svg]:size-4">
-          {icon}
-        </div>
+        <div className="text-[#555555] [&>svg]:size-5">{icon}</div>
       </div>
     </article>
   );
+}
+
+function CountUpBRL({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let frame = 0;
+    const startTime = performance.now();
+    const duration = 800;
+
+    function animate(now: number) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(value * eased);
+      if (progress < 1) frame = requestAnimationFrame(animate);
+    }
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return <>{formatBRL(displayValue)}</>;
 }
 
 function Panel({
@@ -496,10 +598,10 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[8px] border border-white/10 bg-[var(--background-raised)] p-4">
-      <div className="mb-4 flex items-center gap-2 border-b border-white/10 pb-3 text-[var(--highlight)]">
+    <section className="rounded-xl border border-white/[0.06] bg-[#141414] px-6 py-5 transition-all duration-150 ease-in-out hover:border-white/[0.12]">
+      <div className="mb-4 flex items-center gap-2 border-b border-white/[0.06] pb-4 text-[#F5A623]">
         {icon}
-        <h2 className="t-card-sub">{title}</h2>
+        <h2 className="admin-section-label">{title}</h2>
       </div>
       {children}
     </section>
@@ -515,7 +617,7 @@ function Field({
 }) {
   return (
     <label className="grid gap-2">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+      <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-[#555555]">
         {label}
       </span>
       {children}
@@ -523,11 +625,20 @@ function Field({
   );
 }
 
-function StatusPill({ status }: { status: SkinStatus }) {
+function StatusPill({
+  status,
+  compact = false,
+}: {
+  status: SkinStatus;
+  compact?: boolean;
+}) {
+  const tone = STATUS_STYLE[status];
   return (
     <span
-      className="inline-flex w-fit rounded-full border border-white/10 px-3 py-1 t-card-sub"
-      style={{ background: STATUS_TONE[status] }}
+      className={`inline-flex h-6 w-fit items-center rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+        compact ? "whitespace-nowrap" : ""
+      }`}
+      style={{ background: tone.bg, color: tone.fg }}
     >
       {STATUS_LABEL[status]}
     </span>
@@ -537,53 +648,72 @@ function StatusPill({ status }: { status: SkinStatus }) {
 function CalculatorPanel({
   calculation,
   suggestions,
+  selectedTicketCount,
+  onSelectTicketCount,
 }: {
   calculation: ReturnType<typeof calculateRaffleProfit>;
   suggestions: ReturnType<typeof suggestTicketPackages>;
+  selectedTicketCount: number;
+  onSelectTicketCount: (ticketCount: number) => void;
 }) {
   return (
-    <aside className="rounded-[8px] border border-[rgba(91,168,255,0.32)] bg-[var(--background-raised)] p-4 xl:sticky xl:top-5 xl:self-start">
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 text-[var(--highlight)]">
+    <aside className="rounded-xl border border-white/[0.06] bg-[#141414] px-6 py-5 transition-all duration-150 ease-in-out hover:border-white/[0.12] xl:sticky xl:top-6 xl:self-start">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] pb-4 text-[#F5A623]">
         <Calculator size={17} />
-        <p className="t-card-sub">Calculadora</p>
+        <p className="admin-section-label">Calculadora</p>
       </div>
 
-      <div className="mt-4 rounded-[8px] border border-[rgba(255,193,7,0.22)] bg-[rgba(255,193,7,0.06)] p-4">
-        <p className="t-card-sub">Vender por</p>
-        <p className="mt-2 text-[34px] font-bold leading-none text-[var(--foreground)]">
+      <div className="mt-5">
+        <p className="admin-section-label">Vender por</p>
+        <p className="mt-2 font-display text-[36px] font-bold leading-none text-[#F5A623] tabular-nums">
           {formatBRL(calculation.targetRevenueBeforeFees)}
         </p>
-        <p className="t-body-sm mt-2">
+        <p className="mt-2 flex items-center gap-1.5 text-[13px] text-[#888888]">
+          <TrendingUp size={15} className="text-[#22C55E]" />
           Lucro esperado: {formatBRL(calculation.expectedProfit)}
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         <CalcMetric label="Bilhete" value={formatBRL(calculation.suggestedTicketPrice)} />
         <CalcMetric label="Qtd." value={String(calculation.suggestedTicketCount)} />
         <CalcMetric label="Margem" value={formatPercent(calculation.marginPercent)} />
         <CalcMetric label="Minimo" value={`${calculation.breakEvenTickets}`} />
       </div>
 
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <p className="t-card-sub">Sugestoes</p>
-        <div className="mt-3 overflow-hidden rounded-[8px] border border-white/10">
-          {suggestions.slice(0, 5).map((item) => (
-            <div
-              key={item.ticketCount}
-              className="grid grid-cols-[1fr_auto] gap-3 border-b border-white/10 bg-black/20 p-3 last:border-b-0"
-            >
-              <span className="text-[12px] text-[var(--foreground)]">
-                {item.ticketCount} bilhetes
-              </span>
-              <span className="text-right text-[12px] font-semibold text-[var(--foreground)]">
-                {formatBRL(item.ticketPrice)}
-              </span>
-              <span className="col-span-2 t-card-sub">
-                total {formatBRL(item.grossRevenue)}
-              </span>
-            </div>
-          ))}
+      <div className="mt-5 border-t border-white/[0.06] pt-4">
+        <p className="admin-section-label">Sugestoes</p>
+        <div className="mt-3 grid gap-2">
+          {suggestions.slice(0, 5).map((item) => {
+            const selected = item.ticketCount === selectedTicketCount;
+            return (
+              <button
+                type="button"
+                key={item.ticketCount}
+                onClick={() => onSelectTicketCount(item.ticketCount)}
+                className={`grid gap-1 rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-3 text-left transition-all duration-150 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.04] ${
+                  selected
+                    ? "border-l-2 border-l-[#F5A623] bg-[rgba(245,166,35,0.06)]"
+                    : ""
+                }`}
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-medium text-[#F0F0F0]">
+                    {item.ticketCount} bilhetes
+                  </span>
+                  <span className="text-[13px] font-semibold text-[#F0F0F0] tabular-nums">
+                    {formatBRL(item.ticketPrice)}
+                  </span>
+                </span>
+                <span className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.08em] text-[#555555]">
+                  <span>Total</span>
+                  <span className="text-[#F5A623]">
+                    {formatBRL(item.grossRevenue)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </aside>
@@ -592,9 +722,9 @@ function CalculatorPanel({
 
 function CalcMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[8px] border border-white/10 bg-black/20 p-3">
-      <p className="t-card-sub">{label}</p>
-      <p className="mt-1 text-[15px] font-semibold text-[var(--foreground)]">
+    <div className="rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-3">
+      <p className="admin-section-label">{label}</p>
+      <p className="mt-2 text-[18px] font-semibold leading-none text-[#F0F0F0] tabular-nums">
         {value}
       </p>
     </div>
@@ -603,19 +733,19 @@ function CalcMetric({ label, value }: { label: string; value: string }) {
 
 function Table({ rows }: { rows: string[][] }) {
   return (
-    <div className="max-h-[360px] overflow-hidden rounded-[8px] border border-white/10">
+    <div className="max-h-[360px] overflow-hidden rounded-lg border border-white/[0.06]">
       {rows.map((row) => (
         <div
           key={row.join("-")}
-          className="grid gap-1 border-b border-white/10 bg-black/20 p-3 last:border-b-0"
+          className="grid gap-1 border-b border-white/[0.06] bg-[#1A1A1A] p-3 last:border-b-0"
         >
           {row.map((cell, index) => (
             <span
               key={`${cell}-${index}`}
               className={
                 index === 0
-                  ? "text-[13px] font-medium text-[var(--foreground)]"
-                  : "t-card-sub"
+                  ? "text-[13px] font-medium text-[#F0F0F0]"
+                  : "text-[11px] uppercase tracking-[0.08em] text-[#888888]"
               }
             >
               {cell}
@@ -624,5 +754,27 @@ function Table({ rows }: { rows: string[][] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function SteamMark() {
+  return (
+    <span className="inline-flex size-10 items-center justify-center rounded-lg border border-white/[0.06] bg-[#141414] text-[#888888]">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="size-5"
+        fill="none"
+      >
+        <circle cx="15.8" cy="8.3" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+        <circle cx="7.4" cy="16.1" r="2.6" stroke="currentColor" strokeWidth="1.6" />
+        <path
+          d="M9.6 14.8l3.7-4M5.2 14.8l-2.6-1.1M9.6 17.3l4.1 1.7"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="1.6"
+        />
+      </svg>
+    </span>
   );
 }

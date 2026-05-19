@@ -4,23 +4,27 @@
   /* ============================================================
    * COR — paleta marca (preto profundo / laranja vibrante / dourado)
    * ============================================================ */
-  --background: #0a0a0a;
-  --background-raised: #151515;
+  --background: #0d0d0d;
+  --background-raised: #141414;
+  --background-elevated: #1a1a1a;
   --background-deep: #0a0a0a;
-  --card-bg: #151515;
-  --foreground: #ffffff;
-  --foreground-muted: #d9d9d9;
-  --foreground-faint: #6e6e6e;
+  --card-bg: #141414;
+  --foreground: #f0f0f0;
+  --foreground-muted: #888888;
+  --foreground-faint: #555555;
   --paper: #ffffff;
   --ink: #0a0a0a;
-  --accent: #f79300;
-  --accent-soft: #ffb347;
+  --accent: #f5a623;
+  --accent-soft: #ffb84d;
   --accent-deep: #c76a00;
   --accent-darkest: #5e3a00;
   --on-accent: #0a0a0a;
-  --highlight: #ffc107;
-  --line: rgba(255, 193, 7, 0.32);
-  --line-soft: rgba(255, 193, 7, 0.12);
+  --highlight: #f5a623;
+  --line: rgba(255, 255, 255, 0.06);
+  --line-soft: rgba(255, 255, 255, 0.12);
+  --success: #22c55e;
+  --danger: #ef4444;
+  --info: #3b82f6;
   --muted: var(--foreground-muted);
 
   /* ============================================================
@@ -79,16 +83,16 @@
   --color-highlight: var(--highlight);
   --color-muted-foreground: var(--muted);
   --color-line: var(--line);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-oswald);
+  --font-display: var(--font-syne);
 }
 
 html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 /* ==============================================================
@@ -163,6 +167,35 @@ body {
   letter-spacing: var(--tracking-cta);
   text-transform: uppercase;
   font-weight: 600;
+}
+
+.admin-section-label {
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #888888;
+}
+
+.admin-nav-button {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding-inline: 16px;
+  color: #f0f0f0;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 150ms ease;
+}
+
+.admin-nav-button:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* ==============================================================
@@ -380,24 +413,26 @@ body {
 .admin-input {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1a1a1a;
   color: var(--foreground);
-  padding: 10px 12px;
+  padding: 0 12px;
   min-height: 42px;
-  font-size: 13px;
+  height: 42px;
+  font-size: 14px;
   line-height: 1.35;
   outline: none;
   transition:
+    color 150ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease,
     background 160ms ease;
 }
 
 .admin-input:focus {
-  border-color: rgba(91, 168, 255, 0.72);
-  background: rgba(0, 0, 0, 0.42);
-  box-shadow: 0 0 0 3px rgba(91, 168, 255, 0.12);
+  border-color: var(--accent);
+  background: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
 }
 
 .admin-input::placeholder {
@@ -405,7 +440,29 @@ body {
 }
 
 select.admin-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%23888888' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  padding-right: 36px;
   cursor: pointer;
+}
+
+textarea.admin-input {
+  height: auto;
+  min-height: 80px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-spinner {
+  animation: admin-spin 750ms linear infinite;
 }
 
 .hero-nav-catalog-link:hover {
