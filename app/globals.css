@@ -380,12 +380,13 @@ body {
 .admin-input {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
   color: var(--foreground);
-  padding: 11px 12px;
-  font-size: var(--fs-body-sm);
-  line-height: var(--lh-body);
+  padding: 10px 12px;
+  min-height: 42px;
+  font-size: 13px;
+  line-height: 1.35;
   outline: none;
   transition:
     border-color 160ms ease,
@@ -395,8 +396,16 @@ body {
 
 .admin-input:focus {
   border-color: rgba(91, 168, 255, 0.72);
-  background: rgba(0, 0, 0, 0.38);
-  box-shadow: 0 0 0 3px rgba(91, 168, 255, 0.14);
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: 0 0 0 3px rgba(91, 168, 255, 0.12);
+}
+
+.admin-input::placeholder {
+  color: var(--foreground-faint);
+}
+
+select.admin-input {
+  cursor: pointer;
 }
 
 .hero-nav-catalog-link:hover {
