@@ -125,16 +125,17 @@
 ## Notas de implementacao
 
 - Guias Next.js consultados em `node_modules/next/dist/docs/`: layouts/pages, server/client components, images, metadata/icons, authentication, data security, forms e CSS.
-- Rotas criadas: `/dashboard` (cliente) e `/admin` (admin).
+- Rotas criadas: `/rifas` (publica com WhatsApp), `/dashboard` (cliente) e `/admin` (admin).
+- Ajuste final solicitado: admin prioriza ficha tecnica com inputs para escolher skin, informar quanto pagou e percentual de lucro; calculadora retorna valor alvo de venda e sugestoes de bilhetes/precos.
 - Login local seedado em `/login` com cookie HTTP-only assinado. O mock local nao e fronteira de seguranca de producao.
 - Credenciais locais:
   - cliente: `cliente@drblack.local` / `cliente123`;
   - admin: `admin@drblack.local` / `admin123`.
-- Arquivos principais criados: `lib/ruby-safira-types.ts`, `lib/test-credentials.ts`, `lib/ruby-safira-seed.ts`, `lib/ruby-safira-repository.ts`, `lib/server-session.ts`, `lib/profit-calculator.ts`, `app/login/actions.ts`, `app/dashboard/page.tsx`, `app/admin/page.tsx`, `components/AdminPanel.tsx`, `components/RubySapphirePublicSection.tsx`.
+- Arquivos principais criados: `lib/ruby-safira-types.ts`, `lib/test-credentials.ts`, `lib/ruby-safira-seed.ts`, `lib/ruby-safira-repository.ts`, `lib/server-session.ts`, `lib/profit-calculator.ts`, `app/login/actions.ts`, `app/dashboard/page.tsx`, `app/admin/page.tsx`, `app/rifas/page.tsx`, `components/AdminPanel.tsx`, `components/RubySapphirePublicSection.tsx`.
 - Logo aplicada em header desktop/mobile e footer usando `public/new-logo.png`.
 - Derivados gerados: `public/new-logo-upscaled.png`, `public/favicon.png`, `public/apple-touch-icon.png`.
 - Validacao tecnica executada:
   - `cmd /c npm run lint` - passou com 2 warnings pre-existentes em `components/ScrollFilmFrames.tsx` por uso de `<img>`.
   - `cmd /c npm exec tsc -- --noEmit` - passou sem erros.
-  - `cmd /c npm run build` - passou sem warnings finais.
+  - `cmd /c npm run build` - passou sem warnings finais e gerou `/rifas`.
 - QA visual/browser, teste manual de rotas e testes funcionais detalhados nao foram executados por pedido direto do usuario.

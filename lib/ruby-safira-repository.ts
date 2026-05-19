@@ -190,6 +190,24 @@ export const getAdminDashboard = cache(
   }
 );
 
+export const getPublicRaffles = cache(async () =>
+  raffles.map((raffle) => {
+    const skin = skins.find((item) => item.id === raffle.skinId);
+    return {
+      id: raffle.id,
+      title: raffle.title,
+      status: raffle.status,
+      ticketCount: raffle.ticketCount,
+      ticketPrice: raffle.ticketPrice,
+      soldTickets: raffle.soldTickets,
+      drawDate: raffle.drawDate,
+      skinName: skin?.name ?? "Skin nao encontrada",
+      skinImage: skin?.image ?? "/new-logo.png",
+      rarity: skin?.rarity ?? "Raridade pendente",
+    };
+  })
+);
+
 export function hasRole(
   user: { role: UserRole } | null,
   allowedRoles: UserRole[]

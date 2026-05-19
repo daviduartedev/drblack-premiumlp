@@ -75,6 +75,12 @@ Funcionalidade: Experiencia Ruby/Safira e paineis operacionais
     Entao ve receita alvo, lucro esperado, preco sugerido, quantidade sugerida, margem e ponto minimo sem prejuizo
     E entende o impacto de taxas estimadas sobre a receita liquida
 
+  Cenario: Visitante entra na area publica de rifas e segue para WhatsApp
+    Dado que acesso a pagina publica de rifas
+    Quando vejo as rifas disponiveis em cards em movimento
+    Entao entendo o valor do bilhete, quantidade total e progresso de venda
+    E consigo iniciar a reserva pelo WhatsApp
+
   Esquema do Cenario: Experiencia respeita o papel do usuario
     Dado que estou autenticado como "<papel>"
     Quando acesso "<rota>"

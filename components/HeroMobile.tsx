@@ -26,7 +26,7 @@ type NavItem = {
 
 const NAV_LINKS: NavItem[] = [
   { label: "Catálogo", href: "#skins-destaque" },
-  { label: "Rifas", href: "#", disabled: true },
+  { label: "Rifas", href: "/rifas" },
   { label: "Sobre", href: "#", disabled: true },
 ];
 

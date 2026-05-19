@@ -23,7 +23,7 @@ type FooterLink = { label: string; href: string };
 
 const NAV: FooterLink[] = [
   { label: "Catálogo", href: "#skins-destaque" },
-  { label: "Rifas", href: "#" },
+  { label: "Rifas", href: "/rifas" },
   { label: "Coleções", href: "#" },
   { label: "Sobre", href: "#" },
 ];

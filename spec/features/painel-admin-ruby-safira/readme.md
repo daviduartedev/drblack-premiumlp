@@ -41,6 +41,7 @@ Evitar:
 
 ## Rotas canonicas
 
+- Rifas publicas: `/rifas`.
 - Cliente: `/dashboard`.
 - Admin: `/admin`.
 
@@ -124,22 +125,27 @@ A ficha tecnica e a fonte administrativa para decidir se uma skin esta pronta pa
 
 Entrada:
 
+- skin escolhida;
 - valor pago pela skin;
-- modo de lucro: percentual ou valor fixo;
-- quantidade desejada de bilhetes ou preco desejado por bilhete;
-- taxas estimadas.
+- percentual de lucro desejado;
+- quantidade desejada de bilhetes.
 
 Saida:
 
-- receita total necessaria;
-- receita liquida estimada;
-- lucro esperado;
+- valor total pelo qual a skin deve ser vendida;
+- lucro esperado em BRL;
 - preco sugerido por bilhete;
-- quantidade sugerida de bilhetes;
+- pacotes sugeridos de quantidade de bilhetes e preco por bilhete;
 - margem percentual;
 - ponto minimo para nao ter prejuizo.
 
-Regra de ambiguidade: se percentual e valor fixo forem possiveis, a UI deve exigir selecao explicita do modo de calculo.
+Formula principal do ciclo: `valor pago + percentual de lucro desejado = valor alvo de venda`. A partir do valor alvo, o admin ve sugestoes como `130 bilhetes a R$ 10` ou `260 bilhetes a R$ 5`.
+
+## Area publica de rifas
+
+Enquanto checkout/pagamento nao existem, `/rifas` e a vitrine publica das rifas. A pagina usa a mesma base visual do site, mostra cards de rifas em movimento e direciona reserva/pagamento/suporte para WhatsApp.
+
+CTA canonico temporario: `Chamar no WhatsApp` / `Reservar bilhete`.
 
 ## Dados locais e Supabase futuro
 
@@ -177,6 +183,7 @@ Arquivos principais:
 - `app/login/actions.ts` - Server Actions de login/logout.
 - `app/dashboard/page.tsx` - dashboard do cliente com DTO sem dados internos.
 - `app/admin/page.tsx` e `components/AdminPanel.tsx` - painel admin com estoque, ficha tecnica, CRUD local visual e calculadora.
+- `app/rifas/page.tsx` - area publica de rifas com cards em movimento e CTA WhatsApp.
 - `components/RubySapphirePublicSection.tsx` - nova secao publica Ruby/Safira.
 
 Credenciais locais:

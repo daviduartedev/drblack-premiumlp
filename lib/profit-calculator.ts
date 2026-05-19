@@ -24,6 +24,13 @@ export type ProfitCalculatorResult = {
   breakEvenRevenue: number;
 };
 
+export type TicketPackageSuggestion = {
+  ticketCount: number;
+  ticketPrice: number;
+  grossRevenue: number;
+  expectedProfit: number;
+};
+
 const roundCurrency = (value: number) => Math.round(value * 100) / 100;
 
 const ceilCurrency = (value: number) => Math.ceil(value * 100) / 100;
@@ -96,4 +103,24 @@ export function formatPercent(value: number): string {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(value)}%`;
+}
+
+export function suggestTicketPackages(
+  targetRevenue: number,
+  paidValue: number,
+  ticketCounts: number[]
+): TicketPackageSuggestion[] {
+  return [...new Set(ticketCounts)]
+    .filter((count) => Number.isFinite(count) && count > 0)
+    .sort((a, b) => a - b)
+    .map((ticketCount) => {
+      const ticketPrice = ceilCurrency(targetRevenue / ticketCount);
+      const grossRevenue = roundCurrency(ticketCount * ticketPrice);
+      return {
+        ticketCount,
+        ticketPrice,
+        grossRevenue,
+        expectedProfit: roundCurrency(grossRevenue - paidValue),
+      };
+    });
 }

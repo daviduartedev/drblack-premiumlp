@@ -19,6 +19,7 @@ import {
   calculateRaffleProfit,
   formatBRL,
   formatPercent,
+  suggestTicketPackages,
   type ProfitCalculatorInput,
 } from "@/lib/profit-calculator";
 import type {
@@ -67,10 +68,23 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       desiredProfitPercent: draft.desiredProfitPercent,
       ticketConstraintMode: "ticketCount",
       ticketCount: draft.ticketCount,
-      estimatedFeePercent: 5,
+      estimatedFeePercent: 0,
     };
     return calculateRaffleProfit(calculatorInput);
   }, [draft.desiredProfitPercent, draft.paidValue, draft.ticketCount]);
+
+  const packageSuggestions = useMemo(
+    () =>
+      suggestTicketPackages(calculation.targetRevenueBeforeFees, draft.paidValue, [
+        draft.ticketCount,
+        100,
+        130,
+        200,
+        260,
+        500,
+      ]),
+    [calculation.targetRevenueBeforeFees, draft.paidValue, draft.ticketCount]
+  );
 
   function selectSkin(skin: Skin) {
     setSelectedSkinId(skin.id);
@@ -124,10 +138,11 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
         <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="t-eyebrow">Painel admin</p>
-            <h1 className="t-h2 mt-3 max-w-[12ch]">Operacao Ruby/Safira.</h1>
+            <h1 className="t-h2 mt-3 max-w-[12ch]">Ficha antes da rifa.</h1>
             <p className="t-body mt-4 max-w-[64ch]">
-              Estoque, ficha tecnica e margem no mesmo lugar. Dados locais para
-              validar UI; Supabase e RLS entram como proxima camada.
+              Escolha a skin, informe quanto pagou e quanto quer ganhar. O
+              painel calcula por quanto vender e sugere bilhetes a valores
+              redondos antes de levar para o WhatsApp.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -174,9 +189,43 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
             </div>
           </Panel>
 
-          <Panel title="Ficha tecnica" icon={<ShieldCheck size={18} />}>
+          <Panel title="Ficha tecnica para rifa" icon={<ShieldCheck size={18} />}>
             <div className="grid gap-5 lg:grid-cols-[1fr_0.85fr]">
               <form className="grid gap-4" onSubmit={(event) => event.preventDefault()}>
+                <div
+                  className="rounded-[8px] border p-4"
+                  style={{
+                    borderColor: "rgba(91,168,255,0.26)",
+                    background:
+                      "linear-gradient(145deg, rgba(180,16,58,0.1), rgba(91,168,255,0.08))",
+                  }}
+                >
+                  <p className="t-card-sub">Calculo principal</p>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                    <Field label="Qual skin">
+                      <select
+                        value={selectedSkin?.id ?? ""}
+                        onChange={(e) => {
+                          const skin = skins.find((item) => item.id === e.target.value);
+                          if (skin) selectSkin(skin);
+                        }}
+                        className="admin-input"
+                      >
+                        {skins.map((skin) => (
+                          <option key={skin.id} value={skin.id}>
+                            {skin.name}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Quanto paguei">
+                      <input value={draft.paidValue} onChange={(e) => updateDraft("paidValue", Number(e.target.value))} className="admin-input" type="number" min="0" />
+                    </Field>
+                    <Field label="% quero ganhar">
+                      <input value={draft.desiredProfitPercent} onChange={(e) => updateDraft("desiredProfitPercent", Number(e.target.value))} className="admin-input" type="number" min="0" />
+                    </Field>
+                  </div>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Nome">
                     <input value={draft.name} onChange={(e) => updateDraft("name", e.target.value)} className="admin-input" />
@@ -206,14 +255,8 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Valor pago">
-                    <input value={draft.paidValue} onChange={(e) => updateDraft("paidValue", Number(e.target.value))} className="admin-input" type="number" min="0" />
-                  </Field>
                   <Field label="Mercado estimado">
                     <input value={draft.estimatedMarketValue} onChange={(e) => updateDraft("estimatedMarketValue", Number(e.target.value))} className="admin-input" type="number" min="0" />
-                  </Field>
-                  <Field label="Lucro %">
-                    <input value={draft.desiredProfitPercent} onChange={(e) => updateDraft("desiredProfitPercent", Number(e.target.value))} className="admin-input" type="number" min="0" />
                   </Field>
                   <Field label="Bilhetes">
                     <input value={draft.ticketCount} onChange={(e) => updateDraft("ticketCount", Number(e.target.value))} className="admin-input" type="number" min="1" />
@@ -243,7 +286,10 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                 <div className="relative aspect-[4/3] overflow-hidden rounded-[8px] border border-white/10 bg-black/30">
                   <Image src={draft.image} alt={draft.name || "Skin selecionada"} fill sizes="(max-width: 1024px) 100vw, 420px" className="object-cover" />
                 </div>
-                <CalculatorCard calculation={calculation} />
+                <CalculatorCard
+                  calculation={calculation}
+                  suggestions={packageSuggestions}
+                />
               </div>
             </div>
           </Panel>
@@ -385,8 +431,10 @@ function StatusPill({ status }: { status: SkinStatus }) {
 
 function CalculatorCard({
   calculation,
+  suggestions,
 }: {
   calculation: ReturnType<typeof calculateRaffleProfit>;
+  suggestions: ReturnType<typeof suggestTicketPackages>;
 }) {
   return (
     <div
@@ -402,12 +450,30 @@ function CalculatorCard({
         <p className="t-card-sub">Calculadora</p>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <CalcMetric label="Receita alvo" value={formatBRL(calculation.targetRevenueWithFees)} />
-        <CalcMetric label="Taxas 5%" value={formatBRL(calculation.estimatedFees)} />
+        <CalcMetric label="Vender por" value={formatBRL(calculation.targetRevenueBeforeFees)} />
+        <CalcMetric label="Lucro esperado" value={formatBRL(calculation.expectedProfit)} />
         <CalcMetric label="Preco/bilhete" value={formatBRL(calculation.suggestedTicketPrice)} />
         <CalcMetric label="Qtd. bilhetes" value={String(calculation.suggestedTicketCount)} />
         <CalcMetric label="Margem" value={formatPercent(calculation.marginPercent)} />
         <CalcMetric label="Ponto minimo" value={`${calculation.breakEvenTickets} bilhetes`} />
+      </div>
+      <div className="mt-4 border-t border-white/10 pt-4">
+        <p className="t-card-sub">Sugestoes de bilhetes</p>
+        <div className="mt-3 grid gap-2">
+          {suggestions.slice(0, 5).map((item) => (
+            <div
+              key={item.ticketCount}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-white/10 bg-black/20 p-3"
+            >
+              <span className="t-body-sm text-[var(--foreground)]">
+                {item.ticketCount} bilhetes a {formatBRL(item.ticketPrice)}
+              </span>
+              <span className="t-card-sub">
+                total {formatBRL(item.grossRevenue)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
