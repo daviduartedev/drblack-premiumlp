@@ -122,12 +122,26 @@ export const getCurrentProfile = cache(async (): Promise<User | null> => {
   if (!supabase) return null;
 
   const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
-  if (!authUser) return null;
+    data: { session },
+  } = await supabase.auth.getSession();
+  const authUser = session?.user;
+  if (!authUser) {
+    const {
+      data: { user: verifiedUser },
+    } = await supabase.auth.getUser();
+    if (!verifiedUser) return null;
+    return resolveProfile(supabase, verifiedUser);
+  }
 
+  return resolveProfile(supabase, authUser);
+});
+
+async function resolveProfile(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }
+): Promise<User> {
   const { ensureProfile } = await import("@/lib/supabase/ensure-profile");
-  const profile = await ensureProfile(supabase, authUser);
+  const profile = await ensureProfile(supabase, authUser as import("@supabase/supabase-js").User);
 
   if (profile) {
     return {
@@ -141,10 +155,13 @@ export const getCurrentProfile = cache(async (): Promise<User | null> => {
   return {
     id: authUser.id,
     email: authUser.email ?? "",
-    name: authUser.user_metadata?.name ?? authUser.email ?? "Usuario",
+    name:
+      (authUser.user_metadata?.name as string | undefined) ??
+      authUser.email ??
+      "Usuario",
     role: (authUser.user_metadata?.role as UserRole) ?? "customer",
   };
-});
+}
 
 export const getUserByEmail = cache(async (email: string) =>
   users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ?? null

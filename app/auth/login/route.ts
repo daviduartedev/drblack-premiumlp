@@ -3,21 +3,24 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ensureProfile } from "@/lib/supabase/ensure-profile";
 import {
-  getSiteUrl,
+  getRequestOrigin,
   getSupabaseAnonKey,
   getSupabaseUrl,
   isSupabaseConfigured,
 } from "@/lib/supabase/env";
 
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Parameters<NextResponse["cookies"]["set"]>[2];
+};
+
 function loginRedirect(path: string, request: Request) {
-  const base = getSiteUrl().replace(/\/$/, "");
-  try {
-    return NextResponse.redirect(new URL(path, base || request.url), 303);
-  } catch {
-    return NextResponse.redirect(`${base}${path}`, 303);
-  }
+  const base = getRequestOrigin(request);
+  return NextResponse.redirect(new URL(path, base), 303);
 }
 
+/** Fallback server-side login (ex.: crawlers). Fluxo principal: cliente + /auth/me. */
 export async function POST(request: Request) {
   if (!isSupabaseConfigured()) {
     return loginRedirect("/login?error=auth", request);
@@ -34,19 +37,14 @@ export async function POST(request: Request) {
   const url = getSupabaseUrl()!;
   const key = getSupabaseAnonKey()!;
   const cookieStore = await cookies();
-
-  const pendingCookies: {
-    name: string;
-    value: string;
-    options?: Parameters<NextResponse["cookies"]["set"]>[2];
-  }[] = [];
+  const pendingCookies: CookieToSet[] = [];
 
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookieToSet[]) {
         cookiesToSet.forEach(({ name, value, options }) => {
           cookieStore.set(name, value, options);
           pendingCookies.push({ name, value, options });
@@ -63,6 +61,8 @@ export async function POST(request: Request) {
   if (error || !data.user) {
     return loginRedirect("/login?error=invalid", request);
   }
+
+  await supabase.auth.getUser();
 
   const profile = await ensureProfile(supabase, data.user);
   const role = profile?.role ?? "customer";

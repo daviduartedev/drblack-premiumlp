@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/login/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const initialState: LoginState = { message: "" };
 
@@ -18,13 +20,58 @@ type LoginFormProps = {
 };
 
 export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialState
   );
+  const [submitting, setSubmitting] = useState(false);
+  const [clientError, setClientError] = useState("");
 
   const queryError = errorCode ? ERROR_MESSAGES[errorCode] : "";
-  const errorMessage = queryError || state.message;
+  const errorMessage = clientError || queryError || state.message;
+
+  async function handleSupabaseLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setClientError("");
+    setSubmitting(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setClientError("E-mail ou senha invalidos.");
+        return;
+      }
+
+      const meRes = await fetch("/auth/me", { cache: "no-store" });
+      if (!meRes.ok) {
+        setClientError(
+          "Login ok, mas a sessao nao foi reconhecida pelo servidor. Tente novamente."
+        );
+        return;
+      }
+
+      const me = (await meRes.json()) as { role?: string };
+      router.refresh();
+      router.push(me.role === "admin" ? "/admin" : "/dashboard");
+    } catch {
+      setClientError("Nao foi possivel entrar. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const isPending = useSupabase ? submitting : pending;
 
   return (
     <div className="min-h-[100svh] bg-[var(--background)] text-[var(--foreground)]">
@@ -59,8 +106,9 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
             </p>
 
             <form
-              action={useSupabase ? "/auth/login" : formAction}
-              method="post"
+              action={useSupabase ? undefined : formAction}
+              method={useSupabase ? "post" : "post"}
+              onSubmit={useSupabase ? handleSupabaseLogin : undefined}
               className="mt-[var(--space-5)] grid gap-5"
             >
               <label className="grid gap-2">
@@ -92,10 +140,10 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
               <button
                 type="submit"
                 className="btn-solid t-cta inline-flex min-h-[44px] w-fit items-center gap-2"
-                disabled={!useSupabase && pending}
+                disabled={isPending}
               >
                 <ShieldCheck size={15} />
-                {!useSupabase && pending ? "Entrando" : "Entrar"}
+                {isPending ? "Entrando" : "Entrar"}
               </button>
             </form>
           </section>
