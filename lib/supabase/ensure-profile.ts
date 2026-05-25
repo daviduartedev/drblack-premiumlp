@@ -12,22 +12,8 @@ type ProfileRow = {
   role: UserRole;
 };
 
-/** Garante linha em `profiles` para usuarios Auth (ex.: criados antes da migration). */
-export async function ensureProfile(
-  supabase: SupabaseClient,
-  authUser: User
-): Promise<ProfileRow | null> {
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id, email, name, role")
-    .eq("id", authUser.id)
-    .maybeSingle();
-
-  if (existing) {
-    return existing as ProfileRow;
-  }
-
-  const payload = {
+function buildProfilePayload(authUser: User) {
+  return {
     id: authUser.id,
     email: (authUser.email ?? "").toLowerCase(),
     name:
@@ -37,31 +23,69 @@ export async function ensureProfile(
     role: ((authUser.user_metadata?.role as UserRole | undefined) ??
       "customer") as UserRole,
   };
+}
 
+async function readProfileById(
+  client: SupabaseClient,
+  userId: string
+): Promise<ProfileRow | null> {
+  const { data } = await client
+    .from("profiles")
+    .select("id, email, name, role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data ? (data as ProfileRow) : null;
+}
+
+/** Garante linha em `profiles` para usuarios Auth (ex.: criados antes da migration). */
+export async function ensureProfile(
+  supabase: SupabaseClient,
+  authUser: User
+): Promise<ProfileRow | null> {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = getSupabaseUrl();
-
-  if (!serviceKey) {
-    console.warn(
-      "[ensure-profile] SUPABASE_SERVICE_ROLE_KEY ausente — tentando insert via anon client (sujeito a RLS)"
-    );
-  }
 
   if (serviceKey && url) {
     const admin = createSupabaseAdmin(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: upserted, error } = await admin
+
+    const existing = await readProfileById(admin, authUser.id);
+    if (existing) {
+      return existing;
+    }
+
+    const payload = buildProfilePayload(authUser);
+    const { data: inserted, error } = await admin
       .from("profiles")
-      .upsert(payload)
+      .insert(payload)
       .select("id, email, name, role")
       .single();
 
-    if (!error && upserted) {
-      return upserted as ProfileRow;
+    if (!error && inserted) {
+      return inserted as ProfileRow;
     }
+
+    if (error?.code === "23505") {
+      return readProfileById(admin, authUser.id);
+    }
+
+    if (error) {
+      console.error("[ensure-profile] admin insert falhou:", error.message);
+    }
+  } else {
+    console.warn(
+      "[ensure-profile] SUPABASE_SERVICE_ROLE_KEY ausente — leitura/insert via anon client (sujeito a RLS)"
+    );
   }
 
+  const existing = await readProfileById(supabase, authUser.id);
+  if (existing) {
+    return existing;
+  }
+
+  const payload = buildProfilePayload(authUser);
   const { data: inserted, error } = await supabase
     .from("profiles")
     .insert(payload)
@@ -69,6 +93,9 @@ export async function ensureProfile(
     .single();
 
   if (error || !inserted) {
+    if (error?.code === "23505") {
+      return readProfileById(supabase, authUser.id);
+    }
     if (error) {
       console.error("[ensure-profile] anon insert falhou:", error.message);
     }
