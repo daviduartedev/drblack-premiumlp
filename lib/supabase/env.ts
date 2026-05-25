@@ -1,13 +1,13 @@
 /** Supabase public key — suporta nome legado (anon) e publishable do dashboard. */
 export function getSupabaseAnonKey(): string | undefined {
-  return (
+  const key =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  );
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  return key?.trim() || undefined;
 }
 
 export function getSupabaseUrl(): string | undefined {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || undefined;
 }
 
 export function isSupabaseConfigured(): boolean {

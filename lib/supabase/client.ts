@@ -1,11 +1,27 @@
-import { createBrowserClient } from "@supabase/ssr";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { createBrowserClient, type SupabaseClient } from "@supabase/ssr";
 
-export function createClient() {
-  const url = getSupabaseUrl();
-  const key = getSupabaseAnonKey();
+function readPublicEnv(name: string): string | undefined {
+  const value = process.env[name];
+  return value?.trim() || undefined;
+}
+
+export function createClient(): SupabaseClient | null {
+  const url = readPublicEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const key =
+    readPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ??
+    readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+
   if (!url || !key) {
-    throw new Error("Supabase nao configurado no cliente.");
+    return null;
   }
+
   return createBrowserClient(url, key);
+}
+
+export function isBrowserSupabaseConfigured(): boolean {
+  return Boolean(
+    readPublicEnv("NEXT_PUBLIC_SUPABASE_URL") &&
+      (readPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") ??
+        readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"))
+  );
 }

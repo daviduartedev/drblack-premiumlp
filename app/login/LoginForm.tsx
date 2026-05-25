@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useActionState, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/login/actions";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, isBrowserSupabaseConfigured } from "@/lib/supabase/client";
 
 const initialState: LoginState = { message: "" };
 
@@ -20,7 +19,6 @@ type LoginFormProps = {
 };
 
 export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
-  const router = useRouter();
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialState
@@ -28,6 +26,7 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [clientError, setClientError] = useState("");
 
+  const supabaseAuth = useSupabase || isBrowserSupabaseConfigured();
   const queryError = errorCode ? ERROR_MESSAGES[errorCode] : "";
   const errorMessage = clientError || queryError || state.message;
 
@@ -43,27 +42,40 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
+      if (!supabase) {
+        setClientError(ERROR_MESSAGES.auth);
+        return;
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) {
+      if (error || !data.session) {
         setClientError("E-mail ou senha invalidos.");
         return;
       }
 
-      const meRes = await fetch("/auth/me", { cache: "no-store" });
-      if (!meRes.ok) {
+      const syncRes = await fetch("/auth/session", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        }),
+      });
+
+      if (!syncRes.ok) {
         setClientError(
-          "Login ok, mas a sessao nao foi reconhecida pelo servidor. Tente novamente."
+          "Login ok, mas nao foi possivel iniciar a sessao no servidor."
         );
         return;
       }
 
-      const me = (await meRes.json()) as { role?: string };
-      router.refresh();
-      router.push(me.role === "admin" ? "/admin" : "/dashboard");
+      const sync = (await syncRes.json()) as { role?: string };
+      const destination = sync.role === "admin" ? "/admin" : "/dashboard";
+      window.location.assign(destination);
     } catch {
       setClientError("Nao foi possivel entrar. Tente novamente.");
     } finally {
@@ -71,8 +83,37 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
     }
   }
 
-  const isPending = useSupabase ? submitting : pending;
+  if (supabaseAuth) {
+    return (
+      <LoginLayout errorMessage={errorMessage}>
+        <form
+          onSubmit={handleSupabaseLogin}
+          className="mt-[var(--space-5)] grid gap-5"
+        >
+          <LoginFields disabled={submitting} />
+          <SubmitButton pending={submitting} />
+        </form>
+      </LoginLayout>
+    );
+  }
 
+  return (
+    <LoginLayout errorMessage={errorMessage}>
+      <form action={formAction} className="mt-[var(--space-5)] grid gap-5">
+        <LoginFields disabled={pending} />
+        <SubmitButton pending={pending} />
+      </form>
+    </LoginLayout>
+  );
+}
+
+function LoginLayout({
+  errorMessage,
+  children,
+}: {
+  errorMessage: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="min-h-[100svh] bg-[var(--background)] text-[var(--foreground)]">
       <main className="content-wrap section-padding-x flex min-h-[100svh] items-center py-[var(--space-8)]">
@@ -104,51 +145,62 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
             <p className="t-body-sm mt-2">
               Entre com e-mail e senha cadastrados no Supabase Auth.
             </p>
-
-            <form
-              action={useSupabase ? undefined : formAction}
-              method={useSupabase ? "post" : "post"}
-              onSubmit={useSupabase ? handleSupabaseLogin : undefined}
-              className="mt-[var(--space-5)] grid gap-5"
-            >
-              <label className="grid gap-2">
-                <span className="t-card-sub">E-mail</span>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
-                />
-              </label>
-              <label className="grid gap-2">
-                <span className="t-card-sub">Senha</span>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  autoComplete="current-password"
-                  className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
-                />
-              </label>
-              {errorMessage ? (
-                <p className="t-body-sm text-[#ff9aad]" aria-live="polite">
-                  {errorMessage}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                className="btn-solid t-cta inline-flex min-h-[44px] w-fit items-center gap-2"
-                disabled={isPending}
+            {errorMessage ? (
+              <p
+                className="t-body-sm mt-4 text-[#ff9aad]"
+                role="alert"
+                aria-live="polite"
               >
-                <ShieldCheck size={15} />
-                {isPending ? "Entrando" : "Entrar"}
-              </button>
-            </form>
+                {errorMessage}
+              </p>
+            ) : null}
+            {children}
           </section>
         </div>
       </main>
     </div>
+  );
+}
+
+function LoginFields({ disabled }: { disabled: boolean }) {
+  return (
+    <>
+      <label className="grid gap-2">
+        <span className="t-card-sub">E-mail</span>
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          disabled={disabled}
+          className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
+        />
+      </label>
+      <label className="grid gap-2">
+        <span className="t-card-sub">Senha</span>
+        <input
+          name="password"
+          type="password"
+          required
+          minLength={6}
+          autoComplete="current-password"
+          disabled={disabled}
+          className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
+        />
+      </label>
+    </>
+  );
+}
+
+function SubmitButton({ pending }: { pending: boolean }) {
+  return (
+    <button
+      type="submit"
+      className="btn-solid t-cta inline-flex min-h-[44px] w-fit items-center gap-2"
+      disabled={pending}
+    >
+      <ShieldCheck size={15} />
+      {pending ? "Entrando" : "Entrar"}
+    </button>
   );
 }
