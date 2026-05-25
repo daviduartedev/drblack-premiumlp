@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Gem, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { loginAction, type LoginState } from "@/app/login/actions";
-import { TEST_CREDENTIALS } from "@/lib/test-credentials";
 
 const initialState: LoginState = { message: "" };
 
@@ -22,30 +21,13 @@ export default function LoginPage() {
             <Link href="/" className="footer-link t-body-sm">
               Voltar ao inicio
             </Link>
-            <p className="t-eyebrow mt-[var(--space-6)]">
-              Acesso local seedado
-            </p>
+            <p className="t-eyebrow mt-[var(--space-6)]">Acesso</p>
             <h1 className="t-h2 mt-[var(--space-3)] max-w-[10ch]">
               Entrar no painel.
             </h1>
             <p className="t-body mt-[var(--space-4)] max-w-[52ch]">
-              Validacao visual com cookie HTTP-only local. Supabase Auth entra
-              depois; este mock nao e seguranca de producao.
+              Use sua conta para acessar a area de cliente ou o painel admin.
             </p>
-            <div className="mt-[var(--space-5)] grid gap-3 sm:grid-cols-2">
-              <SeedCard
-                icon={<Gem size={18} />}
-                title="Cliente"
-                email={TEST_CREDENTIALS.customer.email}
-                password={TEST_CREDENTIALS.customer.password}
-              />
-              <SeedCard
-                icon={<ShieldCheck size={18} />}
-                title="Admin"
-                email={TEST_CREDENTIALS.admin.email}
-                password={TEST_CREDENTIALS.admin.password}
-              />
-            </div>
           </section>
 
           <section
@@ -58,10 +40,9 @@ export default function LoginPage() {
                 "0 32px 90px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.04)",
             }}
           >
-            <h2 className="t-h3">Login de teste</h2>
+            <h2 className="t-h3">Login</h2>
             <p className="t-body-sm mt-2">
-              Use uma das contas seedadas para validar os fluxos de cliente e
-              admin.
+              Entre com e-mail e senha cadastrados no Supabase Auth.
             </p>
 
             <form action={formAction} className="mt-[var(--space-5)] grid gap-5">
@@ -72,7 +53,7 @@ export default function LoginPage() {
                   type="email"
                   required
                   autoComplete="email"
-                  className="rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
+                  className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
                 />
               </label>
               <label className="grid gap-2">
@@ -81,9 +62,9 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   required
-                  minLength={4}
+                  minLength={6}
                   autoComplete="current-password"
-                  className="rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
+                  className="min-h-[44px] rounded-[8px] border border-[var(--line)] bg-black/35 px-4 py-3 t-body-sm text-[var(--foreground)]"
                 />
               </label>
               {state.message ? (
@@ -93,7 +74,7 @@ export default function LoginPage() {
               ) : null}
               <button
                 type="submit"
-                className="btn-solid t-cta inline-flex w-fit items-center gap-2"
+                className="btn-solid t-cta inline-flex min-h-[44px] w-fit items-center gap-2"
                 disabled={pending}
               >
                 <ShieldCheck size={15} />
@@ -103,31 +84,6 @@ export default function LoginPage() {
           </section>
         </div>
       </main>
-    </div>
-  );
-}
-
-function SeedCard({
-  icon,
-  title,
-  email,
-  password,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  email: string;
-  password: string;
-}) {
-  return (
-    <div className="rounded-[8px] border border-white/10 bg-white/[0.035] p-4">
-      <div className="flex items-center gap-2 text-[var(--highlight)]">
-        {icon}
-        <span className="t-card-sub">{title}</span>
-      </div>
-      <p className="t-body-sm mt-3 break-all">{email}</p>
-      <p className="t-body-sm mt-1 text-[var(--foreground-faint)]">
-        senha: {password}
-      </p>
     </div>
   );
 }

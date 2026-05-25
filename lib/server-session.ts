@@ -1,5 +1,10 @@
 import "server-only";
 
+/**
+ * @deprecated Ciclo 0524 — substituído por Supabase Auth (`getCurrentProfile`).
+ * Mantido apenas como fallback quando Supabase não está configurado.
+ */
+
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/ruby-safira-repository";

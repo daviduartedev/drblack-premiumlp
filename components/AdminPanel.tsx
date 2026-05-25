@@ -14,8 +14,9 @@ import {
   ShieldCheck,
   Ticket,
   TrendingUp,
+  X,
 } from "lucide-react";
-import { logoutAction } from "@/app/login/actions";
+import { logoutAction, saveSkinAction } from "@/app/login/actions";
 import {
   calculateRaffleProfit,
   formatBRL,
@@ -28,6 +29,8 @@ import type {
   Skin,
   SkinStatus,
 } from "@/lib/ruby-safira-types";
+
+type PanelMode = "list" | "skin" | "raffle";
 
 const STATUS_LABEL: Record<SkinStatus, string> = {
   em_estoque: "Em estoque",
@@ -52,6 +55,11 @@ const EMPTY_SKIN: Omit<Skin, "id"> = {
   float: null,
   rarity: "",
   image: "/new-logo.png",
+  wearLabel: "FT",
+  isStatTrak: false,
+  listPrice: 0,
+  suggestedPrice: null,
+  stickers: [],
   paidValue: 0,
   estimatedMarketValue: 0,
   desiredProfitValue: 0,
@@ -64,14 +72,13 @@ const EMPTY_SKIN: Omit<Skin, "id"> = {
 
 export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [skins, setSkins] = useState(data.skins);
-  const [selectedSkinId, setSelectedSkinId] = useState(data.skins[0]?.id ?? "");
-  const selectedSkin =
-    skins.find((skin) => skin.id === selectedSkinId) ?? skins[0];
-  const [draft, setDraft] = useState<Omit<Skin, "id">>(
-    selectedSkin ? stripId(selectedSkin) : EMPTY_SKIN
-  );
+  const [panelMode, setPanelMode] = useState<PanelMode>("list");
+  const [selectedSkinId, setSelectedSkinId] = useState("");
+  const selectedSkin = skins.find((skin) => skin.id === selectedSkinId);
+  const [draft, setDraft] = useState<Omit<Skin, "id">>(EMPTY_SKIN);
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const calculation = useMemo(() => {
     const calculatorInput: ProfitCalculatorInput = {
@@ -105,6 +112,44 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     return { ...data.summary, stockValue };
   }, [data.summary, skins]);
 
+  useEffect(() => {
+    if (panelMode === "list") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [panelMode]);
+
+  function openSkinForm(skin?: Skin) {
+    if (skin) {
+      setSelectedSkinId(skin.id);
+      setDraft(stripId(skin));
+    } else {
+      setSelectedSkinId("");
+      setDraft({ ...EMPTY_SKIN });
+    }
+    setPanelMode("skin");
+  }
+
+  function openRaffleForm(skin?: Skin) {
+    const base = skin ?? skins.find((s) => s.status === "em_estoque") ?? skins[0];
+    if (base) {
+      setSelectedSkinId(base.id);
+      setDraft(stripId(base));
+    } else {
+      setSelectedSkinId("");
+      setDraft({ ...EMPTY_SKIN });
+    }
+    setPanelMode("raffle");
+  }
+
+  function closePanel() {
+    setPanelMode("list");
+    setDraft(EMPTY_SKIN);
+    setSelectedSkinId("");
+  }
+
   function selectSkin(skin: Skin) {
     setIsSwitchingSkin(true);
     setSelectedSkinId(skin.id);
@@ -112,23 +157,49 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     window.setTimeout(() => setIsSwitchingSkin(false), 200);
   }
 
-  function saveDraft() {
-    if (!selectedSkin || isSaving) return;
+  async function saveDraft() {
+    if (isSaving) return;
     setIsSaving(true);
-    setSkins((current) =>
-      current.map((skin) =>
-        skin.id === selectedSkin.id ? { ...skin, ...draft } : skin
-      )
-    );
-    window.setTimeout(() => setIsSaving(false), 650);
-  }
 
-  function createSkin() {
-    const id = `skin_local_${Date.now()}`;
-    const next = { ...draft, id, status: "em_estoque" as const };
-    setSkins((current) => [next, ...current]);
-    setSelectedSkinId(id);
-    setDraft(stripId(next));
+    const skinId = selectedSkinId || `skin_local_${Date.now()}`;
+    const formData = new FormData();
+    if (selectedSkinId) formData.set("id", selectedSkinId);
+    formData.set("name", draft.name);
+    formData.set("weapon", draft.weapon);
+    formData.set("pattern", draft.pattern);
+    if (draft.float != null) formData.set("float", String(draft.float));
+    formData.set("rarity", draft.rarity);
+    formData.set("image", draft.image);
+    formData.set("wearLabel", draft.wearLabel);
+    if (draft.isStatTrak) formData.set("isStatTrak", "on");
+    formData.set("listPrice", String(draft.listPrice));
+    if (draft.suggestedPrice != null) {
+      formData.set("suggestedPrice", String(draft.suggestedPrice));
+    }
+    formData.set("stickers", JSON.stringify(draft.stickers));
+    formData.set("paidValue", String(draft.paidValue));
+    formData.set("estimatedMarketValue", String(draft.estimatedMarketValue));
+    formData.set("desiredProfitValue", String(draft.desiredProfitValue));
+    formData.set("desiredProfitPercent", String(draft.desiredProfitPercent));
+    formData.set("ticketCount", String(draft.ticketCount));
+    formData.set("ticketPrice", String(draft.ticketPrice));
+    formData.set("status", draft.status);
+    formData.set("internalNotes", draft.internalNotes);
+
+    const result = await saveSkinAction({ ok: false, message: "" }, formData);
+    const persistedId = result.skinId ?? skinId;
+    const nextSkin: Skin = { ...draft, id: persistedId };
+
+    setSkins((current) => {
+      const exists = current.some((skin) => skin.id === persistedId);
+      if (exists) {
+        return current.map((skin) => (skin.id === persistedId ? nextSkin : skin));
+      }
+      return [nextSkin, ...current];
+    });
+    setSelectedSkinId(persistedId);
+    setIsSaving(false);
+    closePanel();
   }
 
   function archiveSelected() {
@@ -148,293 +219,95 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  async function handleImageUpload(file: File) {
+    if (!selectedSkinId) return;
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("skinId", selectedSkinId);
+      const res = await fetch("/api/admin/upload-skin-image", {
+        method: "POST",
+        body,
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as { url?: string };
+      if (json.url) updateDraft("image", json.url);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <main className="min-h-[100svh] bg-[#0D0D0D] font-sans text-[#F0F0F0]">
-      <section className="mx-auto w-full max-w-[1440px] p-6">
+      <section className="mx-auto w-full max-w-[1440px] p-4 sm:p-6">
         <header className="flex flex-col gap-5 border-b border-white/[0.06] pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-[560px]">
-            <p className="text-[12px] font-medium text-[#888888]">
-              Admin / Precificacao
-            </p>
-            <h1 className="mt-3 font-display text-[36px] font-bold leading-[1.04] text-[#F0F0F0]">
-              Ficha antes da rifa
+            <p className="text-[12px] font-medium text-[#888888]">Admin / Operacao</p>
+            <h1 className="mt-3 font-display text-[28px] font-bold leading-[1.04] text-[#F0F0F0] sm:text-[36px]">
+              Painel de estoque
             </h1>
             <p className="mt-3 max-w-[480px] text-[14px] leading-6 text-[#888888]">
-              Calcule custo, margem e bilhetes antes de levar a skin para o
-              WhatsApp. Menos chute, mais decisao financeira.
+              Gerencie skins, rifas e metricas. Cadastros abrem em fluxos
+              separados para manter a listagem limpa.
             </p>
           </div>
 
-          <nav className="flex flex-wrap gap-2">
-            <Link href="/rifas" className="admin-nav-button">
-              Ver Rifas
-            </Link>
-            <Link href="/" className="admin-nav-button">
-              Home
-            </Link>
-            <form action={logoutAction}>
-              <button className="admin-nav-button hover:text-[#EF4444]" type="submit">
-                Sair
-              </button>
-            </form>
-          </nav>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={() => openSkinForm()}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#F5A623] px-5 text-[14px] font-semibold text-black transition-all hover:brightness-110"
+            >
+              <Plus size={16} /> Cadastrar skin
+            </button>
+            <button
+              type="button"
+              onClick={() => openRaffleForm()}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[#F5A623] px-5 text-[14px] font-semibold text-[#F5A623] transition-all hover:bg-[rgba(245,166,35,0.08)]"
+            >
+              <Ticket size={16} /> Cadastrar rifa
+            </button>
+            <nav className="flex flex-wrap gap-2">
+              <Link href="/rifas" className="admin-nav-button">
+                Ver Rifas
+              </Link>
+              <Link href="/loja" className="admin-nav-button">
+                Loja
+              </Link>
+              <Link href="/" className="admin-nav-button">
+                Home
+              </Link>
+              <form action={logoutAction}>
+                <button className="admin-nav-button hover:text-[#EF4444]" type="submit">
+                  Sair
+                </button>
+              </form>
+            </nav>
+          </div>
         </header>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric
-            icon={<Coins />}
-            label="Receita bruta"
-            value={syncedSummary.grossRevenue}
-            accent="#F5A623"
-          />
-          <Metric
-            icon={<Package />}
-            label="Custo total"
-            value={syncedSummary.totalCost}
-            accent="#EF4444"
-          />
-          <Metric
-            icon={<Calculator />}
-            label="Lucro esperado"
-            value={syncedSummary.expectedProfit}
-            accent="#22C55E"
-          />
-          <Metric
-            icon={<Gem />}
-            label="Estoque"
-            value={syncedSummary.stockValue}
-            accent="#3B82F6"
-          />
+          <Metric icon={<Coins />} label="Receita bruta" value={syncedSummary.grossRevenue} accent="#F5A623" />
+          <Metric icon={<Package />} label="Custo total" value={syncedSummary.totalCost} accent="#EF4444" />
+          <Metric icon={<Calculator />} label="Lucro esperado" value={syncedSummary.expectedProfit} accent="#22C55E" />
+          <Metric icon={<Gem />} label="Estoque" value={syncedSummary.stockValue} accent="#3B82F6" />
         </div>
 
-        <div className="mt-5 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+        <div className="mt-5">
           <Panel title="Estoque" icon={<Package size={17} />}>
-            <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-              <p className="text-[14px] text-[#888888]">
-                {skins.length} skins cadastradas
-              </p>
-              <button
-                type="button"
-                onClick={createSkin}
-                className="inline-flex size-10 items-center justify-center rounded-lg border border-dashed border-white/15 text-[#F5A623] transition-all duration-150 ease-in-out hover:border-[#F5A623] hover:bg-[rgba(245,166,35,0.08)]"
-                aria-label="Criar skin"
-              >
-                <Plus size={18} />
-              </button>
-            </div>
-            <div className="mt-4 grid max-h-[660px] gap-2 overflow-y-auto pr-1">
+            <p className="text-[14px] text-[#888888]">{skins.length} skins cadastradas</p>
+            <div className="mt-4 grid max-h-[720px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
               {skins.map((skin) => (
                 <SkinButton
                   key={skin.id}
                   skin={skin}
-                  selected={skin.id === selectedSkin?.id}
-                  onClick={() => selectSkin(skin)}
+                  selected={false}
+                  onClick={() => openSkinForm(skin)}
                 />
               ))}
             </div>
           </Panel>
-
-          <Panel title="Ficha tecnica" icon={<ShieldCheck size={17} />}>
-            <form
-              className={`grid gap-5 transition-opacity duration-200 ${
-                isSwitchingSkin ? "opacity-55" : "opacity-100"
-              }`}
-              onSubmit={(event) => event.preventDefault()}
-            >
-              <div className="grid gap-4 rounded-xl border border-[rgba(245,166,35,0.18)] bg-[rgba(245,166,35,0.04)] p-5 lg:grid-cols-3">
-                <Field label="Skin">
-                  <select
-                    value={selectedSkin?.id ?? ""}
-                    onChange={(e) => {
-                      const skin = skins.find((item) => item.id === e.target.value);
-                      if (skin) selectSkin(skin);
-                    }}
-                    className="admin-input"
-                  >
-                    {skins.map((skin) => (
-                      <option key={skin.id} value={skin.id}>
-                        {skin.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Quanto paguei">
-                  <input
-                    value={draft.paidValue}
-                    onChange={(e) => updateDraft("paidValue", Number(e.target.value))}
-                    className="admin-input font-medium tabular-nums"
-                    type="number"
-                    min="0"
-                  />
-                </Field>
-                <Field label="% quero ganhar">
-                  <input
-                    value={draft.desiredProfitPercent}
-                    onChange={(e) =>
-                      updateDraft("desiredProfitPercent", Number(e.target.value))
-                    }
-                    className="admin-input font-medium tabular-nums"
-                    type="number"
-                    min="0"
-                  />
-                </Field>
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_230px]">
-                <div className="grid gap-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Nome">
-                      <input
-                        value={draft.name}
-                        onChange={(e) => updateDraft("name", e.target.value)}
-                        className="admin-input"
-                      />
-                    </Field>
-                    <Field label="Tipo/arma">
-                      <input
-                        value={draft.weapon}
-                        onChange={(e) => updateDraft("weapon", e.target.value)}
-                        className="admin-input"
-                      />
-                    </Field>
-                    <Field label="Padrao">
-                      <input
-                        value={draft.pattern}
-                        onChange={(e) => updateDraft("pattern", e.target.value)}
-                        className="admin-input"
-                      />
-                    </Field>
-                    <Field label="Raridade">
-                      <input
-                        value={draft.rarity}
-                        onChange={(e) => updateDraft("rarity", e.target.value)}
-                        className="admin-input"
-                      />
-                    </Field>
-                    <Field label="Float">
-                      <input
-                        value={draft.float ?? ""}
-                        onChange={(e) =>
-                          updateDraft(
-                            "float",
-                            e.target.value === "" ? null : Number(e.target.value)
-                          )
-                        }
-                        className="admin-input tabular-nums"
-                        type="number"
-                        step="0.0001"
-                      />
-                    </Field>
-                    <Field label="Status">
-                      <select
-                        value={draft.status}
-                        onChange={(e) =>
-                          updateDraft("status", e.target.value as SkinStatus)
-                        }
-                        className="admin-input"
-                      >
-                        {Object.entries(STATUS_LABEL).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="Mercado estimado">
-                      <input
-                        value={draft.estimatedMarketValue}
-                        onChange={(e) =>
-                          updateDraft("estimatedMarketValue", Number(e.target.value))
-                        }
-                        className="admin-input tabular-nums"
-                        type="number"
-                        min="0"
-                      />
-                    </Field>
-                    <Field label="Bilhetes desejados">
-                      <input
-                        value={draft.ticketCount}
-                        onChange={(e) => updateDraft("ticketCount", Number(e.target.value))}
-                        className="admin-input tabular-nums"
-                        type="number"
-                        min="1"
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Observacoes internas">
-                    <textarea
-                      value={draft.internalNotes}
-                      onChange={(e) => updateDraft("internalNotes", e.target.value)}
-                      className="admin-input min-h-20"
-                    />
-                  </Field>
-
-                  <div className="rounded-xl border border-white/[0.06] bg-[#1A1A1A] p-4">
-                    <div className="flex items-center gap-3">
-                      <SteamMark />
-                      <div>
-                        <p className="admin-section-label">Mercado Steam</p>
-                        <p className="mt-1 text-[13px] text-[#888888]">
-                          Integracao em breve
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid content-start gap-3">
-                  <div className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-[#1A1A1A]">
-                    <Image
-                      src={draft.image}
-                      alt={draft.name || "Skin selecionada"}
-                      fill
-                      sizes="230px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <StatusPill status={draft.status} />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3 border-t border-white/[0.06] pt-4">
-                <button
-                  type="button"
-                  onClick={saveDraft}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#F5A623] px-5 text-[14px] font-semibold text-black transition-all duration-150 ease-in-out hover:brightness-110 active:scale-[0.98] disabled:cursor-wait disabled:opacity-75"
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <span className="admin-spinner size-4 rounded-full border-2 border-black/30 border-t-black" />
-                  ) : (
-                    <Save size={16} />
-                  )}
-                  {isSaving ? "Salvando" : "Salvar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={createSkin}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#F5A623] px-5 text-[14px] font-semibold text-[#F5A623] transition-all duration-150 ease-in-out hover:bg-[rgba(245,166,35,0.08)] active:scale-[0.98]"
-                >
-                  <Plus size={16} /> Nova Skin
-                </button>
-                <button
-                  type="button"
-                  onClick={archiveSelected}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#888888] transition-all duration-150 ease-in-out hover:text-[#EF4444] active:scale-[0.98]"
-                >
-                  <Archive size={16} /> Arquivar
-                </button>
-              </div>
-            </form>
-          </Panel>
-
-          <CalculatorPanel
-            calculation={calculation}
-            suggestions={packageSuggestions}
-            selectedTicketCount={draft.ticketCount}
-            onSelectTicketCount={(ticketCount) => updateDraft("ticketCount", ticketCount)}
-          />
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-3">
@@ -478,7 +351,353 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
           </Panel>
         </div>
       </section>
+
+      {panelMode !== "list" ? (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70"
+            aria-label="Fechar painel"
+            onClick={closePanel}
+          />
+          <div className="relative z-10 flex max-h-[100svh] w-full flex-col overflow-hidden rounded-t-[16px] border border-white/10 bg-[#141414] sm:max-h-[92svh] sm:max-w-[960px] sm:rounded-[12px]">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
+              <h2 className="text-[16px] font-semibold">
+                {panelMode === "skin" ? "Ficha tecnica" : "Cadastrar rifa"}
+              </h2>
+              <button
+                type="button"
+                onClick={closePanel}
+                className="inline-flex size-10 items-center justify-center rounded-lg text-[#888888] hover:bg-white/5 hover:text-white"
+                aria-label="Cancelar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+              {panelMode === "skin" ? (
+                <SkinForm
+                  skins={skins}
+                  selectedSkinId={selectedSkinId}
+                  draft={draft}
+                  isSaving={isSaving}
+                  isSwitchingSkin={isSwitchingSkin}
+                  uploading={uploading}
+                  onSelectSkin={selectSkin}
+                  onUpdateDraft={updateDraft}
+                  onSave={saveDraft}
+                  onArchive={archiveSelected}
+                  onImageUpload={handleImageUpload}
+                />
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <SkinForm
+                    skins={skins}
+                    selectedSkinId={selectedSkinId}
+                    draft={draft}
+                    isSaving={isSaving}
+                    isSwitchingSkin={isSwitchingSkin}
+                    uploading={uploading}
+                    compact
+                    onSelectSkin={selectSkin}
+                    onUpdateDraft={updateDraft}
+                    onSave={saveDraft}
+                    onArchive={archiveSelected}
+                    onImageUpload={handleImageUpload}
+                  />
+                  <CalculatorPanel
+                    calculation={calculation}
+                    suggestions={packageSuggestions}
+                    selectedTicketCount={draft.ticketCount}
+                    onSelectTicketCount={(ticketCount) =>
+                      updateDraft("ticketCount", ticketCount)
+                    }
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3 border-t border-white/10 px-4 py-4 sm:px-6">
+              <button
+                type="button"
+                onClick={saveDraft}
+                disabled={isSaving}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#F5A623] px-5 text-[14px] font-semibold text-black disabled:opacity-70"
+              >
+                <Save size={16} />
+                {isSaving ? "Salvando" : panelMode === "raffle" ? "Salvar rifa" : "Salvar skin"}
+              </button>
+              <button
+                type="button"
+                onClick={closePanel}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg px-4 text-[14px] font-semibold text-[#888888] hover:text-white"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
+  );
+}
+
+function SkinForm({
+  skins,
+  selectedSkinId,
+  draft,
+  isSaving,
+  isSwitchingSkin,
+  uploading,
+  compact = false,
+  onSelectSkin,
+  onUpdateDraft,
+  onSave,
+  onArchive,
+  onImageUpload,
+}: {
+  skins: Skin[];
+  selectedSkinId: string;
+  draft: Omit<Skin, "id">;
+  isSaving: boolean;
+  isSwitchingSkin: boolean;
+  uploading: boolean;
+  compact?: boolean;
+  onSelectSkin: (skin: Skin) => void;
+  onUpdateDraft: <K extends keyof Omit<Skin, "id">>(
+    key: K,
+    value: Omit<Skin, "id">[K]
+  ) => void;
+  onSave: () => void;
+  onArchive: () => void;
+  onImageUpload: (file: File) => void;
+}) {
+  return (
+    <form
+      className={`grid gap-5 transition-opacity duration-200 ${
+        isSwitchingSkin ? "opacity-55" : "opacity-100"
+      }`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
+      {!compact ? (
+        <div className="grid gap-4 rounded-xl border border-[rgba(245,166,35,0.18)] bg-[rgba(245,166,35,0.04)] p-5 sm:grid-cols-3">
+          <Field label="Skin existente">
+            <select
+              value={selectedSkinId}
+              onChange={(e) => {
+                const skin = skins.find((item) => item.id === e.target.value);
+                if (skin) onSelectSkin(skin);
+              }}
+              className="admin-input min-h-[44px]"
+            >
+              <option value="">Nova skin</option>
+              {skins.map((skin) => (
+                <option key={skin.id} value={skin.id}>
+                  {skin.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Quanto paguei">
+            <input
+              value={draft.paidValue}
+              onChange={(e) => onUpdateDraft("paidValue", Number(e.target.value))}
+              className="admin-input min-h-[44px] font-medium tabular-nums"
+              type="number"
+              min="0"
+            />
+          </Field>
+          <Field label="% quero ganhar">
+            <input
+              value={draft.desiredProfitPercent}
+              onChange={(e) =>
+                onUpdateDraft("desiredProfitPercent", Number(e.target.value))
+              }
+              className="admin-input min-h-[44px] font-medium tabular-nums"
+              type="number"
+              min="0"
+            />
+          </Field>
+        </div>
+      ) : null}
+
+      <div className={`grid gap-5 ${compact ? "" : "lg:grid-cols-[minmax(0,1fr)_230px]"}`}>
+        <div className="grid gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nome">
+              <input
+                value={draft.name}
+                onChange={(e) => onUpdateDraft("name", e.target.value)}
+                className="admin-input min-h-[44px]"
+              />
+            </Field>
+            <Field label="Tipo/arma">
+              <input
+                value={draft.weapon}
+                onChange={(e) => onUpdateDraft("weapon", e.target.value)}
+                className="admin-input min-h-[44px]"
+              />
+            </Field>
+            <Field label="Padrao">
+              <input
+                value={draft.pattern}
+                onChange={(e) => onUpdateDraft("pattern", e.target.value)}
+                className="admin-input min-h-[44px]"
+              />
+            </Field>
+            <Field label="Desgaste (FT/MW/FN)">
+              <input
+                value={draft.wearLabel}
+                onChange={(e) => onUpdateDraft("wearLabel", e.target.value)}
+                className="admin-input min-h-[44px]"
+              />
+            </Field>
+            <Field label="Raridade">
+              <input
+                value={draft.rarity}
+                onChange={(e) => onUpdateDraft("rarity", e.target.value)}
+                className="admin-input min-h-[44px]"
+              />
+            </Field>
+            <Field label="Float">
+              <input
+                value={draft.float ?? ""}
+                onChange={(e) =>
+                  onUpdateDraft(
+                    "float",
+                    e.target.value === "" ? null : Number(e.target.value)
+                  )
+                }
+                className="admin-input min-h-[44px] tabular-nums"
+                type="number"
+                step="0.0001"
+              />
+            </Field>
+            <Field label="Preco loja (BRL)">
+              <input
+                value={draft.listPrice}
+                onChange={(e) => onUpdateDraft("listPrice", Number(e.target.value))}
+                className="admin-input min-h-[44px] tabular-nums"
+                type="number"
+                min="0"
+              />
+            </Field>
+            <Field label="Preco sugerido">
+              <input
+                value={draft.suggestedPrice ?? ""}
+                onChange={(e) =>
+                  onUpdateDraft(
+                    "suggestedPrice",
+                    e.target.value === "" ? null : Number(e.target.value)
+                  )
+                }
+                className="admin-input min-h-[44px] tabular-nums"
+                type="number"
+                min="0"
+              />
+            </Field>
+            <Field label="Status">
+              <select
+                value={draft.status}
+                onChange={(e) =>
+                  onUpdateDraft("status", e.target.value as SkinStatus)
+                }
+                className="admin-input min-h-[44px]"
+              >
+                {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <label className="flex min-h-[44px] items-center gap-2 text-[13px] text-[#888888]">
+              <input
+                type="checkbox"
+                checked={draft.isStatTrak}
+                onChange={(e) => onUpdateDraft("isStatTrak", e.target.checked)}
+              />
+              StatTrak
+            </label>
+          </div>
+
+          <Field label="URL da imagem">
+            <input
+              value={draft.image}
+              onChange={(e) => onUpdateDraft("image", e.target.value)}
+              className="admin-input min-h-[44px]"
+            />
+          </Field>
+
+          <Field label="Upload de foto">
+            <input
+              type="file"
+              accept="image/*"
+              disabled={!selectedSkinId || uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onImageUpload(file);
+              }}
+              className="min-h-[44px] w-full text-[13px] text-[#888888] file:mr-3 file:rounded-md file:border-0 file:bg-[#F5A623] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-black"
+            />
+            {!selectedSkinId ? (
+              <p className="text-[12px] text-[#888888]">
+                Salve a skin primeiro para habilitar upload Blob.
+              </p>
+            ) : null}
+          </Field>
+
+          <Field label="Observacoes internas">
+            <textarea
+              value={draft.internalNotes}
+              onChange={(e) => onUpdateDraft("internalNotes", e.target.value)}
+              className="admin-input min-h-20"
+            />
+          </Field>
+        </div>
+
+        {!compact ? (
+          <div className="grid content-start gap-3">
+            <div className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-[#1A1A1A]">
+              <Image
+                src={draft.image}
+                alt={draft.name || "Skin selecionada"}
+                fill
+                sizes="230px"
+                className="object-cover"
+              />
+            </div>
+            <StatusPill status={draft.status} />
+          </div>
+        ) : null}
+      </div>
+
+      {!compact ? (
+        <div className="flex flex-wrap gap-3 border-t border-white/[0.06] pt-4">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-[#F5A623] px-5 text-[14px] font-semibold text-black disabled:opacity-70"
+          >
+            <Save size={16} />
+            {isSaving ? "Salvando" : "Salvar"}
+          </button>
+          {selectedSkinId ? (
+            <button
+              type="button"
+              onClick={onArchive}
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#888888] hover:text-[#EF4444]"
+            >
+              <Archive size={16} /> Arquivar
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </form>
   );
 }
 
@@ -495,7 +714,7 @@ function SkinButton({
     <button
       type="button"
       onClick={onClick}
-      className={`grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/[0.06] p-2.5 text-left transition-all duration-150 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.04] ${
+      className={`grid w-full grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/[0.06] p-2.5 text-left transition-all duration-150 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.04] min-h-[56px] ${
         selected
           ? "border-l-2 border-l-[#F5A623] bg-[#1A1A1A]"
           : "bg-transparent"
@@ -509,7 +728,7 @@ function SkinButton({
           {skin.name}
         </span>
         <span className="mt-0.5 block truncate text-[12px] leading-4 text-[#888888]">
-          {skin.weapon} - {skin.rarity}
+          {skin.weapon} - {formatBRL(skin.listPrice)}
         </span>
       </span>
       <StatusPill status={skin.status} compact />
@@ -525,6 +744,11 @@ function stripId(skin: Skin): Omit<Skin, "id"> {
     float: skin.float,
     rarity: skin.rarity,
     image: skin.image,
+    wearLabel: skin.wearLabel,
+    isStatTrak: skin.isStatTrak,
+    listPrice: skin.listPrice,
+    suggestedPrice: skin.suggestedPrice,
+    stickers: skin.stickers,
     paidValue: skin.paidValue,
     estimatedMarketValue: skin.estimatedMarketValue,
     desiredProfitValue: skin.desiredProfitValue,
@@ -598,7 +822,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-white/[0.06] bg-[#141414] px-6 py-5 transition-all duration-150 ease-in-out hover:border-white/[0.12]">
+    <section className="rounded-xl border border-white/[0.06] bg-[#141414] px-4 py-5 sm:px-6 transition-all duration-150 ease-in-out hover:border-white/[0.12]">
       <div className="mb-4 flex items-center gap-2 border-b border-white/[0.06] pb-4 text-[#F5A623]">
         {icon}
         <h2 className="admin-section-label">{title}</h2>
@@ -657,7 +881,7 @@ function CalculatorPanel({
   onSelectTicketCount: (ticketCount: number) => void;
 }) {
   return (
-    <aside className="rounded-xl border border-white/[0.06] bg-[#141414] px-6 py-5 transition-all duration-150 ease-in-out hover:border-white/[0.12] xl:sticky xl:top-6 xl:self-start">
+    <aside className="rounded-xl border border-white/[0.06] bg-[#141414] px-4 py-5 sm:px-6">
       <div className="flex items-center gap-2 border-b border-white/[0.06] pb-4 text-[#F5A623]">
         <Calculator size={17} />
         <p className="admin-section-label">Calculadora</p>
@@ -691,7 +915,7 @@ function CalculatorPanel({
                 type="button"
                 key={item.ticketCount}
                 onClick={() => onSelectTicketCount(item.ticketCount)}
-                className={`grid gap-1 rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-3 text-left transition-all duration-150 ease-in-out hover:border-white/[0.12] hover:bg-white/[0.04] ${
+                className={`grid min-h-[44px] gap-1 rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-3 text-left transition-all hover:border-white/[0.12] hover:bg-white/[0.04] ${
                   selected
                     ? "border-l-2 border-l-[#F5A623] bg-[rgba(245,166,35,0.06)]"
                     : ""
@@ -703,12 +927,6 @@ function CalculatorPanel({
                   </span>
                   <span className="text-[13px] font-semibold text-[#F0F0F0] tabular-nums">
                     {formatBRL(item.ticketPrice)}
-                  </span>
-                </span>
-                <span className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.08em] text-[#555555]">
-                  <span>Total</span>
-                  <span className="text-[#F5A623]">
-                    {formatBRL(item.grossRevenue)}
                   </span>
                 </span>
               </button>
@@ -754,27 +972,5 @@ function Table({ rows }: { rows: string[][] }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function SteamMark() {
-  return (
-    <span className="inline-flex size-10 items-center justify-center rounded-lg border border-white/[0.06] bg-[#141414] text-[#888888]">
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        className="size-5"
-        fill="none"
-      >
-        <circle cx="15.8" cy="8.3" r="3.2" stroke="currentColor" strokeWidth="1.6" />
-        <circle cx="7.4" cy="16.1" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-        <path
-          d="M9.6 14.8l3.7-4M5.2 14.8l-2.6-1.1M9.6 17.3l4.1 1.7"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="1.6"
-        />
-      </svg>
-    </span>
   );
 }

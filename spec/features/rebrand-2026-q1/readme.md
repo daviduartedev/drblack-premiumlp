@@ -176,7 +176,7 @@ Esta secção captura o **estado canónico** após a padronização — todos os
   - **Sem coluna direita de mídia** — o `Hero` deixa de receber `mediaSlot`. O headline ocupa a coluna principal sem flex de duas colunas. O `HeroMediaSlot` permanece exportado como utilitário standalone para futuras cycles que reintroduzam mídia.
   - **Altura:** `min-h-screen` + `padding-bottom: var(--space-7)` (substitui `min-h-[115vh]`). Headline cabe na primeira dobra em monitores ≥1080px sem mais que 20% de altura morta antes da galeria.
   - **Tipografia:** headline em `.t-h1`, eyebrow do nav em `.t-eyebrow`, paragrafo descritivo em `.t-body-sm`, CTA "ENTRAR" em `.btn-ghost.t-cta`. Todas as ocorrências de `px-[5vw]` substituídas por `.section-padding-x`.
-  - **Nav — 3 itens:** "Catálogo" → `#skins-destaque` (link real). "Rifas" e "Sobre" mantêm `href="#"` mas com `aria-disabled="true"`, `tabIndex={-1}`, `title="Em breve"` e `cursor: not-allowed`. "Coleções" foi removido até existir destino.
+  - **Nav — 3 itens:** "Catálogo" → `/loja` (vitrine de skins em estoque; ciclo `cycles/Q22026/0524-platform-skins-store-backend/`). O carrossel `#skins-destaque` na home permanece como destaque na LP. "Rifas" e "Sobre" mantêm `href="#"` mas com `aria-disabled="true"`, `tabIndex={-1}`, `title="Em breve"` e `cursor: not-allowed` (mesmo com `/rifas` existente). "Coleções" foi removido até existir destino.
   - **Strings congeladas (mantidas das cycles anteriores):** headline `["COMPRA.", "VENDA.", "CONCORRA."]`; paragrafo `Skins de CS2, rifas e mercado no mesmo lugar. Compra, vende, concorre — direto, sem enrolação.`.
 - **Galeria pinada (`components/ScrollDrivenHeroGallery.tsx`) — áreas não-3D:**
   - **Título "DÊ O UPGRADE QUE VOCÊ MERECE."** consome `.t-h2`. Ref `titleRef` preservado (GSAP escreve `transform/opacity`).
@@ -233,6 +233,14 @@ Esta secção captura o **estado canónico** após a padronização — todos os
   - `aria-label` das setas do carrossel preservado.
   - `aria-label="Estatísticas da plataforma"` no bloco de stats da narrativa.
   - Focus-visible global em `:where(a, button, [role="button"])` continua a aplicar-se.
+
+## Correção galeria upgrade — frames no scroll (ciclo Q2 0524)
+
+**Ciclo:** `cycles/Q22026/0524-platform-skins-store-backend/` (Stage 1)
+
+- **Sintoma corrigido:** na seção pinada “DÊ O UPGRADE QUE VOCÊ MERECE”, o scroll deve avançar/recuar os frames pré-renderizados de forma contínua (desktop, Fase B + `ScrollFilmFrames`).
+- **Escopo limitado:** não alterar copy, tipografia `.t-h2`, layout, CTAs, easings, morph flubber, glow Fase B ou parallax da narrativa salvo causa direta do bug.
+- **Mobile:** ramo `UpgradeShowcaseMobile` — validar sem regressão; correção principal no desktop GSAP.
 
 ## Dependências técnicas
 

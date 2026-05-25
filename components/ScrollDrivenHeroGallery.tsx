@@ -164,6 +164,8 @@ function ScrollDrivenHeroGalleryDesktop() {
 
   const [expansionProgress, setExpansionProgress] = useState(0);
   const expansionProgressRef = useRef(0);
+  /** Evita setState a cada frame de scroll — só re-render quando o índice muda. */
+  const lastFrameStepRef = useRef(-1);
   const reducedMotion = useReducedMotion();
   const narrativaBackdrop = useNarrativaBackdropMotion(reducedMotion);
 
@@ -371,8 +373,10 @@ function ScrollDrivenHeroGalleryDesktop() {
               const t = (p - PHASE_A_END) / (PHASE_B_END - PHASE_A_END);
               next = Math.min(1, Math.max(0, t));
             }
-            if (expansionProgressRef.current !== next) {
-              expansionProgressRef.current = next;
+            expansionProgressRef.current = next;
+            const frameStep = Math.floor(next * 100);
+            if (lastFrameStepRef.current !== frameStep) {
+              lastFrameStepRef.current = frameStep;
               setExpansionProgress(next);
             }
           },
@@ -542,7 +546,9 @@ function ScrollDrivenHeroGalleryDesktop() {
       }
 
       // Film overlay aparece logo no início da fase B.
+      // Opacidade só via GSAP — inline style em JSX resetaria a cada re-render.
       if (heroFilmRef.current) {
+        gsap.set(heroFilmRef.current, { opacity: 0 });
         tl.fromTo(
           heroFilmRef.current,
           { opacity: 0 },
@@ -785,18 +791,15 @@ function ScrollDrivenHeroGalleryDesktop() {
                           <>
                             <div
                               ref={heroFilmRef}
-                              className="absolute inset-0 pointer-events-none"
-                              style={{ opacity: 0 }}
+                              className="absolute inset-0 z-[4] pointer-events-none"
                               aria-hidden
                             >
-                              {expansionProgress > 0 ? (
-                                <ScrollFilmFrames
-                                  progress={expansionProgress}
-                                  firstIndex={1}
-                                  lastIndex={101}
-                                  fallbackColor="#0a0a0a"
-                                />
-                              ) : null}
+                              <ScrollFilmFrames
+                                progress={expansionProgress}
+                                firstIndex={1}
+                                lastIndex={101}
+                                fallbackColor="#0a0a0a"
+                              />
                             </div>
                             {/* labels removidos — durante o fullscreen
                                 a animação ocupa a tela inteira sem

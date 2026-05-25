@@ -11,8 +11,7 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
 import { formatBRL } from "@/lib/profit-calculator";
-import { getCustomerDashboard } from "@/lib/ruby-safira-repository";
-import { getCurrentUser } from "@/lib/server-session";
+import { getCustomerDashboard, getCurrentProfile } from "@/lib/ruby-safira-repository";
 import type { RaffleStatus } from "@/lib/ruby-safira-types";
 
 const STATUS_LABEL: Record<RaffleStatus, string> = {
@@ -24,7 +23,7 @@ const STATUS_LABEL: Record<RaffleStatus, string> = {
 };
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentProfile();
   if (!user) redirect("/login");
 
   if (user.role !== "customer") {

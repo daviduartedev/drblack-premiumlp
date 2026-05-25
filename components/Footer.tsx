@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { whatsappUrl } from "@/lib/whatsapp";
+
 const UTOPIA_URL = "https://utopia.app.br/";
-/** wa.me — só dígitos: DDI + DDD + número (ex.: 5511999999999). Troque pelo WhatsApp oficial. */
-const WHATSAPP_URL = "https://wa.me/5511999999999";
+const WHATSAPP_URL = whatsappUrl();
 
 /**
  * Footer institucional.
@@ -22,7 +23,7 @@ const WHATSAPP_URL = "https://wa.me/5511999999999";
 type FooterLink = { label: string; href: string };
 
 const NAV: FooterLink[] = [
-  { label: "Catálogo", href: "#skins-destaque" },
+  { label: "Catálogo", href: "/loja" },
   { label: "Rifas", href: "/rifas" },
   { label: "Coleções", href: "#" },
   { label: "Sobre", href: "#" },

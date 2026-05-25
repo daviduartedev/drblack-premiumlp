@@ -7,8 +7,11 @@ import { formatBRL } from "@/lib/profit-calculator";
 import { getPublicRaffles } from "@/lib/ruby-safira-repository";
 import type { RaffleStatus } from "@/lib/ruby-safira-types";
 
-const WHATSAPP_URL =
-  "https://wa.me/5511999999999?text=Quero%20participar%20das%20rifas%20da%20DR%20Black%20Skins";
+import { whatsappUrl } from "@/lib/whatsapp";
+
+const WHATSAPP_URL = whatsappUrl(
+  "Quero participar das rifas da DR Black Skins"
+);
 
 const STATUS_LABEL: Record<RaffleStatus, string> = {
   ativa: "Ativa",

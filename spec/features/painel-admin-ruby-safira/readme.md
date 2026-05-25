@@ -1,6 +1,6 @@
 # Feature: Painel admin, cliente e Ruby/Safira
 
-**Ciclo de origem:** `cycles/Q12026/0006-painel-admin-ruby-safira/`
+**Ciclos de origem:** `cycles/Q12026/0006-painel-admin-ruby-safira/` · evolução Q2: `cycles/Q22026/0524-platform-skins-store-backend/`
 
 ## Objetivo
 
@@ -41,9 +41,11 @@ Evitar:
 
 ## Rotas canonicas
 
+- Loja (skins em estoque): `/loja`.
 - Rifas publicas: `/rifas`.
 - Cliente: `/dashboard`.
 - Admin: `/admin`.
+- Login: `/login` (Supabase Auth).
 
 ## Papeis e acesso
 
@@ -59,7 +61,7 @@ Regras:
 - admin acessa estoque, financeiro, skins, fichas tecnicas, rifas e calculadora;
 - dados internos de custo, lucro e observacoes nunca aparecem para cliente.
 
-Enquanto a autenticacao real nao existir, o mock/local seed deve ser tratado como validacao visual e funcional local, nao como fronteira de seguranca real.
+Autenticacao de producao via **Supabase Auth** (ciclo 0524). Sessao mock/cookie local foi substituida; credenciais de teste nao aparecem na UI de login.
 
 ## Dashboard do cliente
 
@@ -99,6 +101,14 @@ O admin deve ter uma interface densa, operacional e escaneavel para:
 - historico financeiro por skin/rifa;
 - controle basico de compras e vendas;
 - visao geral de receita, custo, taxas estimadas, lucro esperado e lucro realizado.
+
+### UX admin (ciclo 0524)
+
+- Ao abrir `/admin`, **nenhum** formulário de cadastro fica aberto.
+- Dois CTAs explicitos:
+  - **Cadastrar skin** — abre ficha tecnica (fechar/cancelar descarta rascunho).
+  - **Cadastrar rifa** — fluxo separado com calculadora de lucro/precificacao (conteudo do popup/calculadora existente).
+- Em mobile, ficha e rifa usam drawer/modal full-screen; estoque em cards empilhados.
 
 ## Ficha tecnica de skins
 
@@ -141,57 +151,117 @@ Saida:
 
 Formula principal do ciclo: `valor pago + percentual de lucro desejado = valor alvo de venda`. A partir do valor alvo, o admin ve sugestoes como `130 bilhetes a R$ 10` ou `260 bilhetes a R$ 5`.
 
+## Loja publica (`/loja`)
+
+Vitrine de **skins a venda** (status `em_estoque`). Skins `em_rifa` aparecem apenas em `/rifas`, nao na loja.
+
+### Card publico (referencia de produto)
+
+Campos exibidos (nunca dados internos):
+
+| Elemento | Fonte / nota |
+|----------|----------------|
+| Categoria | `weapon` (ex. Rifle) |
+| Disponibilidade | Label fixa **Disponível** para `em_estoque` |
+| Nome | `name` (ex. `AWP \| Linhas Vermelhas`) |
+| Badges | `is_stat_trak` → StatTrak™; `wear_label` → FT, MW, etc. |
+| Imagem | `image_url` (Vercel Blob) |
+| Stickers | `stickers` jsonb opcional (icones em fila) |
+| Preco | `list_price` (BRL) |
+| Preco sugerido | `suggested_price` opcional (BRL) |
+| Float | `float` + barra visual de desgaste |
+| CTA primario | **Quero esta skin** → WhatsApp com nome da skin na mensagem |
+
+Fora do card: custo pago, lucro desejado, bilhetes, observacoes internas.
+
+Comportamento da pagina:
+
+- Grid responsivo (1 col mobile, multi-col desktop), hover/transicoes estilo Framer.
+- Sem busca, filtros ou paginacao neste ciclo.
+- Estado vazio: *Nenhuma skin disponível no momento. Volte em breve ou chama no WhatsApp.* + CTA WhatsApp.
+- Nav **Catálogo** na LP aponta para `/loja`; carrossel `#skins-destaque` permanece na home.
+
 ## Area publica de rifas
 
-Enquanto checkout/pagamento nao existem, `/rifas` e a vitrine publica das rifas. A pagina usa a mesma base visual do site, mostra cards de rifas em movimento e direciona reserva/pagamento/suporte para WhatsApp.
+Enquanto checkout/pagamento nao existem, `/rifas` e a vitrine publica das **rifas**. A pagina usa a mesma base visual do site, mostra cards de rifas em movimento e direciona reserva/pagamento/suporte para WhatsApp.
 
 CTA canonico temporario: `Chamar no WhatsApp` / `Reservar bilhete`.
 
-## Dados locais e Supabase futuro
+No **hero** da LP, o item de menu “Rifas” permanece marcado **Em breve** (desabilitado), independentemente de `/rifas` estar publicada.
 
-O MVP visual usa seed local tipado com:
+## Dados — Supabase + Vercel Blob (ciclo 0524)
 
-- `users`;
-- `profiles`;
-- `skins`;
-- `raffles`;
-- `tickets`;
-- `purchases`;
-- `salesHistory`;
-- `financialEntries`.
+Persistencia em **Supabase** (projeto existente) e imagens em **Vercel Blob** (URLs publicas, prefixo `skins/{id}/`).
 
-A implementacao deve isolar acesso a dados em uma camada de repositorio/service para troca futura por Supabase.
+### Variaveis de ambiente (documentar em `.env.example`, configurar na Vercel)
 
-Supabase futuro:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (somente servidor — upload/admin)
+- `BLOB_READ_WRITE_TOKEN`
+
+Redirect URLs do Supabase Auth devem incluir dominio de producao (e preview se usado).
+
+### Tabelas
+
+- `profiles` (`id` = `auth.users.id`, `role`: `customer` | `admin`)
+- `skins` (campos publicos + internos; ver abaixo)
+- `raffles`, `tickets`, `purchases`, `financial_entries` — suportam dashboard e fluxo de rifa
+
+Campos adicionais em `skins` para loja:
+
+- `wear_label` (texto curto: FT, MW, FN, …)
+- `is_stat_trak` (boolean)
+- `list_price`, `suggested_price` (numeric, BRL)
+- `stickers` (jsonb, opcional)
+- `image_url` (text, URL Blob)
+
+View recomendada: `public_store_skins` — projeta apenas colunas publicas onde `status = 'em_estoque'`.
+
+### RLS
 
 - `profiles.role` controla acesso;
 - Row Level Security obrigatoria;
-- customer so acessa dados proprios;
+- customer so acessa dados proprios (tickets, purchases, …);
 - admin acessa dados operacionais;
-- custos, lucro, taxas e observacoes internas nao sao expostos ao papel customer.
+- leitura anonima/autenticada da loja apenas via view/colunas publicas;
+- custos, lucro, taxas e observacoes internas nunca expostos ao papel customer.
 
-## Implementacao local (ciclo 0006)
+### Repositorio
 
-Arquivos principais:
+A UI **nao** importa `@supabase/supabase-js` diretamente nos componentes. Server Actions / `lib/*-repository.ts` centralizam queries e DTOs.
 
-- `lib/ruby-safira-types.ts` - contratos tipados de roles, status, skins, rifas, tickets, compras, vendas e financeiro.
-- `lib/test-credentials.ts` - credenciais seedadas exibidas no login local.
-- `lib/ruby-safira-seed.ts` - seed server-only com dados operacionais.
-- `lib/ruby-safira-repository.ts` - DAL server-only que retorna DTOs filtrados para cliente/admin.
-- `lib/server-session.ts` - cookie HTTP-only assinado para sessao local de validacao visual.
-- `lib/profit-calculator.ts` - calculadora pura de margem, lucro e precificacao.
-- `app/login/actions.ts` - Server Actions de login/logout.
-- `app/dashboard/page.tsx` - dashboard do cliente com DTO sem dados internos.
-- `app/admin/page.tsx` e `components/AdminPanel.tsx` - painel admin com estoque, ficha tecnica, CRUD local visual e calculadora.
-- `app/rifas/page.tsx` - area publica de rifas com cards em movimento e CTA WhatsApp.
-- `components/RubySapphirePublicSection.tsx` - nova secao publica Ruby/Safira.
+### Seed
 
-Credenciais locais:
+Apos migrations em banco vazio, aplicar **seed SQL** (usuarios de dev criados no Supabase Auth + linhas de exemplo). Nao reutilizar o seed TypeScript antigo em producao.
 
-- Cliente: `cliente@drblack.local` / `cliente123`.
-- Admin: `admin@drblack.local` / `admin123`.
+### Upload
 
-Essas credenciais sao somente seed local para validacao visual e nao devem ser usadas em producao.
+Somente admin autenticado envia foto (Route Handler + service role). Stage 2 (pre-Supabase) pode usar URL manual; upload Blob no Stage 3.
+
+### WhatsApp
+
+Numero e base `wa.me` centralizados (ex. `lib/whatsapp.ts`), reutilizados em `/rifas`, `/loja` e footer.
+
+## Implementacao (referencia de codigo)
+
+Arquivos principais (evoluir no ciclo 0524):
+
+- `lib/ruby-safira-types.ts` — contratos tipados (estender com campos de loja).
+- `lib/ruby-safira-repository.ts` — DAL server-only; implementacao Supabase substitui seed in-memory.
+- `lib/supabase/*` — clientes server/browser e helpers de sessao.
+- `lib/whatsapp.ts` — URLs WhatsApp compartilhadas.
+- `lib/profit-calculator.ts` — calculadora pura de margem, lucro e precificacao.
+- `app/login/` — Supabase Auth (sem exibir credenciais de teste).
+- `app/dashboard/page.tsx` — dashboard do cliente com DTO sem dados internos.
+- `app/admin/page.tsx` e `components/AdminPanel.tsx` — painel admin, fluxos skin/rifa separados.
+- `app/loja/page.tsx` — vitrine publica de skins em estoque.
+- `app/rifas/page.tsx` — rifas ativas + CTA WhatsApp.
+- `components/RubySapphirePublicSection.tsx` — secao publica Ruby/Safira.
+
+Legado (remover do caminho de producao apos migracao):
+
+- `lib/test-credentials.ts`, `lib/ruby-safira-seed.ts`, `lib/server-session.ts` — substituidos por Supabase Auth + seed SQL.
 
 ## Logo e icones
 

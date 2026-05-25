@@ -42,6 +42,11 @@ export type Skin = {
   float: number | null;
   rarity: string;
   image: string;
+  wearLabel: string;
+  isStatTrak: boolean;
+  listPrice: number;
+  suggestedPrice: number | null;
+  stickers: string[];
   paidValue: number;
   estimatedMarketValue: number;
   desiredProfitValue: number;
@@ -50,6 +55,22 @@ export type Skin = {
   ticketPrice: number;
   status: SkinStatus;
   internalNotes: string;
+};
+
+/** DTO publico da loja — sem dados operacionais internos. */
+export type PublicStoreSkin = {
+  id: string;
+  name: string;
+  weapon: string;
+  pattern: string;
+  float: number | null;
+  rarity: string;
+  wearLabel: string;
+  isStatTrak: boolean;
+  imageUrl: string;
+  listPrice: number;
+  suggestedPrice: number | null;
+  stickers: string[];
 };
 
 export type Raffle = {

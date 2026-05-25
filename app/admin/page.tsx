@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
-import { getAdminDashboard } from "@/lib/ruby-safira-repository";
-import { getCurrentUser } from "@/lib/server-session";
+import { getAdminDashboard, getCurrentProfile } from "@/lib/ruby-safira-repository";
 import AdminPanel from "@/components/AdminPanel";
 
 export default async function AdminPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentProfile();
   if (!user) redirect("/login");
 
   if (user.role !== "admin") {
