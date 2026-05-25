@@ -21,20 +21,10 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
 
   if (isSupabaseConfigured()) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      return { message: "E-mail ou senha invalidos." };
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("email", email)
-      .maybeSingle();
-
-    const role = (profile?.role as string) ?? "customer";
-    redirect(role === "admin" ? "/admin" : "/dashboard");
+    return {
+      message:
+        "Login Supabase indisponivel neste fluxo. Recarregue a pagina e tente novamente.",
+    };
   }
 
   const user = await getUserByEmail(email);
@@ -54,6 +44,7 @@ export async function logoutAction(): Promise<void> {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     await supabase.auth.signOut();
+    revalidatePath("/", "layout");
   } else {
     await clearSessionCookie();
   }

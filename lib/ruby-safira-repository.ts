@@ -126,19 +126,15 @@ export const getCurrentProfile = cache(async (): Promise<User | null> => {
   } = await supabase.auth.getUser();
   if (!authUser) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, name, role")
-    .eq("id", authUser.id)
-    .maybeSingle();
+  const { ensureProfile } = await import("@/lib/supabase/ensure-profile");
+  const profile = await ensureProfile(supabase, authUser);
 
   if (profile) {
-    const row = profile as DbProfileRow;
     return {
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      role: row.role,
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role,
     };
   }
 
@@ -285,8 +281,37 @@ export const getCustomerDashboard = cache(
       .eq("id", userId)
       .maybeSingle();
 
-    if (!profile) return null;
-    const row = profile as DbProfileRow;
+    const row = profile as DbProfileRow | null;
+    if (!row) {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser || authUser.id !== userId) return null;
+
+      const { ensureProfile } = await import("@/lib/supabase/ensure-profile");
+      const ensured = await ensureProfile(supabase, authUser);
+      if (!ensured) return null;
+
+      return {
+        user: {
+          id: ensured.id,
+          name: ensured.name,
+          email: ensured.email,
+          role: ensured.role,
+        },
+        summary: {
+          totalSpent: 0,
+          activeRaffles: 0,
+          activeTickets: 0,
+          prizesWon: 0,
+        },
+        raffles: [],
+        purchases: [],
+        prizes: [],
+        salesHistory: [],
+        activities: [],
+      };
+    }
 
     const { data: customerTickets } = await supabase
       .from("tickets")
