@@ -11,6 +11,10 @@ const initialState: LoginState = { message: "" };
 const ERROR_MESSAGES: Record<string, string> = {
   invalid: "E-mail ou senha invalidos.",
   auth: "Autenticacao indisponivel. Verifique a configuracao do Supabase.",
+  session_not_persisted:
+    "Sessao nao pôde ser persistida no servidor. Verifique se cookies estao habilitados ou contate o suporte.",
+  profile_creation_failed:
+    "Conta configurada parcialmente. Tente novamente ou contate o suporte.",
 };
 
 type LoginFormProps = {
@@ -66,14 +70,15 @@ export default function LoginForm({ useSupabase, errorCode }: LoginFormProps) {
         }),
       });
 
+      const sync = (await syncRes.json()) as { ok?: boolean; role?: string; error?: string };
+
       if (!syncRes.ok) {
+        const mapped = sync.error ? ERROR_MESSAGES[sync.error] : undefined;
         setClientError(
-          "Login ok, mas nao foi possivel iniciar a sessao no servidor."
+          mapped ?? "Login ok, mas nao foi possivel iniciar a sessao no servidor."
         );
         return;
       }
-
-      const sync = (await syncRes.json()) as { role?: string };
       const destination = sync.role === "admin" ? "/admin" : "/dashboard";
       window.location.assign(destination);
     } catch {

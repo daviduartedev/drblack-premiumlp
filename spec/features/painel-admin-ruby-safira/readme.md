@@ -63,6 +63,13 @@ Regras:
 
 Autenticacao de producao via **Supabase Auth** (ciclo 0524). Sessao mock/cookie local foi substituida; credenciais de teste nao aparecem na UI de login.
 
+Regras do servidor (ciclo 0525):
+
+- Usar somente `supabase.auth.getUser()` no servidor para validar sessao; nunca `getSession()` em RSC ou Route Handlers.
+- Cookies de sessao devem incluir explicitamente `httpOnly: true`, `secure: true` (producao), `sameSite: 'lax'`, `path: '/'`.
+- Primeiro login de usuario Auth sem linha em `profiles` → profile criado automaticamente com `role = 'customer'`; promocao a `admin` somente via SQL manual.
+- Falha de persistencia de cookie → retornar erro distinto (`session_not_persisted`) para a UI; nunca loop silencioso para `/login`.
+
 ## Dashboard do cliente
 
 Resumo no topo:
@@ -268,6 +275,49 @@ Legado (remover do caminho de producao apos migracao):
 - Header desktop/mobile usa `public/new-logo.png`.
 - Derivados gerados no ciclo: `public/new-logo-upscaled.png`, `public/favicon.png`, `public/apple-touch-icon.png`.
 - `app/layout.tsx` aponta `metadata.icons` para os derivados PNG.
+
+## Runbook operacional de auth
+
+### Sequência de triagem — loop de redirect para /login
+
+1. **Env vars** — verificar as quatro na Vercel: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`.
+2. **Migration** — confirmar tabela `profiles` e trigger `on_auth_user_created` existem no banco de producao.
+3. **Profile** — confirmar linha em `public.profiles` para o usuario com `role` correto.
+4. **Redirect URLs** — Supabase Dashboard → Authentication → URL Configuration: Site URL e Redirect URLs apontam para o dominio real.
+5. **Cookies** — DevTools → Application → Cookies: apos login, `sb-*-auth-token` presentes com `HttpOnly`, `Secure`, `SameSite=Lax`; enviados em requests subsequentes a `/admin`.
+
+### Checks SQL
+
+```sql
+-- Usuario existe em Auth
+SELECT id, email, created_at FROM auth.users WHERE email = 'usuario@exemplo.com';
+
+-- Profile existe e tem role correto
+SELECT id, email, role FROM public.profiles WHERE email = 'usuario@exemplo.com';
+
+-- Bootstrap: criar/promover profile de usuario Auth sem linha em profiles
+INSERT INTO public.profiles (id, email, name, role)
+SELECT id, email, split_part(email, '@', 1), 'admin'
+FROM auth.users WHERE email = 'usuario@exemplo.com'
+ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role;
+```
+
+### Env vars Vercel (producao)
+
+| Variavel | Valor esperado |
+|----------|----------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase (`https://xxxx.supabase.co`) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave anon/publishable |
+| `SUPABASE_SERVICE_ROLE_KEY` | Chave service role (server-only) |
+| `NEXT_PUBLIC_SITE_URL` | `https://drblack-premiumlp.vercel.app` |
+
+### Diagrama de rede esperado apos login bem-sucedido
+
+```
+POST /auth/token?grant_type=password  → 200  (Supabase direto, browser)
+POST /auth/session                    → 200  (Set-Cookie: sb-*-auth-token)
+GET  /admin                           → 200  (nao RSC 304 em /login)
+```
 
 ## Compliance
 

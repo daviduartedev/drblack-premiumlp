@@ -41,6 +41,12 @@ export async function ensureProfile(
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = getSupabaseUrl();
 
+  if (!serviceKey) {
+    console.warn(
+      "[ensure-profile] SUPABASE_SERVICE_ROLE_KEY ausente — tentando insert via anon client (sujeito a RLS)"
+    );
+  }
+
   if (serviceKey && url) {
     const admin = createSupabaseAdmin(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -63,6 +69,9 @@ export async function ensureProfile(
     .single();
 
   if (error || !inserted) {
+    if (error) {
+      console.error("[ensure-profile] anon insert falhou:", error.message);
+    }
     return null;
   }
 

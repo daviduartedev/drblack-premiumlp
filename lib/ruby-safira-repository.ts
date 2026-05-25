@@ -122,18 +122,11 @@ export const getCurrentProfile = cache(async (): Promise<User | null> => {
   if (!supabase) return null;
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const authUser = session?.user;
-  if (!authUser) {
-    const {
-      data: { user: verifiedUser },
-    } = await supabase.auth.getUser();
-    if (!verifiedUser) return null;
-    return resolveProfile(supabase, verifiedUser);
-  }
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  if (!verifiedUser) return null;
 
-  return resolveProfile(supabase, authUser);
+  return resolveProfile(supabase, verifiedUser);
 });
 
 async function resolveProfile(

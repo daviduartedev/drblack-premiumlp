@@ -15,6 +15,18 @@ type CookieToSet = {
   options?: Parameters<NextResponse["cookies"]["set"]>[2];
 };
 
+function secureCookieOptions(
+  options: CookieToSet["options"]
+): CookieToSet["options"] {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    ...options,
+  };
+}
+
 function loginRedirect(path: string, request: Request) {
   const base = getRequestOrigin(request);
   return NextResponse.redirect(new URL(path, base), 303);
@@ -70,7 +82,7 @@ export async function POST(request: Request) {
 
   const response = loginRedirect(destination, request);
   pendingCookies.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options);
+    response.cookies.set(name, value, secureCookieOptions(options));
   });
 
   return response;

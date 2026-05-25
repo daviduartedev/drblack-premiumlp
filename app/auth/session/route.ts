@@ -15,6 +15,22 @@ type CookieToSet = {
 };
 
 /**
+ * Garante que cookies de sessao do Supabase saem com atributos seguros.
+ * As options do @supabase/ssr podem omitir secure/sameSite em alguns runtimes.
+ */
+function secureCookieOptions(
+  options: CookieToSet["options"]
+): CookieToSet["options"] {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    ...options,
+  };
+}
+
+/**
  * Recebe tokens do login no browser e grava cookies HTTP-only no servidor.
  * O @supabase/ssr aplica cookies via setAll de forma assincrona apos setSession.
  */
@@ -80,6 +96,10 @@ export async function POST(request: Request) {
     /* setAll pode ja ter corrido sincronamente em alguns runtimes */
   });
 
+  if (pendingCookies.length === 0) {
+    return NextResponse.json({ error: "session_not_persisted" }, { status: 500 });
+  }
+
   await supabase.auth.getUser();
   const profile = await ensureProfile(supabase, data.user);
   const role = profile?.role ?? "customer";
@@ -91,7 +111,7 @@ export async function POST(request: Request) {
   });
 
   pendingCookies.forEach(({ name, value, options }) => {
-    response.cookies.set(name, value, options);
+    response.cookies.set(name, value, secureCookieOptions(options));
   });
 
   return response;
