@@ -120,7 +120,7 @@ export function SearchableCombobox({
         <div
           id={listId}
           role="listbox"
-          className="absolute z-20 mt-1 max-h-[240px] w-full overflow-y-auto rounded-lg border border-white/10 bg-[#1A1A1A] py-1 shadow-xl"
+          className="absolute z-20 mt-2 max-h-[280px] w-full overflow-y-auto rounded-xl border border-white/10 bg-[#1A1A1A] py-1 shadow-xl"
         >
           <div className="border-b border-white/[0.06] px-3 py-2">
             <p className="text-[11px] uppercase tracking-[0.08em] text-[#888888]">
