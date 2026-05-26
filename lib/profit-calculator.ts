@@ -105,6 +105,62 @@ export function formatPercent(value: number): string {
   }).format(value)}%`;
 }
 
+export type StorePricingInput = {
+  paidValue: number;
+  profitMode: ProfitMode;
+  desiredProfitValue?: number;
+  desiredProfitPercent?: number;
+};
+
+export type StorePricingResult = {
+  targetRevenue: number;
+  listPrice: number;
+  suggestedPrice: number | null;
+  expectedProfit: number;
+};
+
+/** Precificação da loja (sem bilhetes). */
+export function calculateStorePricing(
+  input: StorePricingInput
+): StorePricingResult {
+  const paidValue = safePositive(input.paidValue, 0);
+  const desiredProfit =
+    input.profitMode === "percent"
+      ? paidValue * (safePositive(input.desiredProfitPercent, 0) / 100)
+      : safePositive(input.desiredProfitValue, 0);
+
+  const targetRevenue = roundCurrency(paidValue + desiredProfit);
+  return {
+    targetRevenue,
+    listPrice: targetRevenue,
+    suggestedPrice:
+      input.profitMode === "percent" && paidValue > 0
+        ? roundCurrency(paidValue * 1.1)
+        : null,
+    expectedProfit: roundCurrency(desiredProfit),
+  };
+}
+
+export function buildRaffleCalculatorInput(
+  paidValue: number,
+  profitMode: ProfitMode,
+  desiredProfitPercent: number,
+  desiredProfitValue: number,
+  ticketCount: number,
+  ticketPrice: number
+): ProfitCalculatorInput {
+  return {
+    paidValue,
+    profitMode,
+    desiredProfitPercent,
+    desiredProfitValue,
+    ticketConstraintMode: "ticketCount",
+    ticketCount,
+    ticketPrice,
+    estimatedFeePercent: 0,
+  };
+}
+
 export function suggestTicketPackages(
   targetRevenue: number,
   paidValue: number,

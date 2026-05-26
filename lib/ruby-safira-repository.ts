@@ -166,11 +166,20 @@ export const getUserById = cache(async (id: string) => {
   return users.find((user) => user.id === id) ?? null;
 });
 
+function isPublicStoreEligible(skin: Skin): boolean {
+  return (
+    skin.status === "em_estoque" &&
+    skin.name.trim().length > 0 &&
+    skin.listPrice > 0 &&
+    skin.image.trim().length > 0
+  );
+}
+
 export const getPublicStoreSkins = cache(async (): Promise<PublicStoreSkin[]> => {
   const supabase = await getSupabaseOrNull();
   if (!supabase) {
     return seedSkins
-      .filter((skin) => skin.status === "em_estoque")
+      .filter((skin) => isPublicStoreEligible(skin as Skin))
       .map((skin) => {
         const mapped = mapSeedSkin(skin as Skin);
         return {
@@ -654,9 +663,16 @@ export function hasRole(
 
 export type SkinUpsertInput = Omit<Skin, "id"> & { id?: string };
 
-export async function upsertSkin(input: SkinUpsertInput): Promise<Skin | null> {
+export type UpsertSkinResult = {
+  skin: Skin | null;
+  error?: string;
+};
+
+export async function upsertSkin(input: SkinUpsertInput): Promise<UpsertSkinResult> {
   const supabase = await getSupabaseOrNull();
-  if (!supabase) return null;
+  if (!supabase) {
+    return { skin: null, error: "Supabase nao configurado." };
+  }
 
   const payload = {
     name: input.name,
@@ -688,8 +704,13 @@ export async function upsertSkin(input: SkinUpsertInput): Promise<Skin | null> {
       .eq("id", input.id)
       .select("*")
       .single();
-    if (error || !data) return null;
-    return mapSkinRow(data as DbSkinRow);
+    if (error || !data) {
+      return {
+        skin: null,
+        error: error?.message ?? "Nao foi possivel atualizar a skin.",
+      };
+    }
+    return { skin: mapSkinRow(data as DbSkinRow) };
   }
 
   const { data, error } = await supabase
@@ -697,8 +718,68 @@ export async function upsertSkin(input: SkinUpsertInput): Promise<Skin | null> {
     .insert(payload)
     .select("*")
     .single();
-  if (error || !data) return null;
-  return mapSkinRow(data as DbSkinRow);
+  if (error || !data) {
+    return {
+      skin: null,
+      error: error?.message ?? "Nao foi possivel criar a skin.",
+    };
+  }
+  return { skin: mapSkinRow(data as DbSkinRow) };
+}
+
+export type CreateRaffleInput = {
+  skin: SkinUpsertInput & { id?: string };
+  title: string;
+  drawDate: string;
+};
+
+export type CreateRaffleResult = {
+  raffleId?: string;
+  skin?: Skin;
+  error?: string;
+};
+
+export async function createRaffleFromSkin(
+  input: CreateRaffleInput
+): Promise<CreateRaffleResult> {
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return { error: "Supabase nao configurado." };
+  }
+
+  const skinResult = await upsertSkin({
+    ...input.skin,
+    status: "em_rifa",
+  });
+  if (!skinResult.skin) {
+    return { error: skinResult.error ?? "Nao foi possivel salvar a skin da rifa." };
+  }
+
+  const { data, error } = await supabase
+    .from("raffles")
+    .insert({
+      skin_id: skinResult.skin.id,
+      title: input.title.trim() || skinResult.skin.name,
+      status: "ativa",
+      ticket_count: skinResult.skin.ticketCount,
+      ticket_price: skinResult.skin.ticketPrice,
+      sold_tickets: 0,
+      draw_date: input.drawDate,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return {
+      error: error?.message ?? "Nao foi possivel criar a rifa.",
+      skin: skinResult.skin,
+    };
+  }
+
+  return {
+    raffleId: data.id as string,
+    skin: skinResult.skin,
+  };
 }
 
 export async function updateSkinImageUrl(

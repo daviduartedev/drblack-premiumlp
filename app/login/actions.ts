@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { getUserByEmail, upsertSkin } from "@/lib/ruby-safira-repository";
+import {
+  createRaffleFromSkin,
+  getUserByEmail,
+  upsertSkin,
+} from "@/lib/ruby-safira-repository";
 import { TEST_CREDENTIALS } from "@/lib/ruby-safira-seed";
 import { clearSessionCookie, setSessionCookie } from "@/lib/server-session";
 import type { Skin, SkinStatus } from "@/lib/ruby-safira-types";
@@ -89,14 +93,97 @@ export async function saveSkinAction(
     return { ok: true, message: "Salvo localmente (modo seed).", skinId: id };
   }
 
-  const saved = await upsertSkin(payload);
-  if (!saved) {
-    return { ok: false, message: "Nao foi possivel salvar a skin." };
+  const { skin, error } = await upsertSkin(payload);
+  if (!skin) {
+    return {
+      ok: false,
+      message: error ?? "Nao foi possivel salvar a skin.",
+    };
   }
 
   revalidatePath("/admin");
   revalidatePath("/loja");
-  return { ok: true, message: "Skin salva.", skinId: saved.id };
+  return { ok: true, message: "Skin salva.", skinId: skin.id };
+}
+
+export type SaveRaffleState = {
+  ok: boolean;
+  message: string;
+  skinId?: string;
+  raffleId?: string;
+};
+
+export async function saveRaffleAction(
+  _prev: SaveRaffleState,
+  formData: FormData
+): Promise<SaveRaffleState> {
+  const skinPayload = {
+    id: String(formData.get("skinId") ?? "").trim() || undefined,
+    name: String(formData.get("name") ?? ""),
+    weapon: String(formData.get("weapon") ?? ""),
+    pattern: String(formData.get("pattern") ?? ""),
+    float: parseOptionalFloat(formData.get("float")),
+    rarity: String(formData.get("rarity") ?? ""),
+    image: String(formData.get("image") ?? ""),
+    wearLabel: String(formData.get("wearLabel") ?? ""),
+    isStatTrak: formData.get("isStatTrak") === "on",
+    listPrice: Number(formData.get("listPrice") ?? 0),
+    suggestedPrice: parseOptionalNumber(formData.get("suggestedPrice")),
+    stickers: parseStickers(formData.get("stickers")),
+    paidValue: Number(formData.get("paidValue") ?? 0),
+    estimatedMarketValue: Number(formData.get("estimatedMarketValue") ?? 0),
+    desiredProfitValue: Number(formData.get("desiredProfitValue") ?? 0),
+    desiredProfitPercent: Number(formData.get("desiredProfitPercent") ?? 30),
+    ticketCount: Number(formData.get("ticketCount") ?? 100),
+    ticketPrice: Number(formData.get("ticketPrice") ?? 10),
+    status: "em_rifa" as SkinStatus,
+    internalNotes: String(formData.get("internalNotes") ?? ""),
+  } satisfies Omit<Skin, "id"> & { id?: string };
+
+  const title = String(formData.get("raffleTitle") ?? "").trim();
+  const drawDate = String(formData.get("drawDate") ?? "").trim();
+
+  if (!drawDate) {
+    return { ok: false, message: "Informe a data do sorteio." };
+  }
+  if (!skinPayload.name.trim()) {
+    return { ok: false, message: "Informe o nome da skin." };
+  }
+  if (skinPayload.ticketCount <= 0 || skinPayload.ticketPrice <= 0) {
+    return { ok: false, message: "Bilhetes e preco por bilhete devem ser maiores que zero." };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return {
+      ok: true,
+      message: "Rifa salva localmente (modo seed).",
+      skinId: skinPayload.id,
+    };
+  }
+
+  const result = await createRaffleFromSkin({
+    skin: skinPayload,
+    title: title || skinPayload.name,
+    drawDate,
+  });
+
+  if (!result.skin || !result.raffleId) {
+    return {
+      ok: false,
+      message: result.error ?? "Nao foi possivel salvar a rifa.",
+      skinId: result.skin?.id,
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/rifas");
+  revalidatePath("/loja");
+  return {
+    ok: true,
+    message: "Rifa salva e publicada.",
+    skinId: result.skin.id,
+    raffleId: result.raffleId,
+  };
 }
 
 function parseOptionalFloat(value: FormDataEntryValue | null): number | null {

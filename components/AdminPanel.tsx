@@ -16,16 +16,18 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { logoutAction, saveSkinAction } from "@/app/login/actions";
+import { logoutAction, saveRaffleAction, saveSkinAction } from "@/app/login/actions";
 import {
+  buildRaffleCalculatorInput,
   calculateRaffleProfit,
+  calculateStorePricing,
   formatBRL,
   formatPercent,
   suggestTicketPackages,
-  type ProfitCalculatorInput,
 } from "@/lib/profit-calculator";
 import type {
   AdminDashboardDTO,
+  ProfitMode,
   Skin,
   SkinStatus,
 } from "@/lib/ruby-safira-types";
@@ -70,27 +72,84 @@ const EMPTY_SKIN: Omit<Skin, "id"> = {
   internalNotes: "",
 };
 
+function defaultDrawDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 30);
+  return date.toISOString().slice(0, 10);
+}
+
+function profitModeNeedsChoice(
+  desiredProfitPercent: number,
+  desiredProfitValue: number
+): boolean {
+  return desiredProfitPercent > 0 && desiredProfitValue > 0;
+}
+
 export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [skins, setSkins] = useState(data.skins);
+  const [raffles, setRaffles] = useState(data.raffles);
   const [panelMode, setPanelMode] = useState<PanelMode>("list");
   const [selectedSkinId, setSelectedSkinId] = useState("");
   const selectedSkin = skins.find((skin) => skin.id === selectedSkinId);
   const [draft, setDraft] = useState<Omit<Skin, "id">>(EMPTY_SKIN);
+  const [profitMode, setProfitMode] = useState<ProfitMode>("percent");
+  const [raffleTitle, setRaffleTitle] = useState("");
+  const [drawDate, setDrawDate] = useState(defaultDrawDate);
+  const [saveMessage, setSaveMessage] = useState<{ tone: "ok" | "err"; text: string } | null>(
+    null
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const calculation = useMemo(() => {
-    const calculatorInput: ProfitCalculatorInput = {
-      paidValue: draft.paidValue,
-      profitMode: "percent",
-      desiredProfitPercent: draft.desiredProfitPercent,
-      ticketConstraintMode: "ticketCount",
-      ticketCount: draft.ticketCount,
-      estimatedFeePercent: 0,
-    };
-    return calculateRaffleProfit(calculatorInput);
-  }, [draft.desiredProfitPercent, draft.paidValue, draft.ticketCount]);
+  const activeProfitMode = useMemo((): ProfitMode => {
+    if (!profitModeNeedsChoice(draft.desiredProfitPercent, draft.desiredProfitValue)) {
+      return draft.desiredProfitValue > 0 ? "fixed" : "percent";
+    }
+    return profitMode;
+  }, [
+    draft.desiredProfitPercent,
+    draft.desiredProfitValue,
+    profitMode,
+  ]);
+
+  const storePricing = useMemo(
+    () =>
+      calculateStorePricing({
+        paidValue: draft.paidValue,
+        profitMode: activeProfitMode,
+        desiredProfitPercent: draft.desiredProfitPercent,
+        desiredProfitValue: draft.desiredProfitValue,
+      }),
+    [
+      activeProfitMode,
+      draft.desiredProfitPercent,
+      draft.desiredProfitValue,
+      draft.paidValue,
+    ]
+  );
+
+  const calculation = useMemo(
+    () =>
+      calculateRaffleProfit(
+        buildRaffleCalculatorInput(
+          draft.paidValue,
+          activeProfitMode,
+          draft.desiredProfitPercent,
+          draft.desiredProfitValue,
+          draft.ticketCount,
+          draft.ticketPrice
+        )
+      ),
+    [
+      activeProfitMode,
+      draft.desiredProfitPercent,
+      draft.desiredProfitValue,
+      draft.paidValue,
+      draft.ticketCount,
+      draft.ticketPrice,
+    ]
+  );
 
   const packageSuggestions = useMemo(
     () =>
@@ -121,6 +180,40 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     };
   }, [panelMode]);
 
+  useEffect(() => {
+    if (panelMode !== "skin") return;
+    setDraft((current) => ({
+      ...current,
+      listPrice: storePricing.listPrice,
+      suggestedPrice: storePricing.suggestedPrice,
+    }));
+  }, [
+    panelMode,
+    storePricing.listPrice,
+    storePricing.suggestedPrice,
+    draft.paidValue,
+    draft.desiredProfitPercent,
+    draft.desiredProfitValue,
+    activeProfitMode,
+  ]);
+
+  useEffect(() => {
+    if (panelMode !== "raffle") return;
+    setDraft((current) => ({
+      ...current,
+      ticketCount: calculation.suggestedTicketCount,
+      ticketPrice: calculation.suggestedTicketPrice,
+    }));
+  }, [
+    panelMode,
+    calculation.suggestedTicketCount,
+    calculation.suggestedTicketPrice,
+    draft.paidValue,
+    draft.desiredProfitPercent,
+    draft.desiredProfitValue,
+    activeProfitMode,
+  ]);
+
   function openSkinForm(skin?: Skin) {
     if (skin) {
       setSelectedSkinId(skin.id);
@@ -129,6 +222,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setSelectedSkinId("");
       setDraft({ ...EMPTY_SKIN });
     }
+    setSaveMessage(null);
     setPanelMode("skin");
   }
 
@@ -137,10 +231,14 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     if (base) {
       setSelectedSkinId(base.id);
       setDraft(stripId(base));
+      setRaffleTitle(base.name);
     } else {
       setSelectedSkinId("");
       setDraft({ ...EMPTY_SKIN });
+      setRaffleTitle("");
     }
+    setDrawDate(defaultDrawDate());
+    setSaveMessage(null);
     setPanelMode("raffle");
   }
 
@@ -148,21 +246,22 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setPanelMode("list");
     setDraft(EMPTY_SKIN);
     setSelectedSkinId("");
+    setRaffleTitle("");
+    setDrawDate(defaultDrawDate());
+    setSaveMessage(null);
   }
 
   function selectSkin(skin: Skin) {
     setIsSwitchingSkin(true);
     setSelectedSkinId(skin.id);
     setDraft(stripId(skin));
+    if (panelMode === "raffle") {
+      setRaffleTitle(skin.name);
+    }
     window.setTimeout(() => setIsSwitchingSkin(false), 200);
   }
 
-  async function saveDraft() {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    const skinId = selectedSkinId || `skin_local_${Date.now()}`;
-    const formData = new FormData();
+  function appendSkinFields(formData: FormData) {
     if (selectedSkinId) formData.set("id", selectedSkinId);
     formData.set("name", draft.name);
     formData.set("weapon", draft.weapon);
@@ -183,12 +282,35 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     formData.set("desiredProfitPercent", String(draft.desiredProfitPercent));
     formData.set("ticketCount", String(draft.ticketCount));
     formData.set("ticketPrice", String(draft.ticketPrice));
-    formData.set("status", draft.status);
     formData.set("internalNotes", draft.internalNotes);
+  }
+
+  async function saveSkinDraft() {
+    if (isSaving) return;
+    if (profitModeNeedsChoice(draft.desiredProfitPercent, draft.desiredProfitValue)) {
+      setSaveMessage({
+        tone: "err",
+        text: "Escolha se o lucro e percentual ou valor fixo.",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    const formData = new FormData();
+    appendSkinFields(formData);
+    formData.set("status", draft.status);
 
     const result = await saveSkinAction({ ok: false, message: "" }, formData);
-    const persistedId = result.skinId ?? skinId;
-    const nextSkin: Skin = { ...draft, id: persistedId };
+    if (!result.ok) {
+      setSaveMessage({ tone: "err", text: result.message });
+      setIsSaving(false);
+      return;
+    }
+
+    const persistedId = result.skinId ?? selectedSkinId ?? `skin_local_${Date.now()}`;
+    const nextSkin: Skin = { ...draft, id: persistedId, status: draft.status };
 
     setSkins((current) => {
       const exists = current.some((skin) => skin.id === persistedId);
@@ -199,7 +321,77 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     });
     setSelectedSkinId(persistedId);
     setIsSaving(false);
+    setSaveMessage({ tone: "ok", text: result.message });
     closePanel();
+  }
+
+  async function saveRaffleDraft() {
+    if (isSaving) return;
+    if (profitModeNeedsChoice(draft.desiredProfitPercent, draft.desiredProfitValue)) {
+      setSaveMessage({
+        tone: "err",
+        text: "Escolha se o lucro e percentual ou valor fixo.",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    const formData = new FormData();
+    if (selectedSkinId) formData.set("skinId", selectedSkinId);
+    appendSkinFields(formData);
+    formData.set("raffleTitle", raffleTitle.trim() || draft.name);
+    formData.set("drawDate", drawDate);
+
+    const result = await saveRaffleAction({ ok: false, message: "" }, formData);
+    if (!result.ok) {
+      setSaveMessage({ tone: "err", text: result.message });
+      setIsSaving(false);
+      return;
+    }
+
+    const persistedId = result.skinId ?? selectedSkinId;
+    const nextSkin: Skin = { ...draft, id: persistedId, status: "em_rifa" };
+
+    setSkins((current) => {
+      const exists = current.some((skin) => skin.id === persistedId);
+      if (exists) {
+        return current.map((skin) => (skin.id === persistedId ? nextSkin : skin));
+      }
+      return [nextSkin, ...current];
+    });
+
+    if (result.raffleId) {
+      setRaffles((current) => [
+        {
+          id: result.raffleId!,
+          skinId: persistedId,
+          title: raffleTitle.trim() || draft.name,
+          status: "ativa",
+          ticketCount: draft.ticketCount,
+          ticketPrice: draft.ticketPrice,
+          soldTickets: 0,
+          drawDate,
+          skinName: draft.name,
+          skinImage: draft.image,
+        },
+        ...current,
+      ]);
+    }
+
+    setSelectedSkinId(persistedId);
+    setIsSaving(false);
+    setSaveMessage({ tone: "ok", text: result.message });
+    closePanel();
+  }
+
+  async function saveDraft() {
+    if (panelMode === "raffle") {
+      await saveRaffleDraft();
+      return;
+    }
+    await saveSkinDraft();
   }
 
   function archiveSelected() {
@@ -313,7 +505,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
         <div className="mt-5 grid gap-5 xl:grid-cols-3">
           <Panel title="Rifas" icon={<Ticket size={17} />}>
             <Table
-              rows={data.raffles.map((raffle) => [
+              rows={raffles.map((raffle) => [
                 raffle.title,
                 raffle.skinName,
                 raffle.status,
@@ -376,22 +568,21 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
             </div>
 
             <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+              {saveMessage ? (
+                <p
+                  className={`mb-4 rounded-lg border px-4 py-3 text-[13px] ${
+                    saveMessage.tone === "ok"
+                      ? "border-[rgba(34,197,94,0.35)] bg-[rgba(34,197,94,0.08)] text-[#22C55E]"
+                      : "border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.08)] text-[#EF4444]"
+                  }`}
+                  role="status"
+                >
+                  {saveMessage.text}
+                </p>
+              ) : null}
+
               {panelMode === "skin" ? (
-                <SkinForm
-                  skins={skins}
-                  selectedSkinId={selectedSkinId}
-                  draft={draft}
-                  isSaving={isSaving}
-                  isSwitchingSkin={isSwitchingSkin}
-                  uploading={uploading}
-                  onSelectSkin={selectSkin}
-                  onUpdateDraft={updateDraft}
-                  onSave={saveDraft}
-                  onArchive={archiveSelected}
-                  onImageUpload={handleImageUpload}
-                />
-              ) : (
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
                   <SkinForm
                     skins={skins}
                     selectedSkinId={selectedSkinId}
@@ -399,20 +590,94 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                     isSaving={isSaving}
                     isSwitchingSkin={isSwitchingSkin}
                     uploading={uploading}
-                    compact
+                    profitMode={profitMode}
+                    showProfitModeChoice={profitModeNeedsChoice(
+                      draft.desiredProfitPercent,
+                      draft.desiredProfitValue
+                    )}
+                    onProfitModeChange={setProfitMode}
                     onSelectSkin={selectSkin}
                     onUpdateDraft={updateDraft}
                     onSave={saveDraft}
                     onArchive={archiveSelected}
                     onImageUpload={handleImageUpload}
                   />
+                  <StoreCalculatorPanel pricing={storePricing} />
+                </div>
+              ) : (
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="grid gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <Field label="Titulo da rifa">
+                        <input
+                          value={raffleTitle}
+                          onChange={(e) => setRaffleTitle(e.target.value)}
+                          className="admin-input min-h-[44px]"
+                          placeholder={draft.name || "Nome da skin"}
+                        />
+                      </Field>
+                      <Field label="Data do sorteio">
+                        <input
+                          type="date"
+                          value={drawDate}
+                          onChange={(e) => setDrawDate(e.target.value)}
+                          className="admin-input min-h-[44px]"
+                          required
+                        />
+                      </Field>
+                      <Field label="Qtd. bilhetes">
+                        <input
+                          type="number"
+                          min={1}
+                          value={draft.ticketCount}
+                          onChange={(e) =>
+                            updateDraft("ticketCount", Number(e.target.value))
+                          }
+                          className="admin-input min-h-[44px] tabular-nums"
+                        />
+                      </Field>
+                      <Field label="Preco/bilhete (BRL)">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={draft.ticketPrice}
+                          onChange={(e) =>
+                            updateDraft("ticketPrice", Number(e.target.value))
+                          }
+                          className="admin-input min-h-[44px] tabular-nums"
+                        />
+                      </Field>
+                    </div>
+                    <SkinForm
+                      skins={skins}
+                      selectedSkinId={selectedSkinId}
+                      draft={draft}
+                      isSaving={isSaving}
+                      isSwitchingSkin={isSwitchingSkin}
+                      uploading={uploading}
+                      compact
+                      profitMode={profitMode}
+                      showProfitModeChoice={profitModeNeedsChoice(
+                        draft.desiredProfitPercent,
+                        draft.desiredProfitValue
+                      )}
+                      onProfitModeChange={setProfitMode}
+                      onSelectSkin={selectSkin}
+                      onUpdateDraft={updateDraft}
+                      onSave={saveDraft}
+                      onArchive={archiveSelected}
+                      onImageUpload={handleImageUpload}
+                    />
+                  </div>
                   <CalculatorPanel
                     calculation={calculation}
                     suggestions={packageSuggestions}
                     selectedTicketCount={draft.ticketCount}
-                    onSelectTicketCount={(ticketCount) =>
-                      updateDraft("ticketCount", ticketCount)
-                    }
+                    onSelectPackage={(item) => {
+                      updateDraft("ticketCount", item.ticketCount);
+                      updateDraft("ticketPrice", item.ticketPrice);
+                    }}
                   />
                 </div>
               )}
@@ -451,6 +716,9 @@ function SkinForm({
   isSwitchingSkin,
   uploading,
   compact = false,
+  profitMode,
+  showProfitModeChoice,
+  onProfitModeChange,
   onSelectSkin,
   onUpdateDraft,
   onSave,
@@ -464,6 +732,9 @@ function SkinForm({
   isSwitchingSkin: boolean;
   uploading: boolean;
   compact?: boolean;
+  profitMode: ProfitMode;
+  showProfitModeChoice: boolean;
+  onProfitModeChange: (mode: ProfitMode) => void;
   onSelectSkin: (skin: Skin) => void;
   onUpdateDraft: <K extends keyof Omit<Skin, "id">>(
     key: K,
@@ -483,8 +754,12 @@ function SkinForm({
         onSave();
       }}
     >
-      {!compact ? (
-        <div className="grid gap-4 rounded-xl border border-[rgba(245,166,35,0.18)] bg-[rgba(245,166,35,0.04)] p-5 sm:grid-cols-3">
+      <div
+        className={`grid gap-4 rounded-xl border border-[rgba(245,166,35,0.18)] bg-[rgba(245,166,35,0.04)] p-5 ${
+          compact ? "sm:grid-cols-2" : "sm:grid-cols-3"
+        }`}
+      >
+        {!compact ? (
           <Field label="Skin existente">
             <select
               value={selectedSkinId}
@@ -502,28 +777,48 @@ function SkinForm({
               ))}
             </select>
           </Field>
-          <Field label="Quanto paguei">
-            <input
-              value={draft.paidValue}
-              onChange={(e) => onUpdateDraft("paidValue", Number(e.target.value))}
-              className="admin-input min-h-[44px] font-medium tabular-nums"
-              type="number"
-              min="0"
-            />
-          </Field>
-          <Field label="% quero ganhar">
-            <input
-              value={draft.desiredProfitPercent}
-              onChange={(e) =>
-                onUpdateDraft("desiredProfitPercent", Number(e.target.value))
-              }
-              className="admin-input min-h-[44px] font-medium tabular-nums"
-              type="number"
-              min="0"
-            />
-          </Field>
-        </div>
-      ) : null}
+        ) : null}
+        <Field label="Quanto paguei (BRL)">
+          <input
+            value={draft.paidValue}
+            onChange={(e) => onUpdateDraft("paidValue", Number(e.target.value))}
+            className="admin-input min-h-[44px] font-medium tabular-nums"
+            type="number"
+            min="0"
+            step="0.01"
+          />
+        </Field>
+        <Field label="Lucro desejado (%)">
+          <input
+            value={draft.desiredProfitPercent}
+            onChange={(e) =>
+              onUpdateDraft("desiredProfitPercent", Number(e.target.value))
+            }
+            className="admin-input min-h-[44px] font-medium tabular-nums"
+            type="number"
+            min="0"
+          />
+        </Field>
+        <Field label="Lucro desejado (R$)">
+          <input
+            value={draft.desiredProfitValue}
+            onChange={(e) =>
+              onUpdateDraft("desiredProfitValue", Number(e.target.value))
+            }
+            className="admin-input min-h-[44px] font-medium tabular-nums"
+            type="number"
+            min="0"
+            step="0.01"
+          />
+        </Field>
+        {showProfitModeChoice ? (
+          <ProfitModeChoice
+            profitMode={profitMode}
+            onChange={onProfitModeChange}
+            className={compact ? "sm:col-span-2" : "sm:col-span-3"}
+          />
+        ) : null}
+      </div>
 
       <div className={`grid gap-5 ${compact ? "" : "lg:grid-cols-[minmax(0,1fr)_230px]"}`}>
         <div className="grid gap-4">
@@ -869,16 +1164,89 @@ function StatusPill({
   );
 }
 
+function ProfitModeChoice({
+  profitMode,
+  onChange,
+  className = "",
+}: {
+  profitMode: ProfitMode;
+  onChange: (mode: ProfitMode) => void;
+  className?: string;
+}) {
+  return (
+    <fieldset className={`grid gap-2 ${className}`}>
+      <legend className="admin-section-label">Modo de lucro ativo</legend>
+      <div className="flex flex-wrap gap-4">
+        <label className="flex min-h-[44px] items-center gap-2 text-[13px] text-[#F0F0F0]">
+          <input
+            type="radio"
+            name="profitMode"
+            checked={profitMode === "percent"}
+            onChange={() => onChange("percent")}
+          />
+          Percentual
+        </label>
+        <label className="flex min-h-[44px] items-center gap-2 text-[13px] text-[#F0F0F0]">
+          <input
+            type="radio"
+            name="profitMode"
+            checked={profitMode === "fixed"}
+            onChange={() => onChange("fixed")}
+          />
+          Valor fixo (R$)
+        </label>
+      </div>
+    </fieldset>
+  );
+}
+
+function StoreCalculatorPanel({
+  pricing,
+}: {
+  pricing: ReturnType<typeof calculateStorePricing>;
+}) {
+  return (
+    <aside className="rounded-xl border border-white/[0.06] bg-[#141414] px-4 py-5 sm:px-6">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] pb-4 text-[#F5A623]">
+        <Calculator size={17} />
+        <p className="admin-section-label">Calculadora (loja)</p>
+      </div>
+      <div className="mt-5">
+        <p className="admin-section-label">Vender por</p>
+        <p className="mt-2 font-display text-[32px] font-bold leading-none text-[#F5A623] tabular-nums">
+          {formatBRL(pricing.targetRevenue)}
+        </p>
+        <p className="mt-2 text-[13px] text-[#888888]">
+          Lucro: {formatBRL(pricing.expectedProfit)}
+        </p>
+      </div>
+      <div className="mt-5 grid gap-3">
+        <CalcMetric label="Preco lista" value={formatBRL(pricing.listPrice)} />
+        {pricing.suggestedPrice != null ? (
+          <CalcMetric
+            label="Preco sugerido"
+            value={formatBRL(pricing.suggestedPrice)}
+          />
+        ) : null}
+      </div>
+      <p className="mt-4 text-[12px] leading-5 text-[#888888]">
+        Valores sincronizam com a ficha ao alterar custo ou lucro. Edite antes de
+        salvar se precisar.
+      </p>
+    </aside>
+  );
+}
+
 function CalculatorPanel({
   calculation,
   suggestions,
   selectedTicketCount,
-  onSelectTicketCount,
+  onSelectPackage,
 }: {
   calculation: ReturnType<typeof calculateRaffleProfit>;
   suggestions: ReturnType<typeof suggestTicketPackages>;
   selectedTicketCount: number;
-  onSelectTicketCount: (ticketCount: number) => void;
+  onSelectPackage: (item: ReturnType<typeof suggestTicketPackages>[number]) => void;
 }) {
   return (
     <aside className="rounded-xl border border-white/[0.06] bg-[#141414] px-4 py-5 sm:px-6">
@@ -914,7 +1282,7 @@ function CalculatorPanel({
               <button
                 type="button"
                 key={item.ticketCount}
-                onClick={() => onSelectTicketCount(item.ticketCount)}
+                onClick={() => onSelectPackage(item)}
                 className={`grid min-h-[44px] gap-1 rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-3 text-left transition-all hover:border-white/[0.12] hover:bg-white/[0.04] ${
                   selected
                     ? "border-l-2 border-l-[#F5A623] bg-[rgba(245,166,35,0.06)]"

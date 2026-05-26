@@ -1,6 +1,6 @@
 # Feature: Painel admin, cliente e Ruby/Safira
 
-**Ciclos de origem:** `cycles/Q12026/0006-painel-admin-ruby-safira/` · evolução Q2: `cycles/Q22026/0524-platform-skins-store-backend/`
+**Ciclos de origem:** `cycles/Q12026/0006-painel-admin-ruby-safira/` · evolução Q2: `cycles/Q22026/0524-platform-skins-store-backend/` · correção operacional: `cycles/Q22026/0526-fix-admin-publish-calculator/`
 
 ## Objetivo
 
@@ -113,9 +113,12 @@ O admin deve ter uma interface densa, operacional e escaneavel para:
 
 - Ao abrir `/admin`, **nenhum** formulário de cadastro fica aberto.
 - Dois CTAs explicitos:
-  - **Cadastrar skin** — abre ficha tecnica (fechar/cancelar descarta rascunho).
-  - **Cadastrar rifa** — fluxo separado com calculadora de lucro/precificacao (conteudo do popup/calculadora existente).
+  - **Cadastrar skin** — abre ficha tecnica com **calculadora simples (loja)**; fechar/cancelar descarta rascunho.
+  - **Cadastrar rifa** — fluxo separado com **calculadora completa (rifa)** — bilhetes, pacotes e valor alvo.
 - Em mobile, ficha e rifa usam drawer/modal full-screen; estoque em cards empilhados.
+- **Salvar skin** persiste em `skins` e revalida `/loja` quando elegivel.
+- **Salvar rifa** persiste em `raffles` (`status = 'ativa'`), atualiza skin para `em_rifa` e revalida `/rifas`; nao usar apenas `saveSkinAction`.
+- Mensagem clara em sucesso/erro; drawer fecha apos sucesso, permanece aberto em erro.
 
 ## Ficha tecnica de skins
 
@@ -138,29 +141,75 @@ Campos canonicos:
 
 A ficha tecnica e a fonte administrativa para decidir se uma skin esta pronta para virar rifa.
 
-## Calculadora de lucro
+## Calculadora de lucro (ficha tecnica assistida)
+
+A calculadora e parte da **ficha tecnica operacional**: o admin informa custo e lucro; o sistema calcula e **preenche campos editaveis** antes do salvamento. Implementacao em `lib/profit-calculator.ts`.
+
+### Modo de lucro
+
+- **Percentual** ou **valor fixo (BRL)**.
+- Se ambos estiverem preenchidos na UI, o admin deve **escolher explicitamente** qual modo esta ativo (evita ambiguidade).
+
+Formula principal: `valor pago + lucro desejado = valor alvo de venda` (lucro conforme modo). Taxa estimada: **0%** neste ciclo (motor aceita fee futura; sem UI obrigatoria).
+
+### Calculadora simples — ficha de skin (loja)
+
+Usada em **Cadastrar skin** / ficha tecnica. **Sem bilhetes.**
 
 Entrada:
 
-- skin escolhida;
 - valor pago pela skin;
-- percentual de lucro desejado;
-- quantidade desejada de bilhetes.
+- modo e valor/percentual de lucro desejado.
+
+Saida / sincronizacao:
+
+- valor alvo de venda;
+- `list_price` preenchido a partir do alvo (editavel);
+- `suggested_price` opcional quando fizer sentido para o card publico.
+
+### Calculadora completa — cadastro de rifa
+
+Usada em **Cadastrar rifa**.
+
+Entrada adicional:
+
+- skin escolhida;
+- quantidade de bilhetes e/ou preco por bilhete (constraint);
+- pacotes sugeridos clicaveis.
 
 Saida:
 
-- valor total pelo qual a skin deve ser vendida;
+- valor alvo de venda;
 - lucro esperado em BRL;
-- preco sugerido por bilhete;
-- pacotes sugeridos de quantidade de bilhetes e preco por bilhete;
+- preco e quantidade sugeridos por bilhete;
+- pacotes (ex. `130 bilhetes a R$ 10`, `260 bilhetes a R$ 5`);
 - margem percentual;
 - ponto minimo para nao ter prejuizo.
 
-Formula principal do ciclo: `valor pago + percentual de lucro desejado = valor alvo de venda`. A partir do valor alvo, o admin ve sugestoes como `130 bilhetes a R$ 10` ou `260 bilhetes a R$ 5`.
+Ao selecionar um pacote, atualizar **`ticket_count` e `ticket_price`** no formulario.
+
+### Salvar rifa (contrato)
+
+1. Criar linha em `raffles` com `status = 'ativa'`, `title` (padrao: nome da skin, editavel), `draw_date` obrigatorio, `ticket_count`, `ticket_price`.
+2. Atualizar skin vinculada para `status = 'em_rifa'` e persistir campos financeiros da ficha.
+3. Skin `em_rifa` **nao** aparece em `/loja`; rifa ativa aparece em `/rifas`.
 
 ## Loja publica (`/loja`)
 
 Vitrine de **skins a venda** (status `em_estoque`). Skins `em_rifa` aparecem apenas em `/rifas`, nao na loja.
+
+### Elegibilidade na vitrine (ciclo 0526)
+
+Uma skin e listada publicamente somente quando:
+
+| Regra | Criterio |
+|-------|----------|
+| Status | `em_estoque` |
+| Nome | preenchido |
+| Preco | `list_price > 0` |
+| Imagem | `image_url` nao vazio (Vercel Blob ou URL valida) |
+
+Caso contrario: permanece no admin (rascunho/estoque incompleto), **fora** de `public_store_skins` e de `/loja`.
 
 ### Card publico (referencia de produto)
 
@@ -223,7 +272,7 @@ Campos adicionais em `skins` para loja:
 - `stickers` (jsonb, opcional)
 - `image_url` (text, URL Blob)
 
-View recomendada: `public_store_skins` — projeta apenas colunas publicas onde `status = 'em_estoque'`.
+View recomendada: `public_store_skins` — projeta apenas colunas publicas onde `status = 'em_estoque'` **e** criterios de elegibilidade da vitrine (`list_price > 0`, `image_url` preenchido). Implementar filtro na view ou equivalente no repository; comportamento canonico e o da tabela de elegibilidade acima.
 
 ### RLS
 
@@ -261,7 +310,8 @@ Arquivos principais (evoluir no ciclo 0524):
 - `lib/profit-calculator.ts` — calculadora pura de margem, lucro e precificacao.
 - `app/login/` — Supabase Auth (sem exibir credenciais de teste).
 - `app/dashboard/page.tsx` — dashboard do cliente com DTO sem dados internos.
-- `app/admin/page.tsx` e `components/AdminPanel.tsx` — painel admin, fluxos skin/rifa separados.
+- `app/admin/page.tsx` e `components/AdminPanel.tsx` — painel admin, fluxos skin/rifa separados, calculadoras simples/completa.
+- `saveSkinAction` / `saveRaffleAction` (Server Actions) — persistencia Supabase; rifa revalida `/rifas` e move skin para `em_rifa`.
 - `app/loja/page.tsx` — vitrine publica de skins em estoque.
 - `app/rifas/page.tsx` — rifas ativas + CTA WhatsApp.
 - `components/RubySapphirePublicSection.tsx` — secao publica Ruby/Safira.
