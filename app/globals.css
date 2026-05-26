@@ -580,6 +580,12 @@ body.debug-rule::after {
   will-change: transform;
 }
 
+.skins-marquee-static .skins-marquee-track {
+  animation: none;
+  transform: none;
+  will-change: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skins-marquee-mask {
     overflow-x: auto;

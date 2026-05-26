@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -17,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { SearchableCombobox } from "@/components/SearchableCombobox";
-import { logoutAction, saveRaffleAction, saveSkinAction } from "@/app/login/actions";
+import { logoutAction, saveRaffleAction, saveSkinAction, updateRaffleAction } from "@/app/login/actions";
 import {
   CS2_FLOAT_PRESETS,
   CS2_PATTERNS,
@@ -37,11 +38,12 @@ import {
 import type {
   AdminDashboardDTO,
   ProfitMode,
+  RaffleStatus,
   Skin,
   SkinStatus,
 } from "@/lib/ruby-safira-types";
 
-type PanelMode = "list" | "skin" | "raffle";
+type PanelMode = "list" | "skin" | "raffle" | "raffle-edit";
 
 const STATUS_LABEL: Record<SkinStatus, string> = {
   em_estoque: "Em estoque",
@@ -79,6 +81,7 @@ const EMPTY_SKIN: Omit<Skin, "id"> = {
   ticketPrice: 10,
   status: "em_estoque",
   internalNotes: "",
+  isFeatured: false,
 };
 
 function defaultDrawDate(): string {
@@ -95,15 +98,19 @@ function profitModeNeedsChoice(
 }
 
 export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
+  const router = useRouter();
   const [skins, setSkins] = useState(data.skins);
   const [raffles, setRaffles] = useState(data.raffles);
+  const [financialEntries, setFinancialEntries] = useState(data.financialEntries);
   const [panelMode, setPanelMode] = useState<PanelMode>("list");
   const [selectedSkinId, setSelectedSkinId] = useState("");
+  const [selectedRaffleId, setSelectedRaffleId] = useState("");
   const selectedSkin = skins.find((skin) => skin.id === selectedSkinId);
   const [draft, setDraft] = useState<Omit<Skin, "id">>(EMPTY_SKIN);
   const [profitMode, setProfitMode] = useState<ProfitMode>("percent");
   const [raffleTitle, setRaffleTitle] = useState("");
   const [drawDate, setDrawDate] = useState(defaultDrawDate);
+  const [raffleStatus, setRaffleStatus] = useState<RaffleStatus>("ativa");
   const [saveMessage, setSaveMessage] = useState<{ tone: "ok" | "err"; text: string } | null>(
     null
   );
@@ -190,8 +197,40 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     const stockValue = skins
       .filter((skin) => skin.status === "em_estoque")
       .reduce((sum, skin) => sum + skin.estimatedMarketValue, 0);
-    return { ...data.summary, totalCost, expectedProfit, stockValue };
-  }, [data.summary, skins]);
+    const grossRevenue = financialEntries
+      .filter((entry) => entry.kind === "receita")
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    const estimatedFees = Math.abs(
+      financialEntries
+        .filter((entry) => entry.kind === "taxa")
+        .reduce((sum, entry) => sum + entry.amount, 0)
+    );
+    const realizedProfit = financialEntries
+      .filter((entry) => entry.kind === "lucro_realizado")
+      .reduce((sum, entry) => sum + entry.amount, 0);
+    return {
+      grossRevenue,
+      totalCost,
+      estimatedFees,
+      netRevenue: grossRevenue - estimatedFees,
+      expectedProfit,
+      realizedProfit,
+      stockValue,
+    };
+  }, [financialEntries, skins]);
+
+  const skinSalesRows = useMemo(
+    () =>
+      skins
+        .filter((skin) => skin.status === "vendida" || skin.status === "entregue")
+        .map((skin) => ({
+          id: skin.id,
+          skinName: skin.name,
+          amount: skin.listPrice,
+          status: skin.status,
+        })),
+    [skins]
+  );
 
   useEffect(() => {
     if (panelMode === "list") return;
@@ -236,6 +275,10 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     activeProfitMode,
   ]);
 
+  useEffect(() => {
+    setFinancialEntries(data.financialEntries);
+  }, [data.financialEntries]);
+
   function openSkinForm(skin?: Skin) {
     if (skin) {
       setSelectedSkinId(skin.id);
@@ -259,17 +302,35 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setDraft({ ...EMPTY_SKIN });
       setRaffleTitle("");
     }
+    setSelectedRaffleId("");
     setDrawDate(defaultDrawDate());
+    setRaffleStatus("ativa");
     setSaveMessage(null);
     setPanelMode("raffle");
+  }
+
+  function openRaffleEdit(raffle: AdminDashboardDTO["raffles"][0]) {
+    const skin = skins.find((item) => item.id === raffle.skinId);
+    setSelectedRaffleId(raffle.id);
+    setSelectedSkinId(raffle.skinId);
+    if (skin) {
+      setDraft(stripId(skin));
+    }
+    setRaffleTitle(raffle.title);
+    setDrawDate(raffle.drawDate);
+    setRaffleStatus(raffle.status);
+    setSaveMessage(null);
+    setPanelMode("raffle-edit");
   }
 
   function closePanel() {
     setPanelMode("list");
     setDraft(EMPTY_SKIN);
     setSelectedSkinId("");
+    setSelectedRaffleId("");
     setRaffleTitle("");
     setDrawDate(defaultDrawDate());
+    setRaffleStatus("ativa");
     setSaveMessage(null);
   }
 
@@ -322,6 +383,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     formData.set("ticketCount", String(draft.ticketCount));
     formData.set("ticketPrice", String(draft.ticketPrice));
     formData.set("internalNotes", draft.internalNotes);
+    if (draft.isFeatured) formData.set("isFeatured", "on");
   }
 
   async function saveSkinDraft() {
@@ -361,6 +423,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setSelectedSkinId(persistedId);
     setIsSaving(false);
     setSaveMessage({ tone: "ok", text: result.message });
+    router.refresh();
     closePanel();
   }
 
@@ -422,10 +485,58 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setSelectedSkinId(persistedId);
     setIsSaving(false);
     setSaveMessage({ tone: "ok", text: result.message });
+    router.refresh();
+    closePanel();
+  }
+
+  async function saveRaffleEdit(finalize = false) {
+    if (isSaving || !selectedRaffleId) return;
+
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    const formData = new FormData();
+    formData.set("raffleId", selectedRaffleId);
+    formData.set("raffleTitle", raffleTitle.trim() || draft.name);
+    formData.set("drawDate", drawDate);
+    formData.set("ticketCount", String(draft.ticketCount));
+    formData.set("ticketPrice", String(draft.ticketPrice));
+    formData.set("raffleStatus", raffleStatus);
+    if (finalize) formData.set("finalize", "on");
+
+    const result = await updateRaffleAction({ ok: false, message: "" }, formData);
+    if (!result.ok) {
+      setSaveMessage({ tone: "err", text: result.message });
+      setIsSaving(false);
+      return;
+    }
+
+    const nextStatus = finalize ? "encerrada" : raffleStatus;
+    setRaffles((current) =>
+      current.map((raffle) =>
+        raffle.id === selectedRaffleId
+          ? {
+              ...raffle,
+              title: raffleTitle.trim() || draft.name,
+              drawDate,
+              ticketCount: draft.ticketCount,
+              ticketPrice: draft.ticketPrice,
+              status: nextStatus,
+            }
+          : raffle
+      )
+    );
+    setIsSaving(false);
+    setSaveMessage({ tone: "ok", text: result.message });
+    router.refresh();
     closePanel();
   }
 
   async function saveDraft() {
+    if (panelMode === "raffle-edit") {
+      await saveRaffleEdit(false);
+      return;
+    }
     if (panelMode === "raffle") {
       await saveRaffleDraft();
       return;
@@ -550,6 +661,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                 raffle.status,
                 `${raffle.soldTickets}/${raffle.ticketCount}`,
               ])}
+              onRowClick={(index) => openRaffleEdit(raffles[index])}
             />
           </Panel>
           <Panel title="Compras e vendas" icon={<Coins size={17} />}>
@@ -567,12 +679,18 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                   formatBRL(entry.value),
                   entry.type,
                 ]),
+                ...skinSalesRows.map((sale) => [
+                  "Loja",
+                  sale.skinName,
+                  formatBRL(sale.amount),
+                  sale.status,
+                ]),
               ]}
             />
           </Panel>
           <Panel title="Financeiro" icon={<Calculator size={17} />}>
             <Table
-              rows={data.financialEntries.map((entry) => [
+              rows={financialEntries.map((entry) => [
                 entry.label,
                 entry.kind,
                 formatBRL(entry.amount),
@@ -595,12 +713,18 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-8 sm:py-5">
               <div className="min-w-0 pr-2">
                 <h2 className="font-display text-[20px] font-semibold leading-tight text-[#F0F0F0] sm:text-[22px]">
-                  {panelMode === "skin" ? "Ficha tecnica" : "Cadastrar rifa"}
+                  {panelMode === "skin"
+                    ? "Ficha tecnica"
+                    : panelMode === "raffle-edit"
+                      ? "Editar rifa"
+                      : "Cadastrar rifa"}
                 </h2>
                 <p className="mt-1.5 max-w-[520px] text-[13px] leading-relaxed text-[#888888]">
                   {panelMode === "skin"
                     ? "Cadastre ou edite uma skin para a loja. Use a calculadora ao lado para precificar."
-                    : "Configure a rifa, bilhetes e precificacao. A skin sai da loja ao publicar."}
+                    : panelMode === "raffle-edit"
+                      ? "Atualize dados da rifa ou finalize quando o sorteio encerrar."
+                      : "Configure a rifa, bilhetes e precificacao. A skin sai da loja ao publicar."}
                 </p>
               </div>
               <button
@@ -653,6 +777,73 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                   <aside className="w-full shrink-0 xl:sticky xl:top-0 xl:w-[min(100%,340px)]">
                   <StoreCalculatorPanel pricing={storePricing} />
                   </aside>
+                </div>
+              ) : panelMode === "raffle-edit" ? (
+                <div className="space-y-6">
+                  <FormSection
+                    title="Dados da rifa"
+                    description="Titulo, sorteio, bilhetes e status operacional."
+                  >
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <Field label="Titulo da rifa">
+                        <input
+                          value={raffleTitle}
+                          onChange={(e) => setRaffleTitle(e.target.value)}
+                          className="admin-input min-h-[48px]"
+                        />
+                      </Field>
+                      <Field label="Data do sorteio">
+                        <input
+                          type="date"
+                          value={drawDate}
+                          onChange={(e) => setDrawDate(e.target.value)}
+                          className="admin-input min-h-[48px]"
+                        />
+                      </Field>
+                      <Field label="Qtd. bilhetes">
+                        <input
+                          type="number"
+                          min={1}
+                          value={draft.ticketCount}
+                          onChange={(e) =>
+                            updateDraft("ticketCount", Number(e.target.value))
+                          }
+                          className="admin-input min-h-[48px] tabular-nums"
+                        />
+                      </Field>
+                      <Field label="Preco/bilhete (BRL)">
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={draft.ticketPrice}
+                          onChange={(e) =>
+                            updateDraft("ticketPrice", Number(e.target.value))
+                          }
+                          className="admin-input min-h-[48px] tabular-nums"
+                        />
+                      </Field>
+                      <Field label="Status">
+                        <select
+                          value={raffleStatus}
+                          onChange={(e) =>
+                            setRaffleStatus(e.target.value as RaffleStatus)
+                          }
+                          className="admin-input min-h-[48px]"
+                          disabled={raffleStatus === "encerrada"}
+                        >
+                          <option value="ativa">Ativa</option>
+                          <option value="aguardando_sorteio">Aguardando sorteio</option>
+                          <option value="encerrada">Encerrada</option>
+                          <option value="ganha">Ganha</option>
+                          <option value="perdida">Perdida</option>
+                        </select>
+                      </Field>
+                    </div>
+                  </FormSection>
+                  <p className="text-[13px] text-[#888888]">
+                    Skin vinculada: <strong className="text-[#F0F0F0]">{draft.name}</strong>
+                  </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-10">
@@ -748,8 +939,24 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                 className="inline-flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-xl bg-[#F5A623] px-6 text-[14px] font-semibold text-black disabled:opacity-70 sm:flex-none sm:min-w-[180px]"
               >
                 <Save size={16} />
-                {isSaving ? "Salvando" : panelMode === "raffle" ? "Salvar rifa" : "Salvar skin"}
+                {isSaving
+                  ? "Salvando"
+                  : panelMode === "raffle"
+                    ? "Salvar rifa"
+                    : panelMode === "raffle-edit"
+                      ? "Salvar alteracoes"
+                      : "Salvar skin"}
               </button>
+              {panelMode === "raffle-edit" && raffleStatus === "ativa" ? (
+                <button
+                  type="button"
+                  onClick={() => saveRaffleEdit(true)}
+                  disabled={isSaving}
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[#F5A623] px-4 text-[14px] font-semibold text-[#F5A623] disabled:opacity-70"
+                >
+                  Finalizar rifa
+                </button>
+              ) : null}
               {panelMode === "skin" && selectedSkinId ? (
                 <button
                   type="button"
@@ -1035,6 +1242,17 @@ function SkinForm({
                   ))}
                 </select>
               </Field>
+              {!compact ? (
+                <label className="flex min-h-[48px] items-center gap-2 rounded-lg border border-white/[0.06] bg-[#141414] px-4 text-[13px] text-[#F0F0F0] sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.isFeatured}
+                    onChange={(e) => onUpdateDraft("isFeatured", e.target.checked)}
+                    disabled={draft.status !== "em_estoque"}
+                  />
+                  Exibir em Skins em destaque (max. 10)
+                </label>
+              ) : null}
             </div>
           </FormSection>
 
@@ -1153,6 +1371,7 @@ function stripId(skin: Skin): Omit<Skin, "id"> {
     ticketPrice: skin.ticketPrice,
     status: skin.status,
     internalNotes: skin.internalNotes,
+    isFeatured: skin.isFeatured,
   };
 }
 
@@ -1449,13 +1668,39 @@ function CalcMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Table({ rows }: { rows: string[][] }) {
+function Table({
+  rows,
+  onRowClick,
+}: {
+  rows: string[][];
+  onRowClick?: (index: number) => void;
+}) {
   return (
     <div className="max-h-[360px] overflow-hidden rounded-lg border border-white/[0.06]">
-      {rows.map((row) => (
+      {rows.length === 0 ? (
+        <p className="bg-[#1A1A1A] p-3 text-[12px] text-[#888888]">
+          Nenhum registro ainda.
+        </p>
+      ) : null}
+      {rows.map((row, rowIndex) => (
         <div
           key={row.join("-")}
-          className="grid gap-1 border-b border-white/[0.06] bg-[#1A1A1A] p-3 last:border-b-0"
+          role={onRowClick ? "button" : undefined}
+          tabIndex={onRowClick ? 0 : undefined}
+          onClick={onRowClick ? () => onRowClick(rowIndex) : undefined}
+          onKeyDown={
+            onRowClick
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onRowClick(rowIndex);
+                  }
+                }
+              : undefined
+          }
+          className={`grid gap-1 border-b border-white/[0.06] bg-[#1A1A1A] p-3 last:border-b-0 ${
+            onRowClick ? "cursor-pointer hover:bg-white/[0.04]" : ""
+          }`}
         >
           {row.map((cell, index) => (
             <span

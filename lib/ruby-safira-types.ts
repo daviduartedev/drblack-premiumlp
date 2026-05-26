@@ -55,6 +55,15 @@ export type Skin = {
   ticketPrice: number;
   status: SkinStatus;
   internalNotes: string;
+  isFeatured: boolean;
+};
+
+export type SkinStoreSale = {
+  id: string;
+  skinName: string;
+  date: string;
+  amount: number;
+  status: SkinStatus;
 };
 
 /** DTO publico da loja — sem dados operacionais internos. */
@@ -178,5 +187,6 @@ export type AdminDashboardDTO = {
   raffles: Array<Raffle & { skinName: string; skinImage: string }>;
   purchases: Array<Purchase & { customerName: string; raffleTitle: string }>;
   salesHistory: Array<SaleHistoryEntry & { customerName: string }>;
+  skinSales: SkinStoreSale[];
   financialEntries: FinancialEntry[];
 };

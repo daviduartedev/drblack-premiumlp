@@ -44,6 +44,8 @@ type DbSkinRow = {
   ticket_price: number;
   status: SkinStatus;
   internal_notes: string;
+  is_featured: boolean;
+  updated_at?: string;
 };
 
 type DbProfileRow = {
@@ -52,6 +54,8 @@ type DbProfileRow = {
   name: string;
   role: UserRole;
 };
+
+const FEATURED_SKINS_LIMIT = 10;
 
 function mapSkinRow(row: DbSkinRow): Skin {
   return {
@@ -76,6 +80,7 @@ function mapSkinRow(row: DbSkinRow): Skin {
     ticketPrice: Number(row.ticket_price),
     status: row.status,
     internalNotes: row.internal_notes,
+    isFeatured: row.is_featured ?? false,
   };
 }
 
@@ -105,6 +110,7 @@ function mapSeedSkin(skin: Skin): Skin {
     listPrice: skin.listPrice ?? skin.estimatedMarketValue,
     suggestedPrice: skin.suggestedPrice ?? null,
     stickers: skin.stickers ?? [],
+    isFeatured: skin.isFeatured ?? false,
   };
 }
 
@@ -229,6 +235,59 @@ export const getPublicStoreSkins = cache(async (): Promise<PublicStoreSkin[]> =>
 
   return (data as DbSkinRow[]).map(mapPublicSkinRow);
 });
+
+export const getFeaturedStoreSkins = cache(async (): Promise<PublicStoreSkin[]> => {
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return seedSkins
+      .filter(
+        (skin) =>
+          (skin as Skin).isFeatured && isPublicStoreEligible(skin as Skin)
+      )
+      .map((skin) => {
+        const mapped = mapSeedSkin(skin as Skin);
+        return {
+          id: mapped.id,
+          name: mapped.name,
+          weapon: mapped.weapon,
+          pattern: mapped.pattern,
+          float: mapped.float,
+          rarity: mapped.rarity,
+          wearLabel: mapped.wearLabel,
+          isStatTrak: mapped.isStatTrak,
+          imageUrl: mapped.image,
+          listPrice: mapped.listPrice,
+          suggestedPrice: mapped.suggestedPrice,
+          stickers: mapped.stickers,
+        };
+      })
+      .slice(0, FEATURED_SKINS_LIMIT);
+  }
+
+  const { data, error } = await supabase
+    .from("public_featured_skins")
+    .select(
+      "id, name, weapon, pattern, float, rarity, wear_label, is_stat_trak, image_url, list_price, suggested_price, stickers, status"
+    )
+    .order("name")
+    .limit(FEATURED_SKINS_LIMIT);
+
+  if (error || !data) return [];
+
+  return (data as DbSkinRow[]).map(mapPublicSkinRow);
+});
+
+function mapSkinRowsToStoreSales(rows: DbSkinRow[]) {
+  return rows
+    .filter((row) => row.status === "vendida" || row.status === "entregue")
+    .map((row) => ({
+      id: row.id,
+      skinName: row.name,
+      date: (row.updated_at ?? new Date().toISOString()).slice(0, 10),
+      amount: Number(row.list_price),
+      status: row.status,
+    }));
+}
 
 export const getCustomerDashboard = cache(
   async (userId: string): Promise<CustomerDashboardDTO | null> => {
@@ -500,12 +559,39 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
           customerName: customer?.name ?? "Cliente removido",
         };
       }),
+      skinSales: mapSkinRowsToStoreSales(
+        mappedSkins.map((skin) => ({
+          id: skin.id,
+          name: skin.name,
+          weapon: skin.weapon,
+          pattern: skin.pattern,
+          float: skin.float,
+          rarity: skin.rarity,
+          wear_label: skin.wearLabel,
+          is_stat_trak: skin.isStatTrak,
+          image_url: skin.image,
+          list_price: skin.listPrice,
+          suggested_price: skin.suggestedPrice,
+          stickers: skin.stickers,
+          paid_value: skin.paidValue,
+          estimated_market_value: skin.estimatedMarketValue,
+          desired_profit_value: skin.desiredProfitValue,
+          desired_profit_percent: skin.desiredProfitPercent,
+          ticket_count: skin.ticketCount,
+          ticket_price: skin.ticketPrice,
+          status: skin.status,
+          internal_notes: skin.internalNotes,
+          is_featured: skin.isFeatured,
+          updated_at: new Date().toISOString(),
+        }))
+      ),
       financialEntries,
     };
   }
 
   const { data: skinRows } = await supabase.from("skins").select("*").order("name");
-  const mappedSkins = ((skinRows ?? []) as DbSkinRow[]).map(mapSkinRow);
+  const skinRowList = (skinRows ?? []) as DbSkinRow[];
+  const mappedSkins = skinRowList.map(mapSkinRow);
 
   const { data: raffleRows } = await supabase.from("raffles").select("*");
   const { data: purchaseRows } = await supabase.from("purchases").select("*");
@@ -589,6 +675,7 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
       };
     }),
     salesHistory: [],
+    skinSales: mapSkinRowsToStoreSales(skinRowList),
     financialEntries: (financialRows ?? []).map((entry) => ({
       id: entry.id as string,
       skinId: (entry.skin_id as string) ?? "",
@@ -673,10 +760,125 @@ export type UpsertSkinResult = {
   error?: string;
 };
 
+async function countFeaturedSkins(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseOrNull>>>,
+  excludeSkinId?: string
+): Promise<number> {
+  let query = supabase
+    .from("skins")
+    .select("id", { count: "exact", head: true })
+    .eq("is_featured", true);
+
+  if (excludeSkinId) {
+    query = query.neq("id", excludeSkinId);
+  }
+
+  const { count } = await query;
+  return count ?? 0;
+}
+
+async function upsertFinancialEntry(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseOrNull>>>,
+  entry: {
+    skinId: string;
+    kind: "custo" | "receita" | "taxa" | "lucro_realizado";
+    label: string;
+    amount: number;
+    date: string;
+    raffleId?: string | null;
+  }
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from("financial_entries")
+    .select("id")
+    .eq("skin_id", entry.skinId)
+    .eq("kind", entry.kind)
+    .maybeSingle();
+
+  const payload = {
+    skin_id: entry.skinId,
+    raffle_id: entry.raffleId ?? null,
+    kind: entry.kind,
+    label: entry.label,
+    amount: entry.amount,
+    date: entry.date,
+  };
+
+  if (existing?.id) {
+    await supabase
+      .from("financial_entries")
+      .update(payload)
+      .eq("id", existing.id as string);
+    return;
+  }
+
+  await supabase.from("financial_entries").insert(payload);
+}
+
+async function syncFinancialEntriesForSkin(
+  supabase: NonNullable<Awaited<ReturnType<typeof getSupabaseOrNull>>>,
+  skin: Skin
+): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (
+    skin.paidValue > 0 &&
+    (skin.status === "em_estoque" || skin.status === "em_rifa")
+  ) {
+    await upsertFinancialEntry(supabase, {
+      skinId: skin.id,
+      kind: "custo",
+      label: `Custo — ${skin.name}`,
+      amount: skin.paidValue,
+      date: today,
+    });
+  }
+
+  if (skin.status === "vendida" || skin.status === "entregue") {
+    const revenue =
+      skin.listPrice > 0 ? skin.listPrice : skin.estimatedMarketValue;
+    const profit = Math.max(0, revenue - skin.paidValue);
+
+    await upsertFinancialEntry(supabase, {
+      skinId: skin.id,
+      kind: "receita",
+      label: `Venda — ${skin.name}`,
+      amount: revenue,
+      date: today,
+    });
+
+    await upsertFinancialEntry(supabase, {
+      skinId: skin.id,
+      kind: "lucro_realizado",
+      label: `Lucro — ${skin.name}`,
+      amount: profit,
+      date: today,
+    });
+  }
+}
+
 export async function upsertSkin(input: SkinUpsertInput): Promise<UpsertSkinResult> {
   const supabase = await getSupabaseOrNull();
   if (!supabase) {
     return { skin: null, error: "Supabase nao configurado." };
+  }
+
+  if (input.isFeatured) {
+    if (!isPublicStoreEligible(input as Skin)) {
+      return {
+        skin: null,
+        error:
+          "Somente skins em estoque publicaveis (nome, preco e imagem) podem ir para destaque.",
+      };
+    }
+
+    const featuredCount = await countFeaturedSkins(supabase, input.id);
+    if (featuredCount >= FEATURED_SKINS_LIMIT) {
+      return {
+        skin: null,
+        error: `Limite de ${FEATURED_SKINS_LIMIT} skins em destaque atingido.`,
+      };
+    }
   }
 
   const payload = {
@@ -699,6 +901,7 @@ export async function upsertSkin(input: SkinUpsertInput): Promise<UpsertSkinResu
     ticket_price: input.ticketPrice,
     status: input.status,
     internal_notes: input.internalNotes,
+    is_featured: input.isFeatured,
     updated_at: new Date().toISOString(),
   };
 
@@ -715,7 +918,9 @@ export async function upsertSkin(input: SkinUpsertInput): Promise<UpsertSkinResu
         error: error?.message ?? "Nao foi possivel atualizar a skin.",
       };
     }
-    return { skin: mapSkinRow(data as DbSkinRow) };
+    const skin = mapSkinRow(data as DbSkinRow);
+    await syncFinancialEntriesForSkin(supabase, skin);
+    return { skin };
   }
 
   const { data, error } = await supabase
@@ -729,7 +934,9 @@ export async function upsertSkin(input: SkinUpsertInput): Promise<UpsertSkinResu
       error: error?.message ?? "Nao foi possivel criar a skin.",
     };
   }
-  return { skin: mapSkinRow(data as DbSkinRow) };
+  const skin = mapSkinRow(data as DbSkinRow);
+  await syncFinancialEntriesForSkin(supabase, skin);
+  return { skin };
 }
 
 export type CreateRaffleInput = {
@@ -784,6 +991,69 @@ export async function createRaffleFromSkin(
   return {
     raffleId: data.id as string,
     skin: skinResult.skin,
+  };
+}
+
+export type UpdateRaffleInput = {
+  raffleId: string;
+  title: string;
+  drawDate: string;
+  ticketCount: number;
+  ticketPrice: number;
+  status: RaffleStatus;
+};
+
+export type UpdateRaffleResult = {
+  raffle?: AdminDashboardDTO["raffles"][0];
+  error?: string;
+};
+
+export async function updateRaffle(
+  input: UpdateRaffleInput
+): Promise<UpdateRaffleResult> {
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return { error: "Supabase nao configurado." };
+  }
+
+  const { data, error } = await supabase
+    .from("raffles")
+    .update({
+      title: input.title.trim(),
+      draw_date: input.drawDate,
+      ticket_count: input.ticketCount,
+      ticket_price: input.ticketPrice,
+      status: input.status,
+    })
+    .eq("id", input.raffleId)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    return {
+      error: error?.message ?? "Nao foi possivel atualizar a rifa.",
+    };
+  }
+
+  const { data: skinRow } = await supabase
+    .from("skins")
+    .select("id, name, image_url")
+    .eq("id", data.skin_id as string)
+    .maybeSingle();
+
+  return {
+    raffle: {
+      id: data.id as string,
+      skinId: data.skin_id as string,
+      title: data.title as string,
+      status: data.status as RaffleStatus,
+      ticketCount: data.ticket_count as number,
+      ticketPrice: Number(data.ticket_price),
+      soldTickets: data.sold_tickets as number,
+      drawDate: data.draw_date as string,
+      skinName: (skinRow?.name as string) ?? "Skin nao encontrada",
+      skinImage: (skinRow?.image_url as string) || "/new-logo.png",
+    },
   };
 }
 

@@ -50,6 +50,7 @@ export const skins: Skin[] = [
     status: "em_rifa",
     internalNotes:
       "Skin principal para validar margem com taxa estimada. Conferir compliance antes de operar.",
+    isFeatured: false,
   },
   {
     id: "skin_awp_sapphire_001",
@@ -73,6 +74,7 @@ export const skins: Skin[] = [
     status: "em_estoque",
     internalNotes:
       "Alta demanda. Preparar rifa somente apos validacao juridica e liquidez.",
+    isFeatured: true,
   },
   {
     id: "skin_karambit_001",
@@ -95,6 +97,7 @@ export const skins: Skin[] = [
     ticketPrice: 20,
     status: "vendida",
     internalNotes: "Rifa encerrada com entrega pendente de confirmacao manual.",
+    isFeatured: false,
   },
   {
     id: "skin_m4_archive_001",
@@ -117,6 +120,7 @@ export const skins: Skin[] = [
     ticketPrice: 10,
     status: "arquivada",
     internalNotes: "Arquivo de validacao visual. Nao publicar.",
+    isFeatured: false,
   },
 ];
 

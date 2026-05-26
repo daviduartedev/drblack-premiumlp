@@ -30,14 +30,11 @@ export default function SkinsCarouselMobile({ skins }: Props) {
         }
       >
         <div className="skins-mobile-marquee-track">
-          {skins.map((skin) => (
-            <SkinMobileCard key={skin.id} skin={skin} />
-          ))}
-          {skins.map((skin) => (
+          {(skins.length > 1 ? [...skins, ...skins] : skins).map((skin, index) => (
             <SkinMobileCard
-              key={`${skin.id}-loop`}
+              key={`${skin.id}-${index}`}
               skin={skin}
-              duplicate
+              duplicate={skins.length > 1 && index >= skins.length}
             />
           ))}
         </div>
@@ -90,7 +87,7 @@ function SkinMobileCard({
 
   return (
     <a
-      href={skin.href ?? "#"}
+      href={skin.href ?? "/loja"}
       className="skins-mobile-card skin-card-link"
     >
       {cardInner}

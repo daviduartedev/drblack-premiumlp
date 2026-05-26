@@ -7,11 +7,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import {
   createRaffleFromSkin,
   getUserByEmail,
+  updateRaffle,
   upsertSkin,
 } from "@/lib/ruby-safira-repository";
 import { TEST_CREDENTIALS } from "@/lib/ruby-safira-seed";
 import { clearSessionCookie, setSessionCookie } from "@/lib/server-session";
-import type { Skin, SkinStatus } from "@/lib/ruby-safira-types";
+import type { RaffleStatus, Skin, SkinStatus } from "@/lib/ruby-safira-types";
 
 export type LoginState = {
   message: string;
@@ -87,6 +88,7 @@ export async function saveSkinAction(
     ticketPrice: Number(formData.get("ticketPrice") ?? 10),
     status: String(formData.get("status") ?? "em_estoque") as SkinStatus,
     internalNotes: String(formData.get("internalNotes") ?? ""),
+    isFeatured: formData.get("isFeatured") === "on",
   } satisfies Omit<Skin, "id"> & { id?: string };
 
   if (!isSupabaseConfigured()) {
@@ -103,6 +105,7 @@ export async function saveSkinAction(
 
   revalidatePath("/admin");
   revalidatePath("/loja");
+  revalidatePath("/");
   return { ok: true, message: "Skin salva.", skinId: skin.id };
 }
 
@@ -138,6 +141,7 @@ export async function saveRaffleAction(
     ticketPrice: Number(formData.get("ticketPrice") ?? 10),
     status: "em_rifa" as SkinStatus,
     internalNotes: String(formData.get("internalNotes") ?? ""),
+    isFeatured: false,
   } satisfies Omit<Skin, "id"> & { id?: string };
 
   const title = String(formData.get("raffleTitle") ?? "").trim();
@@ -183,6 +187,67 @@ export async function saveRaffleAction(
     message: "Rifa salva e publicada.",
     skinId: result.skin.id,
     raffleId: result.raffleId,
+  };
+}
+
+export type UpdateRaffleState = {
+  ok: boolean;
+  message: string;
+  raffleId?: string;
+};
+
+export async function updateRaffleAction(
+  _prev: UpdateRaffleState,
+  formData: FormData
+): Promise<UpdateRaffleState> {
+  const raffleId = String(formData.get("raffleId") ?? "").trim();
+  const title = String(formData.get("raffleTitle") ?? "").trim();
+  const drawDate = String(formData.get("drawDate") ?? "").trim();
+  const ticketCount = Number(formData.get("ticketCount") ?? 0);
+  const ticketPrice = Number(formData.get("ticketPrice") ?? 0);
+  const status = String(formData.get("raffleStatus") ?? "ativa") as RaffleStatus;
+  const finalize = formData.get("finalize") === "on";
+  const nextStatus: RaffleStatus = finalize ? "encerrada" : status;
+
+  if (!raffleId) {
+    return { ok: false, message: "Rifa nao informada." };
+  }
+  if (!drawDate) {
+    return { ok: false, message: "Informe a data do sorteio." };
+  }
+  if (ticketCount <= 0 || ticketPrice <= 0) {
+    return {
+      ok: false,
+      message: "Bilhetes e preco por bilhete devem ser maiores que zero.",
+    };
+  }
+
+  if (!isSupabaseConfigured()) {
+    return { ok: true, message: "Rifa atualizada localmente (modo seed).", raffleId };
+  }
+
+  const result = await updateRaffle({
+    raffleId,
+    title: title || "Rifa",
+    drawDate,
+    ticketCount,
+    ticketPrice,
+    status: nextStatus,
+  });
+
+  if (!result.raffle) {
+    return {
+      ok: false,
+      message: result.error ?? "Nao foi possivel atualizar a rifa.",
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/rifas");
+  return {
+    ok: true,
+    message: finalize ? "Rifa finalizada." : "Rifa atualizada.",
+    raffleId: result.raffle.id,
   };
 }
 

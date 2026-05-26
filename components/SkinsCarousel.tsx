@@ -29,9 +29,6 @@ const HEADER_LINE: Variants = {
 
 const VIEWPORT_OPTS = { once: true, margin: "-10%" };
 
-const USQ = (photoId: string) =>
-  `https://images.unsplash.com/${photoId}?w=1200&q=90&auto=format&fit=crop`;
-
 export type FeaturedSkin = {
   id: string;
   src: string;
@@ -41,63 +38,6 @@ export type FeaturedSkin = {
   price?: string;
   href?: string;
 };
-
-const FEATURED: FeaturedSkin[] = [
-  {
-    id: "u-rifle",
-    src: USQ("photo-1769430534992-0c5f4a6c3fa3"),
-    index: "01 · RIFLE TÁTICO",
-    title: "M4A1 | Comando",
-    subtitle: "Field-Tested",
-    price: "R$ 2.180",
-    href: "#",
-  },
-  {
-    id: "u-pistol",
-    src: USQ("photo-1713643560166-eeaf7b12a49f"),
-    index: "02 · NOTURNO",
-    title: "Glock-18 | Sombra",
-    subtitle: "Minimal Wear",
-    price: "R$ 980",
-    href: "#",
-  },
-  {
-    id: "u-karambit",
-    src: USQ("photo-1577983770799-380cd543c064"),
-    index: "03 · FACA CURVA",
-    title: "★ Karambit | Carbon",
-    subtitle: "Factory New",
-    price: "R$ 14.200",
-    href: "#",
-  },
-  {
-    id: "u-usp",
-    src: USQ("photo-1589728473894-4fb97b4dbb88"),
-    index: "04 · INOX",
-    title: "USP-S | Pulse",
-    subtitle: "Well-Worn",
-    price: "R$ 1.450",
-    href: "#",
-  },
-  {
-    id: "u-pocket",
-    src: USQ("photo-1623998023424-1af3a2e589f4"),
-    index: "05 · CANIVETE",
-    title: "Bayonet | Dobrável",
-    subtitle: "Minimal Wear",
-    price: "R$ 6.780",
-    href: "#",
-  },
-  {
-    id: "u-orange",
-    src: USQ("photo-1584435191093-2d9ed132c88d"),
-    index: "06 · STRIKE",
-    title: "Talon | Blaze Line",
-    subtitle: "Battle-Scarred",
-    price: "R$ 3.260",
-    href: "#",
-  },
-];
 
 /** Tokens da marca — cards escuros + laranja / dourado */
 const CARD = {
@@ -121,14 +61,20 @@ function tagsFromSkin(skin: FeaturedSkin): string[] {
 }
 
 function cardDescription(skin: FeaturedSkin): string {
-  const bits = [
-    `Ilustração Unsplash — ${skin.subtitle}.`,
-    skin.price ? ` Referência ${skin.price}.` : "",
-  ];
+  const bits = [`${skin.subtitle}.`, skin.price ? ` ${skin.price}.` : ""];
   return bits.join("");
 }
 
-export default function SkinsCarousel() {
+export default function SkinsCarousel({ skins = [] }: { skins?: FeaturedSkin[] }) {
+  const displaySkins =
+    skins.length > 0
+      ? skins.map((skin) => ({ ...skin, href: skin.href ?? "/loja" }))
+      : [];
+  const loopSkins =
+    displaySkins.length > 1
+      ? [...displaySkins, ...displaySkins]
+      : displaySkins;
+
   return (
     <section
       id="skins-destaque"
@@ -154,46 +100,59 @@ export default function SkinsCarousel() {
             className="t-body-sm mt-3"
             style={{ maxWidth: "44ch" }}
           >
-            Vitrine em movimento contínuo, fotos ilustrativas (Unsplash), estilo
-            CS2.
+            {displaySkins.length > 0
+              ? "Seleção do catálogo DR Black Skins. Toque para ver a loja completa."
+              : "Nenhuma skin em destaque no momento. Confira o catálogo na loja."}
           </motion.p>
+          {displaySkins.length === 0 ? (
+            <motion.a
+              variants={HEADER_LINE}
+              href="/loja"
+              className="btn-solid t-cta mt-2 w-fit"
+            >
+              Ver catálogo
+            </motion.a>
+          ) : null}
         </motion.header>
       </div>
 
-      <div
-        className="relative hidden w-screen min-w-0 max-w-[100vw] shrink-0 md:block"
-        style={{ marginLeft: "calc(50% - 50vw)" }}
-      >
-        <div
-          className="skins-marquee-mask relative w-full"
-          style={
-            ({
-              "--skins-marquee-duration": "52s",
-              "--skins-marquee-gap": "20px",
-            } as CSSProperties)
-          }
-        >
-          <div className="skins-marquee-track flex w-max flex-row flex-nowrap">
-            {FEATURED.map((skin) => (
-              <FeaturedSkinCard
-                key={skin.id}
-                skin={skin}
-                width={CARD_WIDTH}
-              />
-            ))}
-            {FEATURED.map((skin) => (
-              <FeaturedSkinCard
-                key={`${skin.id}-loop`}
-                skin={skin}
-                width={CARD_WIDTH}
-                duplicate
-              />
-            ))}
+      {displaySkins.length > 0 ? (
+        <>
+          <div
+            className="relative hidden w-screen min-w-0 max-w-[100vw] shrink-0 md:block"
+            style={{ marginLeft: "calc(50% - 50vw)" }}
+          >
+            <div
+              className={`skins-marquee-mask relative w-full ${
+                displaySkins.length === 1 ? "skins-marquee-static" : ""
+              }`}
+              style={
+                ({
+                  "--skins-marquee-duration": "52s",
+                  "--skins-marquee-gap": "20px",
+                } as CSSProperties)
+              }
+            >
+              <div
+                className={`skins-marquee-track flex w-max flex-row flex-nowrap ${
+                  displaySkins.length === 1 ? "justify-center" : ""
+                }`}
+              >
+                {loopSkins.map((skin, index) => (
+                  <FeaturedSkinCard
+                    key={`${skin.id}-${index}`}
+                    skin={skin}
+                    width={CARD_WIDTH}
+                    duplicate={index >= displaySkins.length}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <SkinsCarouselMobile skins={FEATURED} />
+          <SkinsCarouselMobile skins={displaySkins} />
+        </>
+      ) : null}
     </section>
   );
 }
@@ -329,7 +288,7 @@ function FeaturedSkinCard({
     <div className="shrink-0 flex-none" style={{ width }}>
       <a
         data-skin-card
-        href={skin.href ?? "#"}
+        href={skin.href ?? "/loja"}
         className={shellClass}
         style={shellStyle}
       >

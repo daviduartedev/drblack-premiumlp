@@ -73,25 +73,31 @@ export default async function RifasPage() {
       </section>
 
       <section className="overflow-hidden pb-[var(--section-py)]">
-        <div
-          className="skins-marquee-mask"
-          style={
-            {
-              "--skins-marquee-duration": "44s",
-              "--skins-marquee-gap": "20px",
-            } as CSSProperties
-          }
-        >
-          <div className="skins-marquee-track">
-            {[...displayRaffles, ...displayRaffles].map((raffle, index) => (
-              <RaffleCard
-                key={`${raffle.id}-${index}`}
-                raffle={raffle}
-                duplicate={index >= displayRaffles.length}
-              />
-            ))}
+        {displayRaffles.length === 1 ? (
+          <div className="content-wrap flex justify-center">
+            <RaffleCard raffle={displayRaffles[0]} duplicate={false} />
           </div>
-        </div>
+        ) : (
+          <div
+            className="skins-marquee-mask"
+            style={
+              {
+                "--skins-marquee-duration": "44s",
+                "--skins-marquee-gap": "20px",
+              } as CSSProperties
+            }
+          >
+            <div className="skins-marquee-track">
+              {[...displayRaffles, ...displayRaffles].map((raffle, index) => (
+                <RaffleCard
+                  key={`${raffle.id}-${index}`}
+                  raffle={raffle}
+                  duplicate={index >= displayRaffles.length}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </section>
     </main>
   );
