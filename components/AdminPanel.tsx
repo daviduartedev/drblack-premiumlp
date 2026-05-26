@@ -174,10 +174,23 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   );
 
   const syncedSummary = useMemo(() => {
+    const inventorySkins = skins.filter(
+      (skin) => skin.status === "em_estoque" || skin.status === "em_rifa"
+    );
+    const totalCost = inventorySkins.reduce(
+      (sum, skin) => sum + Number(skin.paidValue || 0),
+      0
+    );
+    const expectedProfit = inventorySkins.reduce((sum, skin) => {
+      if (skin.desiredProfitValue > 0) {
+        return sum + skin.desiredProfitValue;
+      }
+      return sum + skin.paidValue * (skin.desiredProfitPercent / 100);
+    }, 0);
     const stockValue = skins
       .filter((skin) => skin.status === "em_estoque")
       .reduce((sum, skin) => sum + skin.estimatedMarketValue, 0);
-    return { ...data.summary, stockValue };
+    return { ...data.summary, totalCost, expectedProfit, stockValue };
   }, [data.summary, skins]);
 
   useEffect(() => {

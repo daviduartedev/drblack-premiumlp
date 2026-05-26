@@ -35,9 +35,9 @@ export default async function LojaPage() {
       <main className="section-padding-x section-padding pb-[var(--space-10)]">
         <div className="content-wrap">
           {skins.length ? (
-            <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid auto-rows-fr gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {skins.map((skin) => (
-                <li key={skin.id}>
+                <li key={skin.id} className="flex min-h-[520px] sm:min-h-[540px]">
                   <LojaSkinCard skin={skin} />
                 </li>
               ))}

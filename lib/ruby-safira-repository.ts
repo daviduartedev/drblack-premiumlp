@@ -166,6 +166,25 @@ export const getUserById = cache(async (id: string) => {
   return users.find((user) => user.id === id) ?? null;
 });
 
+const INVENTORY_STATUSES: SkinStatus[] = ["em_estoque", "em_rifa"];
+
+function sumInventoryPaidValue(skins: Skin[]): number {
+  return skins
+    .filter((skin) => INVENTORY_STATUSES.includes(skin.status))
+    .reduce((sum, skin) => sum + Number(skin.paidValue || 0), 0);
+}
+
+function sumExpectedProfit(skins: Skin[]): number {
+  return skins
+    .filter((skin) => INVENTORY_STATUSES.includes(skin.status))
+    .reduce((sum, skin) => {
+      if (skin.desiredProfitValue > 0) {
+        return sum + skin.desiredProfitValue;
+      }
+      return sum + skin.paidValue * (skin.desiredProfitPercent / 100);
+    }, 0);
+}
+
 function isPublicStoreEligible(skin: Skin): boolean {
   return (
     skin.status === "em_estoque" &&
@@ -427,11 +446,7 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
     const grossRevenue = financialEntries
       .filter((entry) => entry.kind === "receita")
       .reduce((sum, entry) => sum + entry.amount, 0);
-    const totalCost = Math.abs(
-      financialEntries
-        .filter((entry) => entry.kind === "custo")
-        .reduce((sum, entry) => sum + entry.amount, 0)
-    );
+    const totalCost = sumInventoryPaidValue(mappedSkins);
     const estimatedFees = Math.abs(
       financialEntries
         .filter((entry) => entry.kind === "taxa")
@@ -440,10 +455,7 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
     const realizedProfit = financialEntries
       .filter((entry) => entry.kind === "lucro_realizado")
       .reduce((sum, entry) => sum + entry.amount, 0);
-    const expectedProfit = mappedSkins.reduce(
-      (sum, skin) => sum + skin.desiredProfitValue,
-      0
-    );
+    const expectedProfit = sumExpectedProfit(mappedSkins);
 
     return {
       user: profile ?? {
@@ -509,11 +521,7 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
   const grossRevenue = (financialRows ?? [])
     .filter((e) => e.kind === "receita")
     .reduce((sum, e) => sum + Number(e.amount), 0);
-  const totalCost = Math.abs(
-    (financialRows ?? [])
-      .filter((e) => e.kind === "custo")
-      .reduce((sum, e) => sum + Number(e.amount), 0)
-  );
+  const totalCost = sumInventoryPaidValue(mappedSkins);
   const estimatedFees = Math.abs(
     (financialRows ?? [])
       .filter((e) => e.kind === "taxa")
@@ -522,10 +530,7 @@ export const getAdminDashboard = cache(async (): Promise<AdminDashboardDTO> => {
   const realizedProfit = (financialRows ?? [])
     .filter((e) => e.kind === "lucro_realizado")
     .reduce((sum, e) => sum + Number(e.amount), 0);
-  const expectedProfit = mappedSkins.reduce(
-    (sum, skin) => sum + skin.desiredProfitValue,
-    0
-  );
+  const expectedProfit = sumExpectedProfit(mappedSkins);
 
   const adminUser = profile ?? {
     id: "",
