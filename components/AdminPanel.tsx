@@ -16,7 +16,16 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { SearchableCombobox } from "@/components/SearchableCombobox";
 import { logoutAction, saveRaffleAction, saveSkinAction } from "@/app/login/actions";
+import {
+  CS2_FLOAT_PRESETS,
+  CS2_PATTERNS,
+  CS2_RARITIES,
+  CS2_WEAPONS,
+  CS2_WEAR_LABELS,
+  suggestFloatForWear,
+} from "@/lib/cs2-skin-catalog";
 import {
   buildRaffleCalculatorInput,
   calculateRaffleProfit,
@@ -259,6 +268,23 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setRaffleTitle(skin.name);
     }
     window.setTimeout(() => setIsSwitchingSkin(false), 200);
+  }
+
+  function startNewSkinDraft() {
+    setSelectedSkinId("");
+    setDraft({ ...EMPTY_SKIN });
+    if (panelMode === "raffle") {
+      setRaffleTitle("");
+    }
+  }
+
+  function handleInventorySkinPick(skinId: string) {
+    if (!skinId) {
+      startNewSkinDraft();
+      return;
+    }
+    const skin = skins.find((item) => item.id === skinId);
+    if (skin) selectSkin(skin);
   }
 
   function appendSkinFields(formData: FormData) {
@@ -596,7 +622,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                       draft.desiredProfitValue
                     )}
                     onProfitModeChange={setProfitMode}
-                    onSelectSkin={selectSkin}
+                    onInventorySkinPick={handleInventorySkinPick}
                     onUpdateDraft={updateDraft}
                     onSave={saveDraft}
                     onArchive={archiveSelected}
@@ -663,7 +689,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                         draft.desiredProfitValue
                       )}
                       onProfitModeChange={setProfitMode}
-                      onSelectSkin={selectSkin}
+                      onInventorySkinPick={handleInventorySkinPick}
                       onUpdateDraft={updateDraft}
                       onSave={saveDraft}
                       onArchive={archiveSelected}
@@ -708,6 +734,16 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   );
 }
 
+function skinInventoryOptions(skins: Skin[]) {
+  return skins
+    .filter((skin) => skin.status !== "arquivada")
+    .map((skin) => ({
+      value: skin.id,
+      label: skin.name,
+      hint: `${skin.weapon} · ${STATUS_LABEL[skin.status]}`,
+    }));
+}
+
 function SkinForm({
   skins,
   selectedSkinId,
@@ -719,7 +755,7 @@ function SkinForm({
   profitMode,
   showProfitModeChoice,
   onProfitModeChange,
-  onSelectSkin,
+  onInventorySkinPick,
   onUpdateDraft,
   onSave,
   onArchive,
@@ -735,7 +771,7 @@ function SkinForm({
   profitMode: ProfitMode;
   showProfitModeChoice: boolean;
   onProfitModeChange: (mode: ProfitMode) => void;
-  onSelectSkin: (skin: Skin) => void;
+  onInventorySkinPick: (skinId: string) => void;
   onUpdateDraft: <K extends keyof Omit<Skin, "id">>(
     key: K,
     value: Omit<Skin, "id">[K]
@@ -744,6 +780,20 @@ function SkinForm({
   onArchive: () => void;
   onImageUpload: (file: File) => void;
 }) {
+  const inventoryOptions = useMemo(
+    () => [
+      {
+        value: "",
+        label: "Cadastrar skin nova",
+        hint: "Formulario em branco para novo item",
+      },
+      ...skinInventoryOptions(skins),
+    ],
+    [skins]
+  );
+
+  const floatValue =
+    draft.float != null && Number.isFinite(draft.float) ? String(draft.float) : "";
   return (
     <form
       className={`grid gap-5 transition-opacity duration-200 ${
@@ -759,25 +809,25 @@ function SkinForm({
           compact ? "sm:grid-cols-2" : "sm:grid-cols-3"
         }`}
       >
-        {!compact ? (
-          <Field label="Skin existente">
-            <select
-              value={selectedSkinId}
-              onChange={(e) => {
-                const skin = skins.find((item) => item.id === e.target.value);
-                if (skin) onSelectSkin(skin);
-              }}
-              className="admin-input min-h-[44px]"
-            >
-              <option value="">Nova skin</option>
-              {skins.map((skin) => (
-                <option key={skin.id} value={skin.id}>
-                  {skin.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : null}
+        <Field
+          label={compact ? "Skin do estoque" : "Editar skin do estoque"}
+          hint={
+            compact
+              ? "Busque uma skin salva ou comece uma nova rifa do zero."
+              : "Busque uma skin ja cadastrada para editar, ou escolha cadastrar skin nova."
+          }
+          className={compact ? "sm:col-span-2" : "sm:col-span-3"}
+        >
+          <SearchableCombobox
+            value={selectedSkinId}
+            onChange={onInventorySkinPick}
+            options={inventoryOptions}
+            allowCustom={false}
+            placeholder="Buscar no estoque ou cadastrar nova"
+            searchPlaceholder="Filtrar por nome, arma ou status"
+            emptyMessage="Nenhuma skin no estoque"
+          />
+        </Field>
         <Field label="Quanto paguei (BRL)">
           <input
             value={draft.paidValue}
@@ -830,46 +880,63 @@ function SkinForm({
                 className="admin-input min-h-[44px]"
               />
             </Field>
-            <Field label="Tipo/arma">
-              <input
+            <Field label="Tipo / arma" hint="Item base do CS2 (ex.: AK-47, AWP, Karambit)">
+              <SearchableCombobox
                 value={draft.weapon}
-                onChange={(e) => onUpdateDraft("weapon", e.target.value)}
-                className="admin-input min-h-[44px]"
+                onChange={(weapon) => onUpdateDraft("weapon", weapon)}
+                options={CS2_WEAPONS}
+                placeholder="Buscar arma ou item"
+                searchPlaceholder="Filtrar rifles, facas, luvas..."
               />
             </Field>
-            <Field label="Padrao">
-              <input
+            <Field label="Padrao / acabamento" hint="Finish da skin (ex.: Fade, Doppler)">
+              <SearchableCombobox
                 value={draft.pattern}
-                onChange={(e) => onUpdateDraft("pattern", e.target.value)}
-                className="admin-input min-h-[44px]"
+                onChange={(pattern) => onUpdateDraft("pattern", pattern)}
+                options={CS2_PATTERNS}
+                placeholder="Buscar padrao"
+                searchPlaceholder="Filtrar acabamentos comuns"
               />
             </Field>
-            <Field label="Desgaste (FT/MW/FN)">
-              <input
+            <Field label="Desgaste">
+              <SearchableCombobox
                 value={draft.wearLabel}
-                onChange={(e) => onUpdateDraft("wearLabel", e.target.value)}
-                className="admin-input min-h-[44px]"
+                onChange={(wearLabel) => {
+                  onUpdateDraft("wearLabel", wearLabel);
+                  const suggested = suggestFloatForWear(wearLabel);
+                  if (suggested != null && draft.float == null) {
+                    onUpdateDraft("float", suggested);
+                  }
+                }}
+                options={CS2_WEAR_LABELS}
+                allowCustom={false}
+                placeholder="FN, MW, FT..."
+                searchPlaceholder="Filtrar desgaste"
               />
             </Field>
             <Field label="Raridade">
-              <input
+              <SearchableCombobox
                 value={draft.rarity}
-                onChange={(e) => onUpdateDraft("rarity", e.target.value)}
-                className="admin-input min-h-[44px]"
+                onChange={(rarity) => onUpdateDraft("rarity", rarity)}
+                options={CS2_RARITIES}
+                allowCustom={false}
+                placeholder="Selecionar raridade"
+                searchPlaceholder="Filtrar raridade"
               />
             </Field>
-            <Field label="Float">
-              <input
-                value={draft.float ?? ""}
-                onChange={(e) =>
+            <Field label="Float" hint="Valor de 0 a 1 — busque ou digite">
+              <SearchableCombobox
+                value={floatValue}
+                onChange={(raw) => {
+                  const n = Number(raw);
                   onUpdateDraft(
                     "float",
-                    e.target.value === "" ? null : Number(e.target.value)
-                  )
-                }
-                className="admin-input min-h-[44px] tabular-nums"
-                type="number"
-                step="0.0001"
+                    raw === "" || !Number.isFinite(n) ? null : n
+                  );
+                }}
+                options={CS2_FLOAT_PRESETS}
+                placeholder="Ex.: 0.07"
+                searchPlaceholder="Filtrar floats tipicos"
               />
             </Field>
             <Field label="Preco loja (BRL)">
@@ -1129,16 +1196,23 @@ function Panel({
 
 function Field({
   label,
+  hint,
+  className = "",
   children,
 }: {
   label: string;
+  hint?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="grid gap-2">
+    <label className={`grid gap-2 ${className}`}>
       <span className="text-[12px] font-medium uppercase tracking-[0.08em] text-[#555555]">
         {label}
       </span>
+      {hint ? (
+        <span className="text-[12px] leading-5 text-[#888888]">{hint}</span>
+      ) : null}
       {children}
     </label>
   );
