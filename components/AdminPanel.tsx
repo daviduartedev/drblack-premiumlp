@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
   Calculator,
@@ -37,6 +37,7 @@ import {
 } from "@/lib/profit-calculator";
 import type {
   AdminDashboardDTO,
+  FinancialEntry,
   ProfitMode,
   RaffleStatus,
   Skin,
@@ -97,6 +98,102 @@ function profitModeNeedsChoice(
   return desiredProfitPercent > 0 && desiredProfitValue > 0;
 }
 
+type PricingTriggers = {
+  paidValue: number;
+  desiredProfitPercent: number;
+  desiredProfitValue: number;
+  profitMode: ProfitMode;
+};
+
+type SkinFinancialSummary = {
+  skinId: string;
+  skinName: string;
+  cost: number | null;
+  sale: number | null;
+  lastDate: string | null;
+};
+
+function resolveAutoProfitMode(draft: Omit<Skin, "id">): ProfitMode {
+  if (draft.desiredProfitValue > 0 && draft.desiredProfitPercent <= 0) {
+    return "fixed";
+  }
+  return "percent";
+}
+
+function pricingTriggersFromDraft(
+  draft: Omit<Skin, "id">,
+  explicitMode: ProfitMode
+): PricingTriggers {
+  const needsChoice = profitModeNeedsChoice(
+    draft.desiredProfitPercent,
+    draft.desiredProfitValue
+  );
+  return {
+    paidValue: draft.paidValue,
+    desiredProfitPercent: draft.desiredProfitPercent,
+    desiredProfitValue: draft.desiredProfitValue,
+    profitMode: needsChoice ? explicitMode : resolveAutoProfitMode(draft),
+  };
+}
+
+function pricingTriggersEqual(a: PricingTriggers, b: PricingTriggers): boolean {
+  return (
+    a.paidValue === b.paidValue &&
+    a.desiredProfitPercent === b.desiredProfitPercent &&
+    a.desiredProfitValue === b.desiredProfitValue &&
+    a.profitMode === b.profitMode
+  );
+}
+
+function parseSkinNameFromFinancialLabel(label: string): string {
+  return label.replace(/^(Custo|Venda|Lucro)\s*[—–-]\s*/i, "").trim();
+}
+
+function groupFinancialEntriesBySkin(
+  entries: FinancialEntry[],
+  skins: Skin[]
+): SkinFinancialSummary[] {
+  const skinNameById = new Map(skins.map((skin) => [skin.id, skin.name]));
+  const grouped = new Map<string, SkinFinancialSummary>();
+
+  for (const entry of entries) {
+    if (!entry.skinId) continue;
+    if (entry.kind === "taxa" || entry.kind === "lucro_realizado") continue;
+
+    const existing = grouped.get(entry.skinId) ?? {
+      skinId: entry.skinId,
+      skinName:
+        skinNameById.get(entry.skinId) ??
+        parseSkinNameFromFinancialLabel(entry.label),
+      cost: null,
+      sale: null,
+      lastDate: null,
+    };
+
+    if (entry.kind === "custo") {
+      existing.cost = entry.amount;
+    }
+    if (entry.kind === "receita") {
+      existing.sale = entry.amount;
+    }
+    if (entry.date && (!existing.lastDate || entry.date > existing.lastDate)) {
+      existing.lastDate = entry.date;
+    }
+
+    grouped.set(entry.skinId, existing);
+  }
+
+  return [...grouped.values()].sort((a, b) =>
+    (b.lastDate ?? "").localeCompare(a.lastDate ?? "")
+  );
+}
+
+function formatFinancialDate(value: string): string {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("pt-BR");
+}
+
 export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const router = useRouter();
   const [skins, setSkins] = useState(data.skins);
@@ -117,6 +214,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const pricingBaselineRef = useRef<PricingTriggers | null>(null);
 
   const activeProfitMode = useMemo((): ProfitMode => {
     if (!profitModeNeedsChoice(draft.desiredProfitPercent, draft.desiredProfitValue)) {
@@ -219,18 +317,14 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     };
   }, [financialEntries, skins]);
 
-  const skinSalesRows = useMemo(
-    () =>
-      skins
-        .filter((skin) => skin.status === "vendida" || skin.status === "entregue")
-        .map((skin) => ({
-          id: skin.id,
-          skinName: skin.name,
-          amount: skin.listPrice,
-          status: skin.status,
-        })),
-    [skins]
+  const financialCards = useMemo(
+    () => groupFinancialEntriesBySkin(financialEntries, skins),
+    [financialEntries, skins]
   );
+
+  function syncPricingBaseline(draftSnapshot: Omit<Skin, "id">) {
+    pricingBaselineRef.current = pricingTriggersFromDraft(draftSnapshot, profitMode);
+  }
 
   useEffect(() => {
     if (panelMode === "list") return;
@@ -243,6 +337,18 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
   useEffect(() => {
     if (panelMode !== "skin") return;
+
+    const currentTriggers = pricingTriggersFromDraft(draft, profitMode);
+    const baseline = pricingBaselineRef.current;
+
+    if (!baseline) {
+      pricingBaselineRef.current = currentTriggers;
+      return;
+    }
+
+    if (pricingTriggersEqual(currentTriggers, baseline)) return;
+
+    pricingBaselineRef.current = currentTriggers;
     setDraft((current) => ({
       ...current,
       listPrice: storePricing.listPrice,
@@ -256,6 +362,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     draft.desiredProfitPercent,
     draft.desiredProfitValue,
     activeProfitMode,
+    profitMode,
   ]);
 
   useEffect(() => {
@@ -280,13 +387,14 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   }, [data.financialEntries]);
 
   function openSkinForm(skin?: Skin) {
+    const nextDraft = skin ? stripId(skin) : { ...EMPTY_SKIN };
     if (skin) {
       setSelectedSkinId(skin.id);
-      setDraft(stripId(skin));
     } else {
       setSelectedSkinId("");
-      setDraft({ ...EMPTY_SKIN });
     }
+    setDraft(nextDraft);
+    syncPricingBaseline(nextDraft);
     setSaveMessage(null);
     setPanelMode("skin");
   }
@@ -332,12 +440,15 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setDrawDate(defaultDrawDate());
     setRaffleStatus("ativa");
     setSaveMessage(null);
+    pricingBaselineRef.current = null;
   }
 
   function selectSkin(skin: Skin) {
     setIsSwitchingSkin(true);
     setSelectedSkinId(skin.id);
-    setDraft(stripId(skin));
+    const nextDraft = stripId(skin);
+    setDraft(nextDraft);
+    syncPricingBaseline(nextDraft);
     if (panelMode === "raffle") {
       setRaffleTitle(skin.name);
     }
@@ -346,7 +457,9 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
   function startNewSkinDraft() {
     setSelectedSkinId("");
-    setDraft({ ...EMPTY_SKIN });
+    const nextDraft = { ...EMPTY_SKIN };
+    setDraft(nextDraft);
+    syncPricingBaseline(nextDraft);
     if (panelMode === "raffle") {
       setRaffleTitle("");
     }
@@ -421,10 +534,13 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       return [nextSkin, ...current];
     });
     setSelectedSkinId(persistedId);
+    syncPricingBaseline(stripId(nextSkin));
     setIsSaving(false);
-    setSaveMessage({ tone: "ok", text: result.message });
+    setSaveMessage({
+      tone: "ok",
+      text: "Skin salva. Envie a imagem abaixo ou feche o painel quando terminar.",
+    });
     router.refresh();
-    closePanel();
   }
 
   async function saveRaffleDraft() {
@@ -562,8 +678,15 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   }
 
   async function handleImageUpload(file: File) {
-    if (!selectedSkinId) return;
+    if (!selectedSkinId) {
+      setSaveMessage({
+        tone: "err",
+        text: "Salve a skin primeiro para habilitar o upload.",
+      });
+      return;
+    }
     setUploading(true);
+    setSaveMessage(null);
     try {
       const body = new FormData();
       body.append("file", file);
@@ -572,9 +695,19 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
         method: "POST",
         body,
       });
-      if (!res.ok) return;
-      const json = (await res.json()) as { url?: string };
-      if (json.url) updateDraft("image", json.url);
+      const json = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok) {
+        setSaveMessage({
+          tone: "err",
+          text: json.error ?? "Falha no upload da imagem.",
+        });
+        return;
+      }
+      if (json.url) {
+        updateDraft("image", json.url);
+        setSaveMessage({ tone: "ok", text: "Imagem enviada com sucesso." });
+        router.refresh();
+      }
     } finally {
       setUploading(false);
     }
@@ -652,7 +785,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
           </Panel>
         </div>
 
-        <div className="mt-5 grid gap-5 xl:grid-cols-3">
+        <div className="mt-5 grid gap-5 xl:grid-cols-2">
           <Panel title="Rifas" icon={<Ticket size={17} />}>
             <Table
               rows={raffles.map((raffle) => [
@@ -664,39 +797,16 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
               onRowClick={(index) => openRaffleEdit(raffles[index])}
             />
           </Panel>
-          <Panel title="Compras e vendas" icon={<Coins size={17} />}>
-            <Table
-              rows={[
-                ...data.purchases.map((purchase) => [
-                  purchase.customerName,
-                  purchase.raffleTitle,
-                  formatBRL(purchase.total),
-                  purchase.status,
-                ]),
-                ...data.salesHistory.map((entry) => [
-                  entry.customerName,
-                  entry.description,
-                  formatBRL(entry.value),
-                  entry.type,
-                ]),
-                ...skinSalesRows.map((sale) => [
-                  "Loja",
-                  sale.skinName,
-                  formatBRL(sale.amount),
-                  sale.status,
-                ]),
-              ]}
-            />
-          </Panel>
           <Panel title="Financeiro" icon={<Calculator size={17} />}>
-            <Table
-              rows={financialEntries.map((entry) => [
-                entry.label,
-                entry.kind,
-                formatBRL(entry.amount),
-                entry.date,
-              ])}
-            />
+            <div className="max-h-[480px] space-y-3 overflow-y-auto pr-1">
+              {financialCards.length === 0 ? (
+                <p className="text-[12px] text-[#888888]">Nenhuma movimentacao ainda.</p>
+              ) : (
+                financialCards.map((card) => (
+                  <SkinFinancialCard key={card.skinId} card={card} />
+                ))
+              )}
+            </div>
           </Panel>
         </div>
       </section>
@@ -1055,8 +1165,10 @@ function SkinForm({
         title="Estoque e precificacao"
         description={
           compact
-            ? "Carregue uma skin existente ou comece do zero. Informe custo e lucro desejado."
-            : "Selecione uma skin do estoque para editar ou cadastre uma nova. Custo e lucro alimentam a calculadora."
+            ? "Informe custo e lucro para calcular o preco. Ao editar uma skin existente, os precos salvos permanecem ate voce alterar custo ou lucro."
+            : selectedSkinId
+              ? "Skin carregada do estoque. Precos de loja refletem o que foi salvo; altere custo ou lucro para recalcular."
+              : "Cadastro novo: informe custo e lucro — a calculadora preenche os precos automaticamente."
         }
       >
         <Field
@@ -1201,7 +1313,7 @@ function SkinForm({
 
           <FormSection
             title="Precos e publicacao"
-            description="Valores sincronizados pela calculadora; ajuste manual se necessario."
+            description="Na edicao, precos salvos permanecem ate alterar custo ou lucro. Ajuste manualmente se necessario."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Preco loja (BRL)">
@@ -1256,7 +1368,7 @@ function SkinForm({
             </div>
           </FormSection>
 
-          <FormSection title="Midia" description="URL ou upload apos salvar a skin pela primeira vez.">
+          <FormSection title="Midia" description="URL manual ou upload Blob apos salvar a skin.">
           <Field label="URL da imagem">
             <input
               value={draft.image}
@@ -1278,7 +1390,7 @@ function SkinForm({
             />
             {!selectedSkinId ? (
               <p className="text-[12px] text-[#888888]">
-                Salve a skin primeiro para habilitar upload Blob.
+                Salve a skin para habilitar upload Blob.
               </p>
             ) : null}
           </Field>
@@ -1447,6 +1559,33 @@ function Panel({
   );
 }
 
+function SkinFinancialCard({ card }: { card: SkinFinancialSummary }) {
+  return (
+    <article className="rounded-lg border border-white/[0.06] bg-[#1A1A1A] p-4">
+      <h3 className="text-[14px] font-semibold text-[#F0F0F0]">{card.skinName}</h3>
+      <div className="mt-3 grid gap-2 text-[13px]">
+        <p>
+          <span className="text-[#888888]">Custo </span>
+          <span className="font-medium tabular-nums text-[#EF4444]">
+            {card.cost != null ? formatBRL(card.cost) : "—"}
+          </span>
+        </p>
+        <p>
+          <span className="text-[#888888]">Venda </span>
+          <span className="font-medium tabular-nums text-[#22C55E]">
+            {card.sale != null ? formatBRL(card.sale) : "—"}
+          </span>
+        </p>
+        {card.lastDate ? (
+          <p className="text-[11px] uppercase tracking-[0.08em] text-[#555555]">
+            Data: {formatFinancialDate(card.lastDate)}
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function FormSection({
   title,
   description,
@@ -1581,8 +1720,8 @@ function StoreCalculatorPanel({
         ) : null}
       </div>
       <p className="mt-4 text-[12px] leading-5 text-[#888888]">
-        Valores sincronizam com a ficha ao alterar custo ou lucro. Edite antes de
-        salvar se precisar.
+        Ao alterar custo ou lucro, os precos da ficha sao recalculados. Na edicao,
+        precos ja salvos so mudam quando esses campos mudam.
       </p>
     </aside>
   );
