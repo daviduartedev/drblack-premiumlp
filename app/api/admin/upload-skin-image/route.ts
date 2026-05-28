@@ -1,4 +1,5 @@
 import { put } from "@vercel/blob";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateSkinImageUrl } from "@/lib/ruby-safira-repository";
@@ -47,6 +48,10 @@ export async function POST(request: Request) {
   if (!ok) {
     return NextResponse.json({ error: "Falha ao atualizar skin" }, { status: 500 });
   }
+
+  revalidatePath("/admin");
+  revalidatePath("/loja");
+  revalidatePath("/");
 
   return NextResponse.json({ url: blob.url });
 }

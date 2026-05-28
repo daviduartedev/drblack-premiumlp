@@ -119,6 +119,9 @@ export type StorePricingResult = {
   expectedProfit: number;
 };
 
+/** Margem promocional sobre `list_price` para auto-preencher `suggested_price`. */
+export const STORE_PROMO_MARGIN_PERCENT = 10;
+
 /** Precificação da loja (sem bilhetes). */
 export function calculateStorePricing(
   input: StorePricingInput
@@ -130,13 +133,16 @@ export function calculateStorePricing(
       : safePositive(input.desiredProfitValue, 0);
 
   const targetRevenue = roundCurrency(paidValue + desiredProfit);
+  const listPrice = targetRevenue;
+  const suggestedPrice =
+    input.profitMode === "percent" && paidValue > 0 && listPrice > 0
+      ? roundCurrency(listPrice * (1 + STORE_PROMO_MARGIN_PERCENT / 100))
+      : null;
+
   return {
     targetRevenue,
-    listPrice: targetRevenue,
-    suggestedPrice:
-      input.profitMode === "percent" && paidValue > 0
-        ? roundCurrency(paidValue * 1.1)
-        : null,
+    listPrice,
+    suggestedPrice,
     expectedProfit: roundCurrency(desiredProfit),
   };
 }

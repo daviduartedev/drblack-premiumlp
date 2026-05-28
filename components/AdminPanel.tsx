@@ -704,7 +704,13 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
         return;
       }
       if (json.url) {
-        updateDraft("image", json.url);
+        const imageUrl = json.url;
+        updateDraft("image", imageUrl);
+        setSkins((current) =>
+          current.map((skin) =>
+            skin.id === selectedSkinId ? { ...skin, image: imageUrl } : skin
+          )
+        );
         setSaveMessage({ tone: "ok", text: "Imagem enviada com sucesso." });
         router.refresh();
       }
@@ -1259,21 +1265,26 @@ function SkinForm({
                 searchPlaceholder="Filtrar acabamentos comuns"
               />
             </Field>
-            <Field label="Desgaste">
-              <SearchableCombobox
-                value={draft.wearLabel}
-                onChange={(wearLabel) => {
+            <Field label="Desgaste" hint="FN, MW, FT, WW ou BS">
+              <select
+                value={draft.wearLabel ?? ""}
+                onChange={(e) => {
+                  const wearLabel = e.target.value;
                   onUpdateDraft("wearLabel", wearLabel);
                   const suggested = suggestFloatForWear(wearLabel);
                   if (suggested != null && draft.float == null) {
                     onUpdateDraft("float", suggested);
                   }
                 }}
-                options={CS2_WEAR_LABELS}
-                allowCustom={false}
-                placeholder="FN, MW, FT..."
-                searchPlaceholder="Filtrar desgaste"
-              />
+                className="admin-input min-h-[48px]"
+              >
+                <option value="">Selecionar desgaste</option>
+                {CS2_WEAR_LABELS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="Raridade">
               <SearchableCombobox
@@ -1311,9 +1322,10 @@ function SkinForm({
             </div>
           </FormSection>
 
+          {!compact ? (
           <FormSection
             title="Precos e publicacao"
-            description="Na edicao, precos salvos permanecem ate alterar custo ou lucro. Ajuste manualmente se necessario."
+            description="Preco sugerido (riscado na loja) e promo sobre o preco loja. Na edicao, valores salvos permanecem ate alterar custo ou lucro."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Preco loja (BRL)">
@@ -1354,19 +1366,18 @@ function SkinForm({
                   ))}
                 </select>
               </Field>
-              {!compact ? (
-                <label className="flex min-h-[48px] items-center gap-2 rounded-lg border border-white/[0.06] bg-[#141414] px-4 text-[13px] text-[#F0F0F0] sm:col-span-2">
-                  <input
-                    type="checkbox"
-                    checked={draft.isFeatured}
-                    onChange={(e) => onUpdateDraft("isFeatured", e.target.checked)}
-                    disabled={draft.status !== "em_estoque"}
-                  />
-                  Exibir em Skins em destaque (max. 10)
-                </label>
-              ) : null}
+              <label className="flex min-h-[48px] items-center gap-2 rounded-lg border border-white/[0.06] bg-[#141414] px-4 text-[13px] text-[#F0F0F0] sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={draft.isFeatured}
+                  onChange={(e) => onUpdateDraft("isFeatured", e.target.checked)}
+                  disabled={draft.status !== "em_estoque"}
+                />
+                Exibir em Skins em destaque (max. 10)
+              </label>
             </div>
           </FormSection>
+          ) : null}
 
           <FormSection title="Midia" description="URL manual ou upload Blob apos salvar a skin.">
           <Field label="URL da imagem">
@@ -1714,14 +1725,15 @@ function StoreCalculatorPanel({
         <CalcMetric label="Preco lista" value={formatBRL(pricing.listPrice)} />
         {pricing.suggestedPrice != null ? (
           <CalcMetric
-            label="Preco sugerido"
+            label="Preco sugerido (promo)"
             value={formatBRL(pricing.suggestedPrice)}
           />
         ) : null}
       </div>
       <p className="mt-4 text-[12px] leading-5 text-[#888888]">
-        Ao alterar custo ou lucro, os precos da ficha sao recalculados. Na edicao,
-        precos ja salvos so mudam quando esses campos mudam.
+        Preco sugerido = preco loja + margem promocional. Ao alterar custo ou lucro,
+        os precos da ficha sao recalculados. Na edicao, precos ja salvos so mudam
+        quando esses campos mudam.
       </p>
     </aside>
   );
