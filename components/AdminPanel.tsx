@@ -178,6 +178,10 @@ function ActionFeedback({
   );
 }
 
+function roundBRL(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function parseSkinNameFromFinancialLabel(label: string): string {
   return label.replace(/^(Custo|Venda|Lucro)\s*[—–-]\s*/i, "").trim();
 }
@@ -245,6 +249,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [stockFilter, setStockFilter] = useState<SkinStatus | "todas">("em_estoque");
   const pricingBaselineRef = useRef<PricingTriggers | null>(null);
 
   const activeProfitMode = useMemo((): ProfitMode => {
@@ -351,6 +356,14 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const financialCards = useMemo(
     () => groupFinancialEntriesBySkin(financialEntries, skins),
     [financialEntries, skins]
+  );
+
+  const filteredSkins = useMemo(
+    () =>
+      stockFilter === "todas"
+        ? skins
+        : skins.filter((skin) => skin.status === stockFilter),
+    [skins, stockFilter]
   );
 
   function syncPricingBaseline(draftSnapshot: Omit<Skin, "id">) {
@@ -826,16 +839,63 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
         <div className="mt-5">
           <Panel title="Estoque" icon={<Package size={17} />}>
-            <p className="text-[14px] text-[#888888]">{skins.length} skins cadastradas</p>
+            <div className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  "todas",
+                  "em_estoque",
+                  "em_rifa",
+                  "vendida",
+                  "entregue",
+                  "arquivada",
+                ] as const
+              ).map((status) => {
+                const active = stockFilter === status;
+                const label = status === "todas" ? "Todas" : STATUS_LABEL[status];
+                const count =
+                  status === "todas"
+                    ? skins.length
+                    : skins.filter((s) => s.status === status).length;
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setStockFilter(status)}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.06em] transition-all ${
+                      active
+                        ? "bg-[#F5A623] text-black"
+                        : "border border-white/[0.1] text-[#888888] hover:border-white/20 hover:text-[#F0F0F0]"
+                    }`}
+                  >
+                    {label}
+                    <span
+                      className={`inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                        active
+                          ? "bg-black/20 text-black"
+                          : "bg-white/[0.08] text-[#888888]"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="mt-4 grid max-h-[720px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-              {skins.map((skin) => (
-                <SkinButton
-                  key={skin.id}
-                  skin={skin}
-                  selected={false}
-                  onClick={() => openSkinForm(skin)}
-                />
-              ))}
+              {filteredSkins.length === 0 ? (
+                <p className="col-span-full text-[13px] text-[#888888]">
+                  Nenhuma skin com este status.
+                </p>
+              ) : (
+                filteredSkins.map((skin) => (
+                  <SkinButton
+                    key={skin.id}
+                    skin={skin}
+                    selected={false}
+                    onClick={() => openSkinForm(skin)}
+                  />
+                ))
+              )}
             </div>
           </Panel>
         </div>
@@ -1079,6 +1139,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                     calculation={calculation}
                     suggestions={packageSuggestions}
                     selectedTicketCount={draft.ticketCount}
+                    selectedTicketPrice={draft.ticketPrice}
                     onSelectPackage={(item) => {
                       updateDraft("ticketCount", item.ticketCount);
                       updateDraft("ticketPrice", item.ticketPrice);
@@ -1801,13 +1862,20 @@ function CalculatorPanel({
   calculation,
   suggestions,
   selectedTicketCount,
+  selectedTicketPrice,
   onSelectPackage,
 }: {
   calculation: ReturnType<typeof calculateRaffleProfit>;
   suggestions: ReturnType<typeof suggestTicketPackages>;
   selectedTicketCount: number;
+  selectedTicketPrice: number;
   onSelectPackage: (item: ReturnType<typeof suggestTicketPackages>[number]) => void;
 }) {
+  const actualRevenue = roundBRL(selectedTicketCount * selectedTicketPrice);
+  const actualProfit = roundBRL(actualRevenue - calculation.breakEvenRevenue);
+  const actualMargin =
+    actualRevenue > 0 ? Math.round((actualProfit / actualRevenue) * 100 * 100) / 100 : 0;
+
   return (
     <aside className="rounded-2xl border border-white/[0.08] bg-[#1A1A1A]/80 px-5 py-6 sm:px-7 sm:py-7">
       <div className="flex items-center gap-2 border-b border-white/[0.06] pb-5 text-[#F5A623]">
@@ -1816,20 +1884,25 @@ function CalculatorPanel({
       </div>
 
       <div className="mt-6">
-        <p className="admin-section-label">Vender por</p>
+        <p className="admin-section-label">Receita total</p>
         <p className="mt-3 font-display text-[34px] font-bold leading-none text-[#F5A623] tabular-nums sm:text-[38px]">
-          {formatBRL(calculation.targetRevenueBeforeFees)}
+          {formatBRL(actualRevenue)}
         </p>
         <p className="mt-2 flex items-center gap-1.5 text-[13px] text-[#888888]">
           <TrendingUp size={15} className="text-[#22C55E]" />
-          Lucro esperado: {formatBRL(calculation.expectedProfit)}
+          Lucro esperado: {formatBRL(actualProfit)}
         </p>
+        {actualRevenue < calculation.targetRevenueBeforeFees ? (
+          <p className="mt-1 text-[12px] text-[#EF4444]">
+            Abaixo da meta ({formatBRL(calculation.targetRevenueBeforeFees)})
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <CalcMetric label="Bilhete" value={formatBRL(calculation.suggestedTicketPrice)} />
-        <CalcMetric label="Qtd." value={String(calculation.suggestedTicketCount)} />
-        <CalcMetric label="Margem" value={formatPercent(calculation.marginPercent)} />
+        <CalcMetric label="Bilhete" value={formatBRL(selectedTicketPrice)} />
+        <CalcMetric label="Qtd." value={String(selectedTicketCount)} />
+        <CalcMetric label="Margem" value={formatPercent(actualMargin)} />
         <CalcMetric label="Minimo" value={`${calculation.breakEvenTickets}`} />
       </div>
 
