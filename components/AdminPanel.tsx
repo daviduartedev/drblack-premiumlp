@@ -145,6 +145,39 @@ function pricingTriggersEqual(a: PricingTriggers, b: PricingTriggers): boolean {
   );
 }
 
+type PanelMessage = {
+  tone: "ok" | "err";
+  text: string;
+  anchor: "footer" | "upload";
+};
+
+function skinSaveSuccessMessage(isNewSkin: boolean): string {
+  return isNewSkin
+    ? "Skin cadastrada. Envie a foto abaixo ou feche o painel."
+    : "Skin atualizada com sucesso.";
+}
+
+function ActionFeedback({
+  message,
+  className = "",
+}: {
+  message: Pick<PanelMessage, "tone" | "text">;
+  className?: string;
+}) {
+  return (
+    <p
+      className={`rounded-lg border px-3 py-2 text-[13px] leading-snug ${className} ${
+        message.tone === "ok"
+          ? "border-[rgba(34,197,94,0.35)] bg-[rgba(34,197,94,0.08)] text-[#22C55E]"
+          : "border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.08)] text-[#EF4444]"
+      }`}
+      role="status"
+    >
+      {message.text}
+    </p>
+  );
+}
+
 function parseSkinNameFromFinancialLabel(label: string): string {
   return label.replace(/^(Custo|Venda|Lucro)\s*[—–-]\s*/i, "").trim();
 }
@@ -208,9 +241,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
   const [raffleTitle, setRaffleTitle] = useState("");
   const [drawDate, setDrawDate] = useState(defaultDrawDate);
   const [raffleStatus, setRaffleStatus] = useState<RaffleStatus>("ativa");
-  const [saveMessage, setSaveMessage] = useState<{ tone: "ok" | "err"; text: string } | null>(
-    null
-  );
+  const [saveMessage, setSaveMessage] = useState<PanelMessage | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSwitchingSkin, setIsSwitchingSkin] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -505,6 +536,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setSaveMessage({
         tone: "err",
         text: "Escolha se o lucro e percentual ou valor fixo.",
+        anchor: "footer",
       });
       return;
     }
@@ -516,9 +548,10 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     appendSkinFields(formData);
     formData.set("status", draft.status);
 
+    const isNewSkin = !selectedSkinId;
     const result = await saveSkinAction({ ok: false, message: "" }, formData);
     if (!result.ok) {
-      setSaveMessage({ tone: "err", text: result.message });
+      setSaveMessage({ tone: "err", text: result.message, anchor: "footer" });
       setIsSaving(false);
       return;
     }
@@ -538,7 +571,8 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
     setIsSaving(false);
     setSaveMessage({
       tone: "ok",
-      text: "Skin salva. Envie a imagem abaixo ou feche o painel quando terminar.",
+      text: skinSaveSuccessMessage(isNewSkin),
+      anchor: "footer",
     });
     router.refresh();
   }
@@ -549,6 +583,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setSaveMessage({
         tone: "err",
         text: "Escolha se o lucro e percentual ou valor fixo.",
+        anchor: "footer",
       });
       return;
     }
@@ -564,7 +599,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
     const result = await saveRaffleAction({ ok: false, message: "" }, formData);
     if (!result.ok) {
-      setSaveMessage({ tone: "err", text: result.message });
+      setSaveMessage({ tone: "err", text: result.message, anchor: "footer" });
       setIsSaving(false);
       return;
     }
@@ -600,7 +635,11 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
     setSelectedSkinId(persistedId);
     setIsSaving(false);
-    setSaveMessage({ tone: "ok", text: result.message });
+    setSaveMessage({
+      tone: "ok",
+      text: "Rifa cadastrada e publicada em /rifas.",
+      anchor: "footer",
+    });
     router.refresh();
     closePanel();
   }
@@ -622,7 +661,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
 
     const result = await updateRaffleAction({ ok: false, message: "" }, formData);
     if (!result.ok) {
-      setSaveMessage({ tone: "err", text: result.message });
+      setSaveMessage({ tone: "err", text: result.message, anchor: "footer" });
       setIsSaving(false);
       return;
     }
@@ -643,7 +682,11 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       )
     );
     setIsSaving(false);
-    setSaveMessage({ tone: "ok", text: result.message });
+    setSaveMessage({
+      tone: "ok",
+      text: finalize ? "Rifa finalizada com sucesso." : "Alteracoes da rifa salvas.",
+      anchor: "footer",
+    });
     router.refresh();
     closePanel();
   }
@@ -682,6 +725,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
       setSaveMessage({
         tone: "err",
         text: "Salve a skin primeiro para habilitar o upload.",
+        anchor: "footer",
       });
       return;
     }
@@ -700,6 +744,7 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
         setSaveMessage({
           tone: "err",
           text: json.error ?? "Falha no upload da imagem.",
+          anchor: "upload",
         });
         return;
       }
@@ -711,7 +756,11 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
             skin.id === selectedSkinId ? { ...skin, image: imageUrl } : skin
           )
         );
-        setSaveMessage({ tone: "ok", text: "Imagem enviada com sucesso." });
+        setSaveMessage({
+          tone: "ok",
+          text: "Imagem enviada e salva com sucesso.",
+          anchor: "upload",
+        });
         router.refresh();
       }
     } finally {
@@ -854,19 +903,6 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-8 sm:py-7">
-              {saveMessage ? (
-                <p
-                  className={`mb-4 rounded-lg border px-4 py-3 text-[13px] ${
-                    saveMessage.tone === "ok"
-                      ? "border-[rgba(34,197,94,0.35)] bg-[rgba(34,197,94,0.08)] text-[#22C55E]"
-                      : "border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.08)] text-[#EF4444]"
-                  }`}
-                  role="status"
-                >
-                  {saveMessage.text}
-                </p>
-              ) : null}
-
               {panelMode === "skin" ? (
                 <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-10">
                   <div className="min-w-0 flex-1">
@@ -888,6 +924,9 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                     onSave={saveDraft}
                     onArchive={archiveSelected}
                     onImageUpload={handleImageUpload}
+                    uploadMessage={
+                      saveMessage?.anchor === "upload" ? saveMessage : null
+                    }
                   />
                   </div>
                   <aside className="w-full shrink-0 xl:sticky xl:top-0 xl:w-[min(100%,340px)]">
@@ -1030,6 +1069,9 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                       onSave={saveDraft}
                       onArchive={archiveSelected}
                       onImageUpload={handleImageUpload}
+                      uploadMessage={
+                        saveMessage?.anchor === "upload" ? saveMessage : null
+                      }
                     />
                   </div>
                   <aside className="w-full shrink-0 xl:sticky xl:top-0 xl:w-[min(100%,360px)]">
@@ -1063,6 +1105,12 @@ export default function AdminPanel({ data }: { data: AdminDashboardDTO }) {
                       ? "Salvar alteracoes"
                       : "Salvar skin"}
               </button>
+              {saveMessage?.anchor === "footer" ? (
+                <ActionFeedback
+                  message={saveMessage}
+                  className="min-w-[min(100%,280px)] flex-1 sm:max-w-md"
+                />
+              ) : null}
               {panelMode === "raffle-edit" && raffleStatus === "ativa" ? (
                 <button
                   type="button"
@@ -1123,6 +1171,7 @@ function SkinForm({
   onSave,
   onArchive,
   onImageUpload,
+  uploadMessage = null,
 }: {
   skins: Skin[];
   selectedSkinId: string;
@@ -1142,6 +1191,7 @@ function SkinForm({
   onSave: () => void;
   onArchive: () => void;
   onImageUpload: (file: File) => void;
+  uploadMessage?: Pick<PanelMessage, "tone" | "text"> | null;
 }) {
   const inventoryOptions = useMemo(
     () => [
@@ -1389,18 +1439,26 @@ function SkinForm({
           </Field>
 
           <Field label="Upload de foto">
-            <input
-              type="file"
-              accept="image/*"
-              disabled={!selectedSkinId || uploading}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onImageUpload(file);
-              }}
-              className="min-h-[44px] w-full text-[13px] text-[#888888] file:mr-3 file:rounded-md file:border-0 file:bg-[#F5A623] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-black"
-            />
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <input
+                type="file"
+                accept="image/*"
+                disabled={!selectedSkinId || uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onImageUpload(file);
+                }}
+                className="min-h-[44px] w-full text-[13px] text-[#888888] file:mr-3 file:rounded-md file:border-0 file:bg-[#F5A623] file:px-3 file:py-2 file:text-[12px] file:font-semibold file:text-black sm:min-w-[200px] sm:flex-1"
+              />
+              {uploadMessage ? (
+                <ActionFeedback
+                  message={uploadMessage}
+                  className="w-full sm:min-w-[220px] sm:flex-1"
+                />
+              ) : null}
+            </div>
             {!selectedSkinId ? (
-              <p className="text-[12px] text-[#888888]">
+              <p className="mt-2 text-[12px] text-[#888888]">
                 Salve a skin para habilitar upload Blob.
               </p>
             ) : null}
